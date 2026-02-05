@@ -12,6 +12,10 @@ This folder will contain the native iOS app (SwiftUI) for the iPhone Hotspot Par
 
 ## Status
 This repo is being prepared on Linux.
-To create the Xcode project and run/build, we’ll need a macOS machine with recent Xcode (Catalina won’t work).
+To create the Xcode project and run/build, we can use **XcodeGen + Codemagic** (no modern local Xcode required).
+
+## XcodeGen workflow
+- Spec: `ios-app/xcodegen/project.yml`
+- Codemagic will run `xcodegen generate` to create `HotspotParent.xcodeproj`.
 
 See: `../docs/BUILD_PLAN_V1.md`

@@ -1,0 +1,69 @@
+workflows:
+  ios-ipa:
+    name: iOS (XcodeGen) → IPA artifact
+    max_build_duration: 60
+    environment:
+      vars:
+        XCODEGEN_DIR: ios-app/xcodegen
+        PROJECT_PATH: ios-app/xcodegen/HotspotParent.xcodeproj
+        SCHEME: HotspotParent
+        BUNDLE_ID: com.bazapps.hotspotparent
+        # If you want to set a different API default without editing code, wire this later via Info.plist or build settings.
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew update
+          brew install xcodegen
+      - name: Generate Xcode project
+        script: |
+          cd "$XCODEGEN_DIR"
+          xcodegen generate
+      - name: Build (simulator) – always works without signing
+        script: |
+          xcodebuild \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            build
+      - name: Archive (device) + Export IPA (requires signing)
+        script: |
+          set -e
+          ARCHIVE_PATH=$CM_BUILD_DIR/build/HotspotParent.xcarchive
+          EXPORT_PATH=$CM_BUILD_DIR/build/export
+          mkdir -p "$EXPORT_PATH"
+
+          echo "Attempting device archive + IPA export (will fail if signing isn't configured)…"
+
+          xcodebuild \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            archive
+
+          # Minimal export options; Codemagic code signing docs may require a different method (ad-hoc/app-store).
+          cat > $CM_BUILD_DIR/ExportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
+            -exportPath "$EXPORT_PATH"
+
+    artifacts:
+      - build/export/*.ipa
+      - build/**/*.xcarchive
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
