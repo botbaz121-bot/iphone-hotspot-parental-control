@@ -332,13 +332,15 @@ app.get('/auth/apple/start', (req, res) => {
     const state = randomState();
     // Minimal state storage: store in a short-lived cookie.
     // (Good enough for MVP; later we should store server-side.)
+    // Use SameSite=Lax and response_mode=query so the state cookie is sent back on the top-level redirect.
+    // (SameSite=Lax is NOT sent on cross-site POSTs, which breaks response_mode=form_post.)
     res.setHeader('Set-Cookie', [
       `apple_oauth_state=${state}; Max-Age=${10 * 60}; Path=/; HttpOnly; SameSite=Lax; Secure`
     ]);
 
     const params = new URLSearchParams({
       response_type: 'code',
-      response_mode: 'form_post',
+      response_mode: 'query',
       client_id: APPLE_SERVICE_ID,
       redirect_uri: APPLE_REDIRECT_URI,
       scope: 'name email',
