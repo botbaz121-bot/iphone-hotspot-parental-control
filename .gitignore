@@ -1,0 +1,14 @@
+# Node
+node_modules/
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.p8
+
+# OS
+.DS_Store
+
+# Local notes that may contain secrets
+**/render-postgres.local.md
