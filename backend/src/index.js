@@ -14,7 +14,8 @@ function env(name, fallback = undefined) {
   return v;
 }
 
-const HOST = env('HOST', '127.0.0.1');
+// On Render (and most PaaS), you must bind to 0.0.0.0 so the platform can route traffic.
+const HOST = env('HOST', '0.0.0.0');
 const PORT = Number(env('PORT', '3003'));
 const DATABASE_PATH = env('DATABASE_PATH', path.resolve('data/hotspot.sqlite3'));
 const ADMIN_TOKEN = env('ADMIN_TOKEN', 'change-me');
