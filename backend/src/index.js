@@ -112,6 +112,9 @@ app.use(
   })
 );
 
+// For Apple "form_post" return mode and other urlencoded callbacks.
+app.use(express.urlencoded({ extended: false }));
+
 // Optional request body logging (debugging). Never log Authorization headers.
 if (LOG_REQUEST_BODIES) {
   app.use((req, res, next) => {
@@ -232,6 +235,105 @@ function requireAdmin(req, res, next) {
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
+// --- Sign in with Apple (Web) ---
+const APPLE_TEAM_ID = env('APPLE_TEAM_ID');
+const APPLE_KEY_ID = env('APPLE_KEY_ID');
+const APPLE_SERVICE_ID = env('APPLE_SERVICE_ID');
+const APPLE_REDIRECT_URI = env('APPLE_REDIRECT_URI', `https://hotspot-api-ux32.onrender.com/auth/apple/callback`);
+const APPLE_PRIVATE_KEY = env('APPLE_PRIVATE_KEY');
+const APPLE_PRIVATE_KEY_PATH = env('APPLE_PRIVATE_KEY_PATH');
+
+function base64url(input) {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function appleLoadPrivateKey() {
+  if (APPLE_PRIVATE_KEY) return APPLE_PRIVATE_KEY;
+  if (APPLE_PRIVATE_KEY_PATH) return fs.readFileSync(APPLE_PRIVATE_KEY_PATH, 'utf8');
+  return null;
+}
+
+function appleMakeClientSecret() {
+  if (!APPLE_TEAM_ID || !APPLE_KEY_ID || !APPLE_SERVICE_ID) {
+    throw new Error('missing APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_SERVICE_ID');
+  }
+  const keyPem = appleLoadPrivateKey();
+  if (!keyPem) throw new Error('missing APPLE_PRIVATE_KEY or APPLE_PRIVATE_KEY_PATH');
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'ES256', kid: APPLE_KEY_ID, typ: 'JWT' };
+  const payload = {
+    iss: APPLE_TEAM_ID,
+    iat: now,
+    exp: now + 60 * 60 * 24 * 180, // max 6 months
+    aud: 'https://appleid.apple.com',
+    sub: APPLE_SERVICE_ID
+  };
+
+  const encodedHeader = base64url(JSON.stringify(header));
+  const encodedPayload = base64url(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+  const sign = crypto.createSign('sha256');
+  sign.update(signingInput);
+  sign.end();
+
+  // Apple expects ES256; Node will infer ECDSA from the EC private key.
+  // Use ieee-p1363 so the signature is raw R||S as required by JWS.
+  const signature = sign.sign({ key: keyPem, dsaEncoding: 'ieee-p1363' });
+  return `${signingInput}.${base64url(signature)}`;
+}
+
+async function appleTokenExchange(code) {
+  const secret = appleMakeClientSecret();
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: APPLE_REDIRECT_URI,
+    client_id: APPLE_SERVICE_ID,
+    client_secret: secret
+  });
+
+  const res = await fetch('https://appleid.apple.com/auth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  });
+
+  const txt = await res.text();
+  let json;
+  try {
+    json = JSON.parse(txt);
+  } catch {
+    json = { raw: txt };
+  }
+
+  if (!res.ok) {
+    const err = json?.error || res.status;
+    throw new Error(`apple token exchange failed: ${err}`);
+  }
+
+  return json;
+}
+
+// For now, we expose a minimal callback that exchanges the code and returns tokens.
+// Next step is to validate id_token, create a session, and redirect back to the app.
+app.all('/auth/apple/callback', async (req, res) => {
+  try {
+    const code = String(req.body?.code || req.query?.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'missing code' });
+
+    const out = await appleTokenExchange(code);
+    return res.json({ ok: true, apple: out });
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 // When running behind ngrok for testing, we want ONLY the Shortcut endpoints public.
 // ngrok forwards requests from the public internet to localhost, so IP-based checks won't help.
 // Instead, we gate admin surfaces by Host.
@@ -244,10 +346,17 @@ app.use((req, res, next) => {
   const host = req.headers.host;
   const localHost = isLocalHostHeader(host);
 
-  // Allow Shortcut endpoints + healthz from anywhere.
+  // Allow Shortcut endpoints + healthz + auth callbacks from anywhere.
   // HMAC auth applies to /policy and /events.
   // /pair is public but one-time and short-lived (pairing code).
-  if (req.path === '/healthz' || req.path === '/policy' || req.path === '/events' || req.path === '/pair') return next();
+  if (
+    req.path === '/healthz' ||
+    req.path === '/policy' ||
+    req.path === '/events' ||
+    req.path === '/pair' ||
+    req.path.startsWith('/auth/apple')
+  )
+    return next();
 
   // Block admin surfaces when accessed via a non-local Host (e.g., ngrok public URL).
   if (!localHost && (req.path === '/admin' || req.path.startsWith('/api/'))) {
