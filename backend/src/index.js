@@ -324,23 +324,38 @@ function randomState() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+// State storage for Apple OAuth (server-side, avoids SameSite cookie issues with form_post).
+db.exec(`
+CREATE TABLE IF NOT EXISTS apple_oauth_states (
+  state TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_apple_oauth_states_created ON apple_oauth_states(created_at);
+`);
+
+function appleStoreState(state) {
+  db.prepare('INSERT INTO apple_oauth_states (state, created_at) VALUES (?, ?)').run(state, Date.now());
+}
+
+function appleConsumeState(state, maxAgeMs = 10 * 60 * 1000) {
+  const row = db.prepare('SELECT state, created_at FROM apple_oauth_states WHERE state = ?').get(state);
+  if (!row) return false;
+  db.prepare('DELETE FROM apple_oauth_states WHERE state = ?').run(state);
+  if (Date.now() - Number(row.created_at) > maxAgeMs) return false;
+  return true;
+}
+
 // Start web auth: redirects user to Apple.
 app.get('/auth/apple/start', (req, res) => {
   try {
     if (!APPLE_SERVICE_ID) return res.status(500).json({ error: 'missing APPLE_SERVICE_ID' });
 
     const state = randomState();
-    // Minimal state storage: store in a short-lived cookie.
-    // (Good enough for MVP; later we should store server-side.)
-    // Use SameSite=Lax and response_mode=query so the state cookie is sent back on the top-level redirect.
-    // (SameSite=Lax is NOT sent on cross-site POSTs, which breaks response_mode=form_post.)
-    res.setHeader('Set-Cookie', [
-      `apple_oauth_state=${state}; Max-Age=${10 * 60}; Path=/; HttpOnly; SameSite=Lax; Secure`
-    ]);
+    appleStoreState(state);
 
     const params = new URLSearchParams({
       response_type: 'code',
-      response_mode: 'query',
+      response_mode: 'form_post',
       client_id: APPLE_SERVICE_ID,
       redirect_uri: APPLE_REDIRECT_URI,
       scope: 'name email',
@@ -359,20 +374,7 @@ app.get('/auth/apple/start', (req, res) => {
 app.all('/auth/apple/callback', async (req, res) => {
   try {
     const state = String(req.body?.state || req.query?.state || '').trim();
-    const cookieHeader = String(req.headers.cookie || '');
-    const cookies = Object.fromEntries(
-      cookieHeader
-        .split(';')
-        .map(p => p.trim())
-        .filter(Boolean)
-        .map(p => {
-          const i = p.indexOf('=');
-          if (i === -1) return [p, ''];
-          return [p.slice(0, i), decodeURIComponent(p.slice(i + 1))];
-        })
-    );
-    const expectedState = String(cookies.apple_oauth_state || '').trim();
-    if (!state || !expectedState || state !== expectedState) {
+    if (!state || !appleConsumeState(state)) {
       return res.status(400).json({ error: 'invalid state' });
     }
 
@@ -380,7 +382,17 @@ app.all('/auth/apple/callback', async (req, res) => {
     if (!code) return res.status(400).json({ error: 'missing code' });
 
     const out = await appleTokenExchange(code);
-    return res.json({ ok: true, apple: out });
+
+    // Apple only sends name/email (in req.body.user) the first time per user+app.
+    // Keep it visible for debugging now.
+    let user = null;
+    try {
+      if (req.body?.user) user = typeof req.body.user === 'string' ? JSON.parse(req.body.user) : req.body.user;
+    } catch {
+      user = { raw: req.body?.user };
+    }
+
+    return res.json({ ok: true, apple: out, user });
   } catch (e) {
     return res.status(400).json({ ok: false, error: String(e?.message || e) });
   }
