@@ -7,6 +7,12 @@ node_modules/
 *.pem
 *.p8
 
+# Backend local data + secrets
+backend/node_modules/
+backend/data/
+backend/deploy/*.env
+backend/deploy/*.service
+
 # OS
 .DS_Store
 
