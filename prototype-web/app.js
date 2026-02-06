@@ -231,8 +231,8 @@ function enrollmentSheet({ backTo }) {
                 alert('Copy failed (browser permissions)');
               }
             }
-          }, [iconSquare('qr'), 'Copy token']),
-          el('button', { class: 'btn ghost', onClick: () => alert('Regenerate (mock)') }, [iconSquare(), 'Regenerate']),
+          }, [iconSquare('copy'), 'Copy token']),
+          el('button', { class: 'btn ghost', onClick: () => alert('Regenerate (mock)') }, [iconSquare('refresh'), 'Regenerate']),
         ]),
         el('p', { class: 'small' }, 'The parent scans this on the child phone during pairing.'),
       ]),
@@ -465,7 +465,7 @@ function screenParentDashboard() {
             el('h1', { class: 'hero-title' }, 'Devices'),
             el('p', { class: 'hero-sub' }, 'Swipe to switch devices. Tap to open details.'),
           ]),
-          el('button', { class: 'btn', onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }) }, [iconSquare(), 'Enroll'])
+          el('button', { class: 'btn', onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }) }, [iconSquare('qr'), 'Enroll'])
         ]),
       ]),
 
@@ -480,7 +480,7 @@ function screenParentDashboard() {
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Quiet Time'), el('div', { class: 'v' }, device.quietTimeEnabled ? `${device.quietStart}–${device.quietEnd}` : 'OFF') ]),
         el('div', { class: 'hstack' }, [
           el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('phone'), 'Device details']),
-          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Child checklist']),
+          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare('checklist'), 'Child checklist']),
         ]),
       ]),
 
@@ -561,7 +561,7 @@ function screenParentDeviceDetails(deviceId) {
             el('input', { class: 'field', value: d.quietEnd, onInput: (e) => { d.quietEnd = e.target.value; } })
           ]),
         ]) : null,
-        el('button', { class: 'btn primary full', onClick: () => alert('Saved (mock)') }, [iconSquare('circle'), 'Save policy']),
+        el('button', { class: 'btn primary full', onClick: () => alert('Saved (mock)') }, [iconSquare('rules'), 'Save policy']),
       ].filter(Boolean)),
 
       el('div', { class: 'card vstack' }, [
@@ -579,8 +579,8 @@ function screenParentDeviceDetails(deviceId) {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Troubleshooting'),
-        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare(), 'Shortcut not running']),
-        el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare(), 'Remove device']),
+        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare('tool'), 'Shortcut not running']),
+        el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
       ]),
     ]),
   };
@@ -600,7 +600,7 @@ function screenParentSettings() {
             persist();
             route.go('/');
           }
-        }, [iconSquare(), 'Sign out']),
+        }, [iconSquare('logout'), 'Sign out']),
       ]),
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Debug'),
