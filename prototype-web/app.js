@@ -1,4 +1,4 @@
-// Hardstop — Clickable Mockup (static HTML/JS)
+// SpotCheck — Clickable Mockup (static HTML/JS)
 // No bundler. Keep it hackable.
 
 import { ICON_SVGS } from './iconset.js';
@@ -423,12 +423,12 @@ function enrollmentSheet({ backTo }) {
 
 function screenLanding() {
   return {
-    nav: navbar({ title: 'Hardstop' }),
+    nav: navbar({ title: 'SpotCheck' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'hero' }, [
         el('div', { class: 'hero-top' }, [
           el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Hardstop'),
+            el('h1', { class: 'hero-title' }, 'SpotCheck'),
             el('p', { class: 'hero-sub' }, 'High‑fidelity prototype to design parent + child setup flows (no iOS build).'),
           ]),
           el('span', { class: 'badge muted' }, 'Prototype'),
@@ -489,7 +489,7 @@ function screenParentOnboarding() {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'What this can do'),
-        el('div', { class: 'feature-row' }, [
+        el('div', { class: 'feature-grid' }, [
           featureTile({ icon: 'rules', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
           featureTile({ icon: 'checklist', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
           featureTile({ icon: 'alert', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).'}),
@@ -822,7 +822,7 @@ function screenChildOnboarding() {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'What you’ll do'),
-        el('div', { class: 'feature-row' }, [
+        el('div', { class: 'feature-grid' }, [
           featureTile({ icon: 'qr', title: 'Pair', sub: 'Scan a QR from the parent app to link this phone.' }),
           featureTile({ icon: 'checklist', title: 'Enable automations', sub: 'So the Shortcut can enforce Hotspot OFF and Quiet Time.' }),
           featureTile({ icon: 'alert', title: 'Stay protected', sub: 'If this stops running, the parent will see a tamper warning.' }),

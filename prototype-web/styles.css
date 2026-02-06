@@ -369,10 +369,19 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 .device-card .dc-meta{ margin-top: 10px; display:flex; gap: 10px; flex-wrap: wrap; }
 
 /* Feature tiles (onboarding) */
-.feature-row{ display:flex; flex-wrap:nowrap; gap: 12px; overflow-x:auto; overflow-y:hidden; padding: 4px 2px 10px 2px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling: touch; }
-.feature-row::-webkit-scrollbar{ height: 6px; }
-.feature-row::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius: var(--rPill); }
-.feature-tile{ min-width: 82%; scroll-snap-align:start; border-radius: 22px; padding: 16px; border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05); box-shadow: 0 18px 40px rgba(0,0,0,.42); }
+.feature-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.feature-tile{
+  min-width: 0;
+  border-radius: 22px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  box-shadow: 0 18px 40px rgba(0,0,0,.42);
+}
 .feature-top{ display:flex; align-items:center; gap: 12px; }
 .feature-icon{ width: 44px; height: 44px; border-radius: 16px; display:grid; place-items:center; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); }
 .feature-title{ font-weight: 850; letter-spacing: -0.2px; }
