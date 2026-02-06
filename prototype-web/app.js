@@ -186,31 +186,35 @@ function navbar({ title, backTo, rightText, rightButton }) {
 
 function parentTabs(active) {
   const items = [
+    { key: 'home', icon: 'home', to: '/parent/onboarding', aria: 'Welcome' },
     { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
   return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Parent tabs' }, items.map(it =>
     el('button', {
-      class: `btab ${active === it.key ? 'active' : ''}`,
+      class: `btab ${it.icon ? 'icon' : ''} ${active === it.key ? 'active' : ''}`,
       onClick: () => navTabGo(it.to),
       role: 'tab',
+      'aria-label': it.aria || it.label,
       'aria-selected': active === it.key ? 'true' : 'false'
-    }, it.label)
+    }, it.icon ? iconSquare(it.icon) : it.label)
   ));
 }
 
 function childTabs(active) {
   const items = [
+    { key: 'home', icon: 'home', to: '/child/onboarding', aria: 'Welcome' },
     { key: 'dashboard', label: 'Dashboard', to: '/child/dashboard' },
     { key: 'settings', label: 'Settings', to: '/child/settings' },
   ];
   return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Child tabs' }, items.map(it =>
     el('button', {
-      class: `btab ${active === it.key ? 'active' : ''}`,
+      class: `btab ${it.icon ? 'icon' : ''} ${active === it.key ? 'active' : ''}`,
       onClick: () => navTabGo(it.to),
       role: 'tab',
+      'aria-label': it.aria || it.label,
       'aria-selected': active === it.key ? 'true' : 'false'
-    }, it.label)
+    }, it.icon ? iconSquare(it.icon) : it.label)
   ));
 }
 
@@ -807,10 +811,10 @@ function screenChildOnboarding() {
           el('button', {
             class: 'btn primary',
             onClick: () => {
-              // Child phone experience always starts in child Settings.
+              // Child phone experience always starts in child flow.
               state.isChildPhone = true;
               persist();
-              route.go('/child/settings');
+              route.go('/child/dashboard');
             }
           }, [iconSquare('next'), 'Continue']),
         ]),
