@@ -610,6 +610,50 @@ function screenParentDashboard() {
       ].filter(Boolean)),
 
       el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Recent activity'),
+        el('div', { class: 'list' }, (device.activity || []).map(a =>
+          el('div', { class: 'row', onClick: () => alert('Open activity details (mock)') }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, a.msg),
+              el('div', { class: 'sub' }, a.t)
+            ]),
+            el('span', { class: 'badge muted' }, 'View')
+          ])
+        )),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Troubleshooting'),
+        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare('tool'), 'Shortcut not running']),
+        el('button', {
+          class: 'btn danger full',
+          onClick: () => {
+            const ok = confirm(`Remove “${device.name}”? (mock)`);
+            if (!ok) return;
+            state.devices = state.devices.filter(d => d.id !== device.id);
+            if (!state.devices.length) {
+              // Keep prototype stable: re-add a placeholder device.
+              state.devices = [{
+                id: 'dev_1',
+                name: 'Child iPhone',
+                status: 'SETUP',
+                lastCheckInMinutes: 0,
+                hotspotOff: true,
+                quietTimeEnabled: false,
+                quietStart: '22:00',
+                quietEnd: '07:00',
+                latest: { hotspotOff: 'unknown', rotatePassword: 'unknown' },
+                activity: [{ t: 'Now', msg: 'Device added (setup pending)' }],
+              }];
+            }
+            state.selectedDeviceId = state.devices[0].id;
+            persist();
+            render();
+          }
+        }, [iconSquare('trash'), 'Remove device']),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Tamper warning'),
         el('p', { class: 'p' }, stale
           ? 'No recent activity — device may be tampered with or automations stopped running.'
