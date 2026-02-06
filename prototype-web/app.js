@@ -235,7 +235,7 @@ function getDevice() {
 function toggleSwitch(on, onToggle) {
   return el('div', {
     class: `switch ${on ? 'on' : ''}`,
-    onClick: onToggle,
+    onClick: (e) => { e?.stopPropagation?.(); onToggle?.(e); },
     role: 'switch',
     'aria-checked': on ? 'true' : 'false'
   });
@@ -753,18 +753,21 @@ function screenParentSettings() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Mode'),
-        el('div', { class: 'toggle' }, [
-          el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'This is a child phone'),
-            el('div', { class: 'small' }, 'Show the child setup experience on this device')
-          ]),
-          toggleSwitch(state.isChildPhone, () => {
+        (() => {
+          const flip = () => {
             state.isChildPhone = !state.isChildPhone;
             persist();
             // Always flip between the two Settings screens.
             route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
-          }),
-        ]),
+          };
+          return el('div', { class: 'toggle', onClick: flip }, [
+            el('div', {}, [
+              el('div', { style: 'font-weight:720' }, 'This is a child phone'),
+              el('div', { class: 'small' }, 'Show the child setup experience on this device')
+            ]),
+            toggleSwitch(state.isChildPhone, flip),
+          ]);
+        })(),
       ]),
 
       el('div', { class: 'card vstack' }, [
@@ -803,18 +806,21 @@ function screenChildSettings() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Mode'),
-        el('div', { class: 'toggle' }, [
-          el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'This is a child phone'),
-            el('div', { class: 'small' }, 'Show the child setup experience on this device')
-          ]),
-          toggleSwitch(state.isChildPhone, () => {
+        (() => {
+          const flip = () => {
             state.isChildPhone = !state.isChildPhone;
             persist();
             // Always flip between the two Settings screens.
             route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
-          }),
-        ]),
+          };
+          return el('div', { class: 'toggle', onClick: flip }, [
+            el('div', {}, [
+              el('div', { style: 'font-weight:720' }, 'This is a child phone'),
+              el('div', { class: 'small' }, 'Show the child setup experience on this device')
+            ]),
+            toggleSwitch(state.isChildPhone, flip),
+          ]);
+        })(),
       ]),
 
       el('div', { class: 'card vstack' }, [
