@@ -1,4 +1,4 @@
-# Hotspot Parent — Mockups (v0.2)
+# SpotCheck — Mockups (v0.3)
 
 This document is **planning-first**: screens, flows, copy, and required backend/Shortcut hooks.
 
@@ -12,19 +12,24 @@ This is a **two-mode** app installed on **both phones** (the parent sets up both
 - **Parent mode** (admin UI)
 - **Setup Child Device mode** (pairing + config file generator for the Shortcut)
 
-On first launch, choose a mode:
+On first launch (or in Settings), choose a mode:
 - [Parent phone]
-- [Set up child phone]
+- [Child phone]
 
 ### Parent mode (signed-in)
 Bottom tabs:
+- **Home** (returns to root welcome)
 - **Dashboard**
-- **Devices**
 - **Settings**
 
-### Setup Child Device mode
-Single flow (no tabs needed for MVP):
-- Pair device → Store config in-app → Shortcut reads config via App Intent (fallback: export json)
+### Child phone mode
+Flow:
+- **Welcome (instructions)** → **Dashboard** (checklist-style progress) → **Settings** (pairing + mode)
+
+Bottom tabs:
+- **Home** (returns to root welcome)
+- **Dashboard**
+- **Settings**
 
 
 ---
@@ -49,9 +54,9 @@ Single flow (no tabs needed for MVP):
 5) Policy defaults per device: **Hotspot OFF = ON**, Quiet Time optional
 6) Setup guide for child device (install Child app + Shortcut)
 
-### Flow B — Set up child phone (parent using the child phone)
-1) Onboarding
-2) Choose mode: **Set up child phone**
+### Flow B — Child phone first run (parent holding the child phone)
+1) Welcome (instructions)
+2) Ensure mode is **Child phone**
 3) Pair device (scan QR / enter code)
 4) Store config securely in the app (deviceId/deviceSecret/apiBaseURL)
 5) Install the Shortcut + add **App Intent** step (“Get Hotspot Config”)
@@ -87,7 +92,7 @@ Notation:
 
 ### 0) Onboarding
 
-**Welcome to Hotspot Parent**
+**Welcome to SpotCheck**
 - Subtitle: “Shortcuts-only hotspot control + visibility.”
 
 Mode selection:
@@ -128,10 +133,11 @@ Nav title: **Dashboard**
 
 Top: **Device switcher**
 - Horizontal paging/swipe between devices (like cards)
+- Last tile in the carousel is a big CTA: **[Enroll device]** (scroll right to reveal)
 
-Per-device card shows:
+Per-device content shows:
 
-Section: **Status**
+Section: **Device rules**
 - “Hotspot OFF: ON/OFF” (per device)
 - “Quiet Time: ON/OFF” (per device)
   - If ON: show “22:00–07:00”
@@ -140,32 +146,16 @@ Section: **Device status**
 - “Last seen: 12 min ago”
 - If stale: `⚠️ Device may be tampered (no recent activity for 2h 10m)`
 
-Section: **Quick actions**
-- [Open Device Details]
-- [Setup Guide]
+Section: **Recent activity**
+- Timeline list
 
-Global summary (small, optional):
-- “Devices with tamper warnings: 1”
-
-Pull to refresh.
+Section: **Troubleshooting**
+- [Shortcut not running]
+- [Remove device]
 
 ---
 
-### 3) Devices (tab)
-
-Nav title: **Devices**
-
-List rows:
-- Device name (e.g., “Child iPhone”)
-  - Subtitle: “Last seen 12m ago”
-  - Badge: `OK` / `GAP` / `SETUP` / `OFFLINE`
-
-Actions:
-- [+ Add Device]
-
----
-
-### 4) Add Device — Enrollment QR
+### 3) Enroll Device — Enrollment QR
 
 Nav title: **Enroll Device**
 
