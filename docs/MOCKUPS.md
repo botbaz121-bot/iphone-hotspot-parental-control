@@ -8,13 +8,13 @@ This document is **planning-first**: screens, flows, copy, and required backend/
 
 ## Information Architecture
 
-This is a **two-role** app installed on **both phones**:
+This is a **two-mode** app installed on **both phones** (the parent sets up both):
 - **Parent mode** (admin UI)
-- **Child mode** (pairing + config file generator for the Shortcut)
+- **Setup Child Device mode** (pairing + config file generator for the Shortcut)
 
 On first launch, choose a mode:
-- [I’m a Parent]
-- [I’m a Child]
+- [Parent phone]
+- [Set up child phone]
 
 ### Parent mode (signed-in)
 Bottom tabs:
@@ -49,9 +49,9 @@ Single flow (no tabs needed for MVP):
 5) Policy defaults per device: **Hotspot OFF = ON**, Quiet Time optional
 6) Setup guide for child device (install Child app + Shortcut)
 
-### Flow B — Child first run
+### Flow B — Set up child phone (parent using the child phone)
 1) Onboarding
-2) Choose mode: **Child**
+2) Choose mode: **Set up child phone**
 3) Pair device (scan QR / enter code)
 4) Generate `hotspot-config.json`
 5) Export file to **Files → On My iPhone → Shortcuts** as **`hotspot-config.json`** so the Shortcut can read it
@@ -88,8 +88,8 @@ Notation:
 - Subtitle: “Shortcuts-only hotspot control + visibility.”
 
 Mode selection:
-- [I’m a Parent]
-- [I’m a Child]
+- [Parent phone]
+- [Set up child phone]
 
 Cards:
 - **What this can do**
