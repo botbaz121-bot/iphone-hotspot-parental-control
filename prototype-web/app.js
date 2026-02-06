@@ -23,6 +23,7 @@ const el = (tag, attrs = {}, children = []) => {
 const state = {
   mode: localStorage.getItem('hp.mode') || null, // parent|childsetup
   signedIn: localStorage.getItem('hp.signedIn') === '1',
+  isChildPhone: localStorage.getItem('hp.isChildPhone') === '1',
   parentName: 'Leon',
   devices: [
     {
@@ -72,6 +73,7 @@ const state = {
 const persist = () => {
   localStorage.setItem('hp.mode', state.mode || '');
   localStorage.setItem('hp.signedIn', state.signedIn ? '1' : '0');
+  localStorage.setItem('hp.isChildPhone', state.isChildPhone ? '1' : '0');
   localStorage.setItem('hp.selectedDeviceId', state.selectedDeviceId);
 };
 
@@ -745,6 +747,17 @@ function screenParentSettings() {
     nav: navbar({ title: 'Settings' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Mode'),
+        el('div', { class: 'toggle' }, [
+          el('div', {}, [
+            el('div', { style: 'font-weight:720' }, 'This is a child phone'),
+            el('div', { class: 'small' }, 'Show the child setup experience on this device')
+          ]),
+          toggleSwitch(state.isChildPhone, () => { state.isChildPhone = !state.isChildPhone; persist(); render(); }),
+        ]),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Account'),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Signed in'), el('div', { class: 'v' }, state.signedIn ? 'Yes' : 'No') ]),
         el('button', {
@@ -756,6 +769,7 @@ function screenParentSettings() {
           }
         }, [iconSquare('logout'), 'Sign out']),
       ]),
+
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Debug'),
         el('p', { class: 'p' }, 'Static prototype. No server, no push, no background tasks.'),
