@@ -386,9 +386,9 @@ function screenParentOnboarding() {
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'What this can do'),
         el('div', { class: 'feature-row' }, [
-          featureTile({ icon: 'circle', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
-          featureTile({ icon: 'square', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
-          featureTile({ icon: 'square', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).'}),
+          featureTile({ icon: 'rules', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
+          featureTile({ icon: 'checklist', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
+          featureTile({ icon: 'alert', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).'}),
         ]),
       ]),
 
