@@ -31,26 +31,32 @@ public struct SignInView: View {
         SignInWithAppleButton { request in
           request.requestedScopes = []
         } onCompletion: { result in
-          // This is a stub: we *do not* verify tokens or talk to a backend.
+          // MVP: we don't exchange/verify tokens yet.
           switch result {
             case .success:
               let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
               model.signInStub(userID: userID)
             case .failure(let error):
-              status = "Apple sign-in failed: \(error.localizedDescription)"
+              status = "Apple sign-in failed: \(error)"
           }
         }
         .signInWithAppleButtonStyle(.black)
         .frame(height: 48)
         .padding(.horizontal)
 
-        Text("Sign in with Apple is currently a local stub (no backend exchange).")
+        Button("Continue without Apple (dev)") {
+          let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
+          model.signInStub(userID: userID)
+        }
+        .buttonStyle(.bordered)
+
+        Text("Sign in with Apple may fail until the capability is enabled for this App ID. The app can run with a local stub for now.")
           .font(.footnote)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
           .padding(.horizontal)
         #else
-        Button("Sign in (stub)") {
+        Button("Continue (stub)") {
           let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
           model.signInStub(userID: userID)
         }
