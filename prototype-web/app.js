@@ -1,10 +1,11 @@
 // Hotspot Parent — Clickable Mockup (static HTML/JS)
-// No bundler, no framework. Keep it hackable.
+// No bundler. Keep it hackable.
 
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
     if (k === 'class') node.className = v;
+    else if (k === 'style') node.setAttribute('style', v);
     else if (k === 'html') node.innerHTML = v;
     else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
     else if (v !== undefined) node.setAttribute(k, v);
@@ -83,19 +84,24 @@ const route = {
 };
 
 const appRoot = document.getElementById('app');
-
-// Add a class so Framework7 styles apply
 appRoot.classList.add('f7');
 
-function navbar({ title, backTo, rightText }) {
+/* ---------- UI helpers ---------- */
+
+function iconSquare(extraClass = '') {
+  return el('span', { class: `ic ${extraClass}`.trim(), 'aria-hidden': 'true' });
+}
+
+function navbar({ title, backTo, rightText, rightButton }) {
   return el('div', { class: 'navbar' },
     el('div', { class: 'navbar-inner' }, [
       backTo
         ? el('button', { class: 'iconbtn', onClick: () => route.go(backTo), 'aria-label': 'Back' }, '‹')
-        : el('div', { style: 'width:36px' }),
+        : el('div', { style: 'width:38px' }),
       el('div', { class: 'nav-title' }, title),
-      el('div', { class: 'nav-sub' }, rightText || ''),
-    ])
+      rightText ? el('div', { class: 'nav-sub' }, rightText) : el('div', { class: 'nav-sub' }, ''),
+      rightButton || null,
+    ].filter(Boolean))
   );
 }
 
@@ -107,9 +113,7 @@ function tabs(active) {
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
   return el('div', { class: 'tabs' }, items.map(it =>
-    el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, [
-      el('div', { class: 'small' }, it.label),
-    ])
+    el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
   ));
 }
 
@@ -125,52 +129,189 @@ function getDevice() {
 }
 
 function toggleSwitch(on, onToggle) {
-  return el('div', { class: `switch ${on ? 'on' : ''}`, onClick: onToggle, role: 'switch', 'aria-checked': on ? 'true' : 'false' });
+  return el('div', {
+    class: `switch ${on ? 'on' : ''}`,
+    onClick: onToggle,
+    role: 'switch',
+    'aria-checked': on ? 'true' : 'false'
+  });
 }
 
-// Screens
+/* ---------- Bottom sheet modal ---------- */
+
+let activeSheet = null;
+
+function closeSheet() {
+  if (!activeSheet) return;
+  const { scrim, sheet, onClose } = activeSheet;
+  scrim.classList.remove('open');
+  sheet.classList.remove('open');
+  document.documentElement.style.overflow = '';
+
+  // Let the animation finish.
+  window.setTimeout(() => {
+    scrim.remove();
+    sheet.remove();
+    if (typeof onClose === 'function') onClose();
+  }, 180);
+  activeSheet = null;
+}
+
+function openSheet({ title, body, actions = [], onClose }) {
+  closeSheet();
+
+  const scrim = el('div', { class: 'sheet-scrim', onClick: closeSheet, role: 'button', 'aria-label': 'Close dialog' });
+  const sheet = el('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true' }, [
+    el('div', { class: 'sheet-handle', 'aria-hidden': 'true' }),
+    el('div', { class: 'sheet-header' }, [
+      el('div', { class: 'sheet-title' }, title || ''),
+      el('button', { class: 'iconbtn', onClick: closeSheet, 'aria-label': 'Close' }, '×')
+    ]),
+    el('div', { class: 'sheet-body' }, [
+      body,
+      actions?.length
+        ? el('div', { class: 'sheet-actions' }, actions)
+        : null
+    ].filter(Boolean)),
+  ]);
+
+  document.body.appendChild(scrim);
+  document.body.appendChild(sheet);
+  document.documentElement.style.overflow = 'hidden';
+
+  // Next frame: animate open.
+  requestAnimationFrame(() => {
+    scrim.classList.add('open');
+    sheet.classList.add('open');
+  });
+
+  const onKey = (e) => {
+    if (e.key === 'Escape') closeSheet();
+  };
+  window.addEventListener('keydown', onKey, { once: true });
+
+  activeSheet = { scrim, sheet, onClose };
+}
+
+function enrollmentSheet({ backTo }) {
+  const token = 'ABCD1234-EFGH-IJKL';
+  openSheet({
+    title: 'Enroll device',
+    body: el('div', { class: 'vstack' }, [
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, 'Enrollment token'),
+        el('div', { class: 'kv' }, [
+          el('div', { class: 'k' }, 'Token'),
+          el('div', { class: 'v' }, token)
+        ]),
+        el('div', { class: 'hstack' }, [
+          el('button', {
+            class: 'btn',
+            onClick: async () => {
+              try {
+                await navigator.clipboard.writeText(token);
+                alert('Copied');
+              } catch {
+                alert('Copy failed (browser permissions)');
+              }
+            }
+          }, [iconSquare('circle'), 'Copy']),
+          el('button', { class: 'btn ghost', onClick: () => alert('Regenerate (mock)') }, [iconSquare(), 'Regenerate']),
+        ])
+      ]),
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, 'Next on the child phone'),
+        el('p', { class: 'p' }, 'Install the app → Set up child phone → Pair device → Install the Shortcut → Create automations → Apply Screen Time lock.'),
+      ]),
+    ]),
+    actions: [
+      el('button', { class: 'btn primary full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, [iconSquare('circle'), 'Go to child setup']),
+      backTo ? el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Done') : null,
+    ].filter(Boolean),
+  });
+}
+
+/* ---------- Screens ---------- */
+
 function screenLanding() {
   return {
     nav: navbar({ title: 'Hotspot Parent' }),
     body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h1' }, 'Hotspot Parent'),
-        el('p', { class: 'p' }, 'Clickable mockup to plan flows without iOS builds.'),
-        el('hr', { class: 'sep' }),
-        el('div', { class: 'h2' }, 'Choose mode'),
-        el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, 'Parent phone'),
-          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, 'Set up child phone'),
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Hotspot Parent'),
+            el('p', { class: 'hero-sub' }, 'High‑fidelity prototype to design parent + child setup flows (no iOS build).'),
+          ]),
+          el('span', { class: 'badge muted' }, 'Prototype'),
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('circle'), 'Parent phone']),
+          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare(), 'Set up child phone']),
         ]),
       ]),
+
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Notes'),
-        el('p', { class: 'p' }, 'Shortcuts-only enforcement. Child phone still installs the app so it can pair and provide config to the Shortcut via App Intent.'),
+        el('div', { class: 'h2' }, 'What this models'),
+        el('p', { class: 'p' }, 'Shortcuts-only enforcement (hotspot off + password rotation), device activity signals, and a guided child-phone checklist.'),
       ]),
+
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Reset mockup'),
-        el('button', { class: 'btn danger', onClick: () => { localStorage.clear(); location.hash = '#/'; location.reload(); } }, 'Clear local state'),
+        el('button', {
+          class: 'btn danger',
+          onClick: () => {
+            localStorage.clear();
+            location.hash = '#/';
+            location.reload();
+          }
+        }, [iconSquare(), 'Clear local state']),
+        el('p', { class: 'small' }, 'Clears localStorage only (no server).'),
       ]),
     ]),
   };
+}
+
+function featureTile({ icon, title, sub }) {
+  return el('div', { class: 'feature-tile' }, [
+    el('div', { class: 'feature-top' }, [
+      el('div', { class: 'feature-icon' }, iconSquare(icon)),
+      el('div', { class: 'feature-title' }, title),
+    ]),
+    el('div', { class: 'feature-sub' }, sub),
+  ]);
 }
 
 function screenParentOnboarding() {
   return {
     nav: navbar({ title: 'Welcome', backTo: '/' }),
     body: el('div', { class: 'content' }, [
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Welcome'),
+            el('p', { class: 'hero-sub' }, 'Set rules, guide setup on the child phone, and get a simple tamper warning if it stops running.'),
+          ]),
+          el('span', { class: 'badge muted' }, 'Parent'),
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('circle'), 'Continue']),
+          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare(), 'Set up child phone']),
+        ]),
+      ]),
+
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h1' }, 'Welcome'),
-        el('p', { class: 'p' }, 'This app helps parents deter hotspot use via Shortcuts and track device activitys.'),
-        el('div', { class: 'card', style: 'box-shadow:none; background: rgba(255,255,255,.04)' }, [
-          el('div', { class: 'h2' }, 'What this can do'),
-          el('p', { class: 'p' }, '• Set per-device policy (Hotspot OFF + Quiet Time)\n• Guide child phone setup\n• Show last activity + activity')
+        el('div', { class: 'h2' }, 'What this can do'),
+        el('div', { class: 'feature-row' }, [
+          featureTile({ icon: 'circle', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
+          featureTile({ icon: 'square', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
+          featureTile({ icon: 'square', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).'}),
         ]),
-        el('div', { class: 'card', style: 'box-shadow:none; background: rgba(255,255,255,.04)' }, [
-          el('div', { class: 'h2' }, 'Constraint'),
-          el('p', { class: 'p' }, 'iOS apps can’t reliably toggle Personal Hotspot directly; enforcement is performed by the Shortcut.')
-        ]),
-        el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, 'Continue'),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Constraints'),
+        el('p', { class: 'p' }, 'iOS apps can’t reliably toggle Personal Hotspot directly; enforcement is performed by the Shortcut on the device.'),
       ]),
     ]),
   };
@@ -182,61 +323,86 @@ function screenParentSignIn() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h1' }, 'Sign In'),
-        el('p', { class: 'p' }, 'Mock sign-in (Sign in with Apple in real app).'),
-        el('button', { class: 'btn primary', onClick: () => { state.signedIn = true; persist(); route.go('/parent/dashboard'); } }, 'Sign in'),
+        el('p', { class: 'p' }, 'Mock sign‑in (Sign in with Apple in the real app).'),
+        el('button', {
+          class: 'btn primary full',
+          onClick: () => {
+            state.signedIn = true;
+            persist();
+            route.go('/parent/dashboard');
+          }
+        }, [iconSquare('circle'), 'Sign in']),
       ]),
     ]),
   };
 }
 
+function deviceCarousel() {
+  const device = getDevice();
+  return el('div', { class: 'pager', id: 'devicePager' }, state.devices.map(d => {
+    const stale = d.lastCheckInMinutes >= 120;
+    return el('div', {
+      class: `device-card ${d.id === state.selectedDeviceId ? 'selected' : ''}`,
+      role: 'button',
+      'aria-label': `Select ${d.name}`,
+      onClick: () => {
+        state.selectedDeviceId = d.id;
+        persist();
+        render();
+      }
+    }, [
+      el('div', { class: 'dc-title' }, [
+        el('div', { class: 'dc-name' }, d.name),
+        badgeFor(d.status)
+      ]),
+      el('div', { class: 'dc-meta' }, [
+        el('span', { class: `badge ${stale ? 'warn' : 'good'}` }, stale ? `Last seen ${d.lastCheckInMinutes}m` : `Seen ${d.lastCheckInMinutes}m`),
+        el('span', { class: 'badge muted' }, d.hotspotOff ? 'Hotspot OFF' : 'Hotspot ON'),
+        el('span', { class: 'badge muted' }, d.quietTimeEnabled ? `Quiet ${d.quietStart}–${d.quietEnd}` : 'Quiet OFF'),
+      ]),
+    ]);
+  }));
+}
+
 function screenParentDashboard() {
   const device = getDevice();
   const stale = device.lastCheckInMinutes >= 120;
+
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}` }),
     body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero vstack' }, [
-        el('div', { class: 'h2' }, 'Devices'),
-        el('div', { class: 'device-pager' }, state.devices.map(d =>
-          el('div', {
-            class: `device-tile ${d.id === state.selectedDeviceId ? 'active' : ''}`,
-            onClick: () => { state.selectedDeviceId = d.id; persist(); render(); }
-          }, [
-            el('div', { class: 'hstack', style: 'justify-content:space-between' }, [
-              el('div', { class: 'device-title' }, d.name),
-              badgeFor(d.status),
-            ]),
-            el('div', { class: 'device-sub' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
-            el('div', { class: 'hstack', style: 'margin-top:12px' }, [
-              el('button', { class: 'btn primary', onClick: (e) => { e.stopPropagation(); state.selectedDeviceId = d.id; persist(); route.go(`/parent/device/${d.id}`); } }, 'Details'),
-              el('button', { class: 'btn', onClick: (e) => { e.stopPropagation(); state.selectedDeviceId = d.id; persist(); render(); } }, d.id === state.selectedDeviceId ? 'Selected' : 'Select'),
-            ]),
-          ])
-        )),
-        el('div', { class: 'hstack', style: 'justify-content:space-between; margin-top:10px' }, [
-          el('button', { class: 'btn', onClick: () => route.go('/parent/add-device') }, '+ Add device'),
-          el('button', { class: 'btn', onClick: () => route.go('/parent/devices') }, 'All devices'),
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Devices'),
+            el('p', { class: 'hero-sub' }, 'Swipe to switch devices. Tap to open details.'),
+          ]),
+          el('button', { class: 'btn', onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }) }, [iconSquare(), 'Enroll'])
         ]),
       ]),
 
+      deviceCarousel(),
+
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Policy status'),
+        el('div', { class: 'hstack', style: 'justify-content:space-between' }, [
+          el('div', { class: 'h2' }, 'Policy status'),
+          stale ? el('span', { class: 'badge warn' }, 'Check-in stale') : el('span', { class: 'badge good' }, 'Active'),
+        ]),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Hotspot OFF'), el('div', { class: 'v' }, device.hotspotOff ? 'ON' : 'OFF') ]),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Quiet Time'), el('div', { class: 'v' }, device.quietTimeEnabled ? `${device.quietStart}–${device.quietEnd}` : 'OFF') ]),
+        el('div', { class: 'hstack' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('circle'), 'Device details']),
+          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Child checklist']),
+        ]),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Tamper warning'),
         el('p', { class: 'p' }, stale
-          ? '⚠️ Device may have been tampered with (no recent activity).'
-          : 'No tamper warning (recent activity).'
+          ? 'No recent activity — device may be tampered with or automations stopped running.'
+          : 'No warning (recent activity).'
         ),
-        el('p', { class: 'p' }, 'If this persists: check automations, Shortcut still installed, network access, and Screen Time lock.'),
-      ]),
-
-      el('div', { class: 'card hstack' }, [
-        el('button', { class: 'btn', onClick: () => route.go('/child/onboarding') }, 'Set up child phone'),
-        el('button', { class: 'btn', onClick: () => route.go('/parent/settings') }, 'Settings'),
+        el('p', { class: 'small' }, 'Troubleshoot: verify automations, Shortcut is present, network access, and Screen Time passcode.'),
       ]),
     ]),
     tabs: tabs('dashboard'),
@@ -245,10 +411,10 @@ function screenParentDashboard() {
 
 function screenParentDevices() {
   return {
-    nav: navbar({ title: 'Devices' }),
+    nav: navbar({ title: 'Devices', rightText: `${state.devices.length} total` }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Devices'),
+        el('div', { class: 'h2' }, 'All devices'),
         el('div', { class: 'list' }, state.devices.map(d =>
           el('div', { class: 'row', onClick: () => route.go(`/parent/device/${d.id}`) }, [
             el('div', {}, [
@@ -258,46 +424,22 @@ function screenParentDevices() {
             badgeFor(d.status),
           ])
         )),
-        el('button', { class: 'btn primary', onClick: () => route.go('/parent/add-device') }, '+ Add device'),
+        el('button', { class: 'btn primary full', onClick: () => enrollmentSheet({ backTo: '/parent/devices' }) }, [iconSquare('circle'), 'Enroll a device']),
       ]),
     ]),
     tabs: tabs('devices'),
   };
 }
 
-function screenParentAddDevice() {
-  const token = 'ABCD1234-EFGH-IJKL';
-  return {
-    nav: navbar({ title: 'Enroll Device', backTo: '/parent/devices' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Enrollment token'),
-        el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Token'), el('div', { class: 'v' }, token) ]),
-        el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn', onClick: async () => { await navigator.clipboard.writeText(token); alert('Copied'); } }, 'Copy'),
-          el('button', { class: 'btn', onClick: () => alert('Regenerate (mock)') }, 'Regenerate'),
-        ]),
-      ]),
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Next on the child phone'),
-        el('p', { class: 'p' }, '1) Install the app on the child phone\n2) Open app → Set up child phone → Pair device → Scan QR\n3) Install the Shortcut\n4) Ensure Shortcut starts with “Get Hotspot Config”\n5) Create automations\n6) Apply Screen Time lock'),
-        el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/onboarding') }, 'Go to child setup'),
-          el('button', { class: 'btn', onClick: () => alert('Open Shortcut link (mock)') }, 'Open Shortcut link'),
-        ]),
-      ]),
-    ]),
-  };
-}
-
 function screenParentDeviceDetails(deviceId) {
   const d = state.devices.find(x => x.id === deviceId) || getDevice();
   const stale = d.lastCheckInMinutes >= 120;
+
   return {
     nav: navbar({ title: d.name, backTo: '/parent/devices' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'hstack' }, [
+        el('div', { class: 'hstack', style: 'justify-content:space-between' }, [
           el('div', { class: 'h2' }, 'Overview'),
           badgeFor(d.status),
         ]),
@@ -308,34 +450,49 @@ function screenParentDeviceDetails(deviceId) {
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Policy'),
         el('div', { class: 'toggle' }, [
-          el('div', {}, [el('div', { style:'font-weight:700' }, 'Hotspot OFF'), el('div', { class:'small' }, 'Shortcut turns off hotspot + rotates password')]),
+          el('div', {}, [
+            el('div', { style: 'font-weight:720' }, 'Hotspot OFF'),
+            el('div', { class: 'small' }, 'Shortcut turns off hotspot + rotates password')
+          ]),
           toggleSwitch(d.hotspotOff, () => { d.hotspotOff = !d.hotspotOff; render(); }),
         ]),
         el('div', { class: 'toggle' }, [
-          el('div', {}, [el('div', { style:'font-weight:700' }, 'In Quiet Time'), el('div', { class:'small' }, 'Per-device schedule')]),
+          el('div', {}, [
+            el('div', { style: 'font-weight:720' }, 'Quiet Time'),
+            el('div', { class: 'small' }, 'Per-device schedule')
+          ]),
           toggleSwitch(d.quietTimeEnabled, () => { d.quietTimeEnabled = !d.quietTimeEnabled; render(); }),
         ]),
         d.quietTimeEnabled ? el('div', { class: 'hstack' }, [
-          el('div', { style:'flex:1' }, [el('div', { class:'small' }, 'Start'), el('input', { class:'field', value: d.quietStart, onInput: (e)=>{d.quietStart=e.target.value;} })]),
-          el('div', { style:'flex:1' }, [el('div', { class:'small' }, 'End'), el('input', { class:'field', value: d.quietEnd, onInput: (e)=>{d.quietEnd=e.target.value;} })]),
+          el('div', { style: 'flex:1' }, [
+            el('div', { class: 'small' }, 'Start'),
+            el('input', { class: 'field', value: d.quietStart, onInput: (e) => { d.quietStart = e.target.value; } })
+          ]),
+          el('div', { style: 'flex:1' }, [
+            el('div', { class: 'small' }, 'End'),
+            el('input', { class: 'field', value: d.quietEnd, onInput: (e) => { d.quietEnd = e.target.value; } })
+          ]),
         ]) : null,
-        el('button', { class:'btn primary', onClick: () => alert('Saved (mock)') }, 'Save'),
-      ]),
+        el('button', { class: 'btn primary full', onClick: () => alert('Saved (mock)') }, [iconSquare('circle'), 'Save policy']),
+      ].filter(Boolean)),
 
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Activity'),
+        el('div', { class: 'h2' }, 'Recent activity'),
         el('div', { class: 'list' }, d.activity.map(a =>
-          el('div', { class:'row' }, [
-            el('div', {}, [el('div', { class:'title' }, a.msg), el('div', { class:'sub' }, a.t)]),
-            el('span', { class:'badge muted' }, 'View')
+          el('div', { class: 'row', onClick: () => alert('Open activity details (mock)') }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, a.msg),
+              el('div', { class: 'sub' }, a.t)
+            ]),
+            el('span', { class: 'badge muted' }, 'View')
           ])
         )),
       ]),
 
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, 'Troubleshooting'),
-        el('button', { class:'btn', onClick: () => alert('Show troubleshooting (mock)') }, 'Child Shortcut not running'),
-        el('button', { class:'btn danger', onClick: () => alert('Remove device (mock)') }, 'Remove device'),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Troubleshooting'),
+        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare(), 'Shortcut not running']),
+        el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare(), 'Remove device']),
       ]),
     ]),
   };
@@ -348,11 +505,18 @@ function screenParentSettings() {
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Account'),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Signed in'), el('div', { class: 'v' }, state.signedIn ? 'Yes' : 'No') ]),
-        el('button', { class: 'btn danger', onClick: () => { state.signedIn = false; persist(); route.go('/'); } }, 'Sign out'),
+        el('button', {
+          class: 'btn danger full',
+          onClick: () => {
+            state.signedIn = false;
+            persist();
+            route.go('/');
+          }
+        }, [iconSquare(), 'Sign out']),
       ]),
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, 'Debug'),
-        el('p', { class:'p' }, 'Mockup only.'),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Debug'),
+        el('p', { class: 'p' }, 'Static prototype. No server, no push, no background tasks.'),
       ]),
     ]),
     tabs: tabs('settings'),
@@ -363,11 +527,23 @@ function screenChildOnboarding() {
   return {
     nav: navbar({ title: 'Set up child phone', backTo: '/' }),
     body: el('div', { class: 'content' }, [
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Child phone setup'),
+            el('p', { class: 'hero-sub' }, 'Pair the device, install the Shortcut, enable automations, and apply Screen Time lock.'),
+          ]),
+          el('span', { class: 'badge muted' }, 'Child')
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('circle'), 'Start pairing']),
+          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Open checklist']),
+        ]),
+      ]),
+
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h1' }, 'Child phone setup'),
-        el('p', { class: 'p' }, 'Parent uses the child phone to pair, then sets up the Shortcut + Screen Time lock.'),
-        el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, 'Start pairing'),
-        el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, 'Open checklist'),
+        el('div', { class: 'h2' }, 'Note'),
+        el('p', { class: 'p' }, 'In the real app, pairing stores credentials securely and exposes config to the Shortcut via an App Intent.'),
       ]),
     ]),
   };
@@ -381,14 +557,35 @@ function screenChildPair() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Scan QR'),
-        el('p', { class: 'p' }, 'On the real app, this uses the camera. In this mockup, it just simulates success.'),
-        el('button', { class: 'btn primary', onClick: () => { c.paired = true; alert('Paired (mock)'); route.go('/child/checklist'); } }, paired ? 'Re-scan (mock)' : 'Scan QR (mock)'),
+        el('p', { class: 'p' }, 'Real app uses the camera. Here it simulates success.'),
+        el('button', {
+          class: 'btn primary full',
+          onClick: () => {
+            c.paired = true;
+            alert('Paired (mock)');
+            route.go('/child/checklist');
+          }
+        }, [iconSquare('circle'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
       ]),
+
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Or enter pairing code'),
-        el('input', { class: 'field', placeholder: 'e.g. ABCD-1234', value: c._pairCode || '', onInput: (e) => { c._pairCode = e.target.value; } }),
-        el('button', { class: 'btn', onClick: () => { if ((c._pairCode||'').trim().length < 4) return alert('Enter a code'); c.paired = true; alert('Paired (mock)'); route.go('/child/checklist'); } }, 'Pair'),
-        el('p', { class: 'p' }, 'Pairing stores device credentials securely in the app (used by the Shortcut via App Intent).'),
+        el('input', {
+          class: 'field',
+          placeholder: 'e.g. ABCD-1234',
+          value: c._pairCode || '',
+          onInput: (e) => { c._pairCode = e.target.value; }
+        }),
+        el('button', {
+          class: 'btn full',
+          onClick: () => {
+            if ((c._pairCode || '').trim().length < 4) return alert('Enter a code');
+            c.paired = true;
+            alert('Paired (mock)');
+            route.go('/child/checklist');
+          }
+        }, [iconSquare(), 'Pair']),
+        el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
       ]),
     ]),
   };
@@ -401,84 +598,78 @@ function screenChildScreenTime() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Shield apps'),
-        el('p', { class: 'p' }, 'In the real app, we show Apple’s picker (FamilyControls) then apply shielding (ManagedSettings).'),
+        el('p', { class: 'p' }, 'Real app uses Apple APIs (FamilyControls + ManagedSettings). Here it’s a mock selection.'),
         el('div', { class: 'list' }, [
-          el('div', { class:'row', onClick: () => { c._shieldSettings = !c._shieldSettings; render(); } }, [
-            el('div', {}, [el('div', { class:'title' }, 'Settings'), el('div', { class:'sub' }, 'Recommended')]),
-            el('span', { class: `badge ${c._shieldSettings?'good':'muted'}` }, c._shieldSettings?'Selected':'Not')
+          el('div', { class: 'row', onClick: () => { c._shieldSettings = !c._shieldSettings; render(); } }, [
+            el('div', {}, [el('div', { class: 'title' }, 'Settings'), el('div', { class: 'sub' }, 'Recommended')]),
+            el('span', { class: `badge ${c._shieldSettings ? 'good' : 'muted'}` }, c._shieldSettings ? 'Selected' : 'Not')
           ]),
-          el('div', { class:'row', onClick: () => { c._shieldShortcuts = !c._shieldShortcuts; render(); } }, [
-            el('div', {}, [el('div', { class:'title' }, 'Shortcuts'), el('div', { class:'sub' }, 'Recommended')]),
-            el('span', { class: `badge ${c._shieldShortcuts?'good':'muted'}` }, c._shieldShortcuts?'Selected':'Not')
+          el('div', { class: 'row', onClick: () => { c._shieldShortcuts = !c._shieldShortcuts; render(); } }, [
+            el('div', {}, [el('div', { class: 'title' }, 'Shortcuts'), el('div', { class: 'sub' }, 'Recommended')]),
+            el('span', { class: `badge ${c._shieldShortcuts ? 'good' : 'muted'}` }, c._shieldShortcuts ? 'Selected' : 'Not')
           ]),
         ]),
-        el('button', { class: 'btn primary', onClick: () => { c.shieldingApplied = true; alert('Shielding applied (mock)'); route.go('/child/checklist'); } }, 'Apply shielding'),
-        el('p', { class: 'p' }, 'Reminder: you must set a Screen Time passcode in Settings (we can’t set it for you).'),
+        el('button', {
+          class: 'btn primary full',
+          onClick: () => {
+            c.shieldingApplied = true;
+            alert('Shielding applied (mock)');
+            route.go('/child/checklist');
+          }
+        }, [iconSquare('circle'), 'Apply shielding']),
+        el('p', { class: 'small' }, 'Reminder: set a Screen Time passcode in Settings (apps can’t set it for you).'),
       ]),
     ]),
   };
 }
 
 function stepRow(done, title, sub, onToggle) {
-  return el('div', { class:'row' }, [
+  return el('div', { class: 'row', onClick: onToggle }, [
     el('div', {}, [
-      el('div', { class:'title' }, title),
-      el('div', { class:'sub' }, sub),
+      el('div', { class: 'title' }, title),
+      el('div', { class: 'sub' }, sub),
     ]),
-    el('button', { class: `btn ${done?'primary':''}`, onClick: onToggle }, done ? 'Done' : 'Mark done')
+    el('span', { class: `badge ${done ? 'good' : 'muted'}` }, done ? 'Done' : 'Todo'),
   ]);
 }
 
 function screenChildChecklist() {
   const c = state.childSetup;
   return {
-    nav: navbar({ title: 'Child phone setup', backTo: '/child/onboarding' }),
+    nav: navbar({ title: 'Checklist', backTo: '/child/onboarding' }),
     body: el('div', { class: 'content' }, [
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, '1) Pair device'),
-        el('p', { class:'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
-        el('div', { class:'hstack' }, [
-          el('button', { class:'btn primary', onClick: () => route.go('/child/pair') }, c.paired ? 'View pairing' : 'Start pairing'),
-          c.paired ? el('button', { class:'btn', onClick: () => { c.paired = false; render(); } }, 'Unpair') : null,
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, '1) Pair device'),
+        el('p', { class: 'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
+        el('div', { class: 'hstack' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('circle'), c.paired ? 'View pairing' : 'Start pairing']),
+          c.paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare(), 'Unpair']) : null,
         ].filter(Boolean)),
       ]),
 
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, '2) Shortcut'),
-        stepRow(c.shortcutInstalled, 'Install Shortcut', 'Open shortcut link and add it', () => { c.shortcutInstalled = !c.shortcutInstalled; render(); }),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, '2) Shortcut'),
+        stepRow(c.shortcutInstalled, 'Install Shortcut', 'Open link and add it', () => { c.shortcutInstalled = !c.shortcutInstalled; render(); }),
         stepRow(c.appIntentAdded, 'Add “Get Hotspot Config”', 'Ensure the first step is the App Intent', () => { c.appIntentAdded = !c.appIntentAdded; render(); }),
-        el('div', { class:'hstack' }, [
-          el('button', { class:'btn', onClick: () => alert('Open Shortcut link (mock)') }, 'Open Shortcut link'),
-        ]),
+        el('button', { class: 'btn full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare(), 'Open Shortcut link']),
       ]),
 
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, '3) Automations'),
-        stepRow(c.automationsEnabled, 'Enable automations', 'Battery + time-of-day', () => { c.automationsEnabled = !c.automationsEnabled; render(); }),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, '3) Automations'),
+        stepRow(c.automationsEnabled, 'Enable automations', 'Battery + time-of-day triggers', () => { c.automationsEnabled = !c.automationsEnabled; render(); }),
       ]),
 
-      el('div', { class:'card vstack' }, [
-        el('div', { class:'h2' }, '4) Screen Time lock'),
-        el('p', { class:'p' }, 'We do the shielding in-app, but you must set a Screen Time passcode manually.'),
-        el('div', { class:'list' }, [
-          el('div', { class:'row', onClick: () => { c.screenTimeAuthorized = true; render(); } }, [
-            el('div', {}, [el('div', { class:'title' }, 'Authorize Screen Time'), el('div', { class:'sub' }, 'Grant permission in-app (FamilyControls)')]),
-            el('span', { class: `badge ${c.screenTimeAuthorized?'good':'muted'}` }, c.screenTimeAuthorized?'Done':'Todo'),
-          ]),
-          el('div', { class:'row', onClick: () => { c.screenTimePasscodeSet = true; render(); } }, [
-            el('div', {}, [el('div', { class:'title' }, 'Set Screen Time passcode'), el('div', { class:'sub' }, 'Parent sets passcode in Settings')]),
-            el('span', { class: `badge ${c.screenTimePasscodeSet?'good':'muted'}` }, c.screenTimePasscodeSet?'Done':'Todo'),
-          ]),
-          el('div', { class:'row', onClick: () => route.go('/child/screentime') }, [
-            el('div', {}, [el('div', { class:'title' }, 'Select apps to shield'), el('div', { class:'sub' }, 'Recommended: Settings + Shortcuts')]),
-            el('span', { class: 'badge muted' }, 'Open'),
-          ]),
-        ]),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, '4) Screen Time lock'),
+        el('p', { class: 'p' }, 'Authorize in-app, set a passcode in Settings, then shield apps.'),
+        stepRow(c.screenTimeAuthorized, 'Authorize Screen Time', 'Grant permission in-app (FamilyControls)', () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }),
+        stepRow(c.screenTimePasscodeSet, 'Set Screen Time passcode', 'Parent sets passcode in Settings', () => { c.screenTimePasscodeSet = !c.screenTimePasscodeSet; render(); }),
+        el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('circle'), 'Select apps to shield']),
       ]),
 
-      el('div', { class:'card hstack' }, [
-        el('button', { class:'btn', onClick: () => { alert('Done. Hand phone back to child.'); } }, 'Done'),
-        el('button', { class:'btn primary', onClick: () => route.go('/parent/dashboard') }, 'Back to parent dashboard'),
+      el('div', { class: 'card vstack' }, [
+        el('button', { class: 'btn full', onClick: () => alert('Done. Hand phone back to child.') }, [iconSquare(), 'Finish setup']),
+        el('button', { class: 'btn primary full', onClick: () => route.go('/parent/dashboard') }, [iconSquare('circle'), 'Back to parent dashboard']),
       ]),
     ]),
   };
@@ -493,7 +684,6 @@ function resolveScreen() {
   if (p === '/parent/signin') return screenParentSignIn();
   if (p === '/parent/dashboard') return screenParentDashboard();
   if (p === '/parent/devices') return screenParentDevices();
-  if (p === '/parent/add-device') return screenParentAddDevice();
   if (p.startsWith('/parent/device/')) return screenParentDeviceDetails(p.split('/').pop());
   if (p === '/parent/settings') return screenParentSettings();
 
@@ -517,7 +707,11 @@ function render() {
   if (s.tabs) appRoot.appendChild(s.tabs);
 }
 
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', () => {
+  // Close any open sheet on navigation to prevent stacking.
+  closeSheet();
+  render();
+});
 
 // Initial route
 if (!location.hash) location.hash = '#/';
