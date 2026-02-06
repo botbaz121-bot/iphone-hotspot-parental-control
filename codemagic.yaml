@@ -4,10 +4,7 @@ workflows:
     max_build_duration: 60
     environment:
       ios_signing:
-        # App Store/TestFlight
-        distribution_type: app_store
-        bundle_identifier: com.bazapps.hotspotparent
-        # Explicitly pin the identities we created in Codemagic:
+        # Explicitly pin the identities we created in Codemagic (App Store/TestFlight).
         provisioning_profiles:
           - hotspotparent_appstore_profile
         certificates:
