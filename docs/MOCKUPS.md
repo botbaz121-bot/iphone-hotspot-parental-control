@@ -11,8 +11,6 @@ This document is **planning-first**: screens, flows, copy, and required backend/
 Bottom tabs (signed-in):
 - **Dashboard**
 - **Devices**
-- **Policy**
-- **Activity**
 - **Settings**
 
 Pre-auth flow:
@@ -95,18 +93,32 @@ Error area:
 
 Nav title: **Dashboard**
 
+Top: **Device switcher**
+- Horizontal paging/swipe between devices (like cards)
+- Or a compact picker: “Device: Child iPhone ▾”
+
+Per-device card shows:
+
 Section: **Status**
-- “Hotspot OFF policy: ON/OFF”
-- “Devices: 1 enrolled / 1 needs setup”
+- “Hotspot OFF: ON/OFF” (per device)
+- “Quiet Time: ON/OFF” (per device)
+  - If ON: show “22:00–07:00”
 
 Section: **Coverage**
 - “Last check-in: 12 min ago”
-- “Expected cadence: every 15 min”
-- If gap: `⚠️ No check-in for 2h 10m`
+- “Expected frequency: 15 min / Not set”
+- If gap (only if expected frequency set): `⚠️ No check-in for 2h 10m`
+
+Section: **Latest run**
+- “Hotspot turned off: success/failed”
+- “Password rotated: success/failed”
 
 Section: **Quick actions**
-- [Add Device]
-- [View Setup Guide]
+- [Open Device Details]
+- [Setup Guide]
+
+Global summary (small, optional):
+- “Devices with gaps: 1”
 
 Pull to refresh.
 
@@ -204,33 +216,38 @@ Section: **Troubleshooting**
 
 ---
 
-### 7) Policy (tab)
+### 7) Device Policy (inside Device Details)
 
 Nav title: **Policy**
 
+Applies to: **this device only**.
+
 Section: **Hotspot**
-- Toggle: (ON) **Enforce Hotspot OFF**
-- Description: “In Shortcut mode, enforcement means rotating/changing credentials and logging attempts.”
+- Toggle: (ON) **Hotspot OFF**
+- Helper: “Shortcut will attempt to turn hotspot off and rotate password.”
 
-Section: **Schedule (v1)**
-- Toggle: Enable schedule
-- Quiet hours picker: Start/End
-- Timezone: device local
+Section: **Quiet Time**
+- Toggle: (OFF/ON) **In Quiet Time schedule**
+- Pickers:
+  - Start (time)
+  - End (time)
+- Timezone: device local (display it)
 
-Section: **Cadence**
-- Picker: Expected check-in interval (15m/30m/60m)
+Section: **Expected frequency (optional)**
+- Picker: 15m / 30m / 60m / Custom / Not sure
+- Helper: “Used only to detect gaps in check-ins.”
 
 Action:
 - [Save]
 
 ---
 
-### 8) Activity (tab)
+### 8) Device Activity (inside Device Details)
 
 Nav title: **Activity**
 
 Filter chips:
-- All / This device / Errors / Gaps
+- All / Errors / Gaps
 
 Timeline rows:
 - “15:05 Check-in OK”
