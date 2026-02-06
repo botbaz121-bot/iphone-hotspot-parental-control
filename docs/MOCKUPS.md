@@ -54,9 +54,10 @@ Single flow (no tabs needed for MVP):
 2) Choose mode: **Set up child phone**
 3) Pair device (scan QR / enter code)
 4) Store config securely in the app (deviceId/deviceSecret/apiBaseURL)
-5) Shortcut uses an **App Intent** (e.g. “Get Hotspot Config”) to read the config at runtime
-6) (Fallback) Export `hotspot-config.json` to Files if needed
-7) Install/enable automations
+5) Install the Shortcut + add **App Intent** step (“Get Hotspot Config”)
+6) Create/enable automations
+7) **Lock down Shortcuts/Settings with Screen Time** (in-app Screen Time permission + parent sets Screen Time passcode)
+8) (Fallback) Export `hotspot-config.json` to Files if App Intent is blocked
 
 ### Flow C — Add a device (Shortcuts-only)
 1) Parent generates **Enrollment QR** (contains enrollment token)
@@ -191,51 +192,41 @@ Footer:
 
 ---
 
-### 5) Setup Automations (guide)
+### 5) Child Phone Setup Checklist (guide)
 
-Nav title: **Setup**
+Nav title: **Child phone setup**
+
+This screen is shown in **Set up child phone** mode and is the single place that ties everything together.
 
 Step list:
-- Step 1: Install Shortcut
-- Step 2: Turn on Automations
-  - “Battery level” (e.g., 10%, 20%, …)
-  - “Time of day” (e.g., every 15 min blocks)
+- Step 1: Pair device
+  - Scan QR / enter code
+  - Confirm: “Paired ✅”
+
+- Step 2: Shortcut
+  - Install the Shortcut [Open Shortcut link]
+  - Ensure the Shortcut starts with: **Get Hotspot Config** (App Intent)
+
+- Step 3: Automations
+  - Create/enable automations (battery + time-of-day)
   - Note: “iOS may prompt; set ‘Ask Before Running’ off if available.”
-- Step 3: Lock down changes (important)
+
+- Step 4: Screen Time lock (important)
   - Goal: make it hard for the child to disable/modify the Shortcut/automations.
 
   **In-app Screen Time integration (preferred):**
-  - We can use Apple’s **Screen Time APIs** (FamilyControls + ManagedSettings) to help the parent apply app/category restrictions.
-  - This requires the parent to **grant Screen Time control permission** when prompted.
+  - Request Screen Time authorization (FamilyControls)
+  - Parent selects apps to restrict (recommended: **Settings + Shortcuts**)
+  - Apply shielding via ManagedSettings
 
-  **Important:** the parent must also set a **Screen Time passcode** on the child phone, otherwise restrictions are easy to change.
-  - We can’t set this passcode for them; we must remind + verify.
+  **Also required:** parent sets a **Screen Time passcode** on the child phone
+  - We can’t set this passcode; we must remind + verify.
+  - Show a checklist gate: “Screen Time passcode set ✅ / Not yet”
 
-  - What we *can* do:
-    - ask permission via a native authorization prompt
-    - let the parent select apps/categories to restrict (e.g. Settings, Shortcuts)
-    - apply app/category shields (blocking) using Screen Time frameworks
-    - show a checklist gate: “Screen Time passcode set ✅ / Not yet”
-  - What we *cannot reliably do*:
-    - set a Screen Time passcode
-    - guarantee Shortcuts automations cannot be edited/deleted (we can only raise the cost)
-
-  **Pro mode (later):** optionally add DeviceActivity schedules for time-based shielding.
-
-  **Fallback (manual instructions):**
-  1. Settings → Screen Time → Turn on Screen Time (parent sets a Screen Time passcode)
-  2. Screen Time → Content & Privacy Restrictions → ON
-  3. Content & Privacy Restrictions → Account Changes → Don’t Allow
-  4. Content & Privacy Restrictions → Passcode Changes → Don’t Allow
-  5. Use App Limits/Downtime to reduce access to Settings/Shortcuts
-
-  **Shortcut tamper signals (in-app):**
-  - Show “Last check-in …”
-  - Show “Stale check-in” warnings
-  - Explain likely causes: automations disabled, Shortcut deleted, no network, phone off
+  **Fallback (manual):** show the exact Settings path to enable Screen Time + passcode + Content & Privacy restrictions.
 
 Actions:
-- [I’ve done this]
+- [Done]
 
 ---
 
