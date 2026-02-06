@@ -195,22 +195,27 @@ function screenParentDashboard() {
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}` }),
     body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Device'),
-        el('div', { class: 'segmented segmented-raised' }, state.devices.map(d =>
-          el('a', {
-            class: `button ${d.id === state.selectedDeviceId ? 'button-active' : ''}`,
-            href: '#',
-            onClick: (e) => { e.preventDefault(); state.selectedDeviceId = d.id; persist(); render(); }
-          }, d.name)
+      el('div', { class: 'hero vstack' }, [
+        el('div', { class: 'h2' }, 'Devices'),
+        el('div', { class: 'device-pager' }, state.devices.map(d =>
+          el('div', {
+            class: `device-tile ${d.id === state.selectedDeviceId ? 'active' : ''}`,
+            onClick: () => { state.selectedDeviceId = d.id; persist(); render(); }
+          }, [
+            el('div', { class: 'hstack', style: 'justify-content:space-between' }, [
+              el('div', { class: 'device-title' }, d.name),
+              badgeFor(d.status),
+            ]),
+            el('div', { class: 'device-sub' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
+            el('div', { class: 'hstack', style: 'margin-top:12px' }, [
+              el('button', { class: 'btn primary', onClick: (e) => { e.stopPropagation(); state.selectedDeviceId = d.id; persist(); route.go(`/parent/device/${d.id}`); } }, 'Details'),
+              el('button', { class: 'btn', onClick: (e) => { e.stopPropagation(); state.selectedDeviceId = d.id; persist(); render(); } }, d.id === state.selectedDeviceId ? 'Selected' : 'Select'),
+            ]),
+          ])
         )),
         el('div', { class: 'hstack', style: 'justify-content:space-between; margin-top:10px' }, [
-          el('div', { class: 'small' }, `Last seen: ${device.lastCheckInMinutes}m ago`),
-          badgeFor(device.status),
-        ]),
-        el('div', { class: 'hstack', style: 'margin-top:10px' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, 'Device details'),
-          el('button', { class: 'btn', onClick: () => route.go('/parent/add-device') }, 'Add device'),
+          el('button', { class: 'btn', onClick: () => route.go('/parent/add-device') }, '+ Add device'),
+          el('button', { class: 'btn', onClick: () => route.go('/parent/devices') }, 'All devices'),
         ]),
       ]),
 
