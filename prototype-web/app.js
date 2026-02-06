@@ -201,11 +201,10 @@ function parentTabs(active) {
 
 function childTabs(active) {
   const items = [
-    { key: 'setup', label: 'Setup', to: '/child/onboarding' },
-    { key: 'pair', label: 'Pair', to: '/child/pair' },
-    { key: 'checklist', label: 'Checklist', to: '/child/checklist' },
+    { key: 'dashboard', label: 'Dashboard', to: '/child/dashboard' },
+    { key: 'settings', label: 'Settings', to: '/child/settings' },
   ];
-  return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Child setup tabs' }, items.map(it =>
+  return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Child tabs' }, items.map(it =>
     el('button', {
       class: `btab ${active === it.key ? 'active' : ''}`,
       onClick: () => navTabGo(it.to),
@@ -753,7 +752,12 @@ function screenParentSettings() {
             el('div', { style: 'font-weight:720' }, 'This is a child phone'),
             el('div', { class: 'small' }, 'Show the child setup experience on this device')
           ]),
-          toggleSwitch(state.isChildPhone, () => { state.isChildPhone = !state.isChildPhone; persist(); render(); }),
+          toggleSwitch(state.isChildPhone, () => {
+            state.isChildPhone = !state.isChildPhone;
+            persist();
+            if (state.isChildPhone) route.go('/child/dashboard');
+            else render();
+          }),
         ]),
       ]),
 
@@ -779,27 +783,63 @@ function screenParentSettings() {
   };
 }
 
+// Legacy route kept for old links; we now land on /child/dashboard.
 function screenChildOnboarding() {
+  return screenChildDashboard();
+}
+
+function screenChildSettings() {
+  const c = state.childSetup;
+  const paired = c.paired;
+
   return {
-    nav: navbar({ title: 'Set up child phone', backTo: '/' }),
+    nav: navbar({ title: 'Settings', backTo: '/child/dashboard' }),
     body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero' }, [
-        el('div', { class: 'hero-top' }, [
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Mode'),
+        el('div', { class: 'toggle' }, [
           el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Child phone setup'),
-            el('p', { class: 'hero-sub' }, 'Pair the device, install the Shortcut, enable automations, and apply Screen Time lock.'),
+            el('div', { style: 'font-weight:720' }, 'This is a child phone'),
+            el('div', { class: 'small' }, 'Show the child setup experience on this device')
           ]),
-          el('span', { class: 'badge muted' }, 'Child')
-        ]),
-        el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), 'Start pairing']),
-          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare('checklist'), 'Open checklist']),
+          toggleSwitch(state.isChildPhone, () => {
+            state.isChildPhone = !state.isChildPhone;
+            persist();
+            // If turning OFF child mode while inside child flow, bounce to parent.
+            if (!state.isChildPhone) route.go(navState.lastParentRoute || '/parent/dashboard');
+            else render();
+          }),
         ]),
       ]),
 
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Note'),
-        el('p', { class: 'p' }, 'In the real app, pairing stores credentials securely and exposes config to the Shortcut via an App Intent.'),
+        el('div', { class: 'h2' }, 'Pairing'),
+        el('p', { class: 'p' }, paired ? 'Paired ✅' : 'Not paired yet.'),
+        el('div', { class: 'hstack' }, [
+          el('button', {
+            class: 'btn primary',
+            onClick: () => { c.paired = true; alert('Paired (mock)'); route.go('/child/dashboard'); }
+          }, [iconSquare('qr'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
+          paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
+        ].filter(Boolean)),
+
+        el('div', { class: 'h2', style: 'margin-top:6px' }, 'Or enter pairing code'),
+        el('input', {
+          class: 'field',
+          placeholder: 'e.g. ABCD-1234',
+          value: c._pairCode || '',
+          onInput: (e) => { c._pairCode = e.target.value; }
+        }),
+        el('button', {
+          class: 'btn full',
+          onClick: () => {
+            if ((c._pairCode || '').trim().length < 4) return alert('Enter a code');
+            c.paired = true;
+            alert('Paired (mock)');
+            route.go('/child/dashboard');
+          }
+        }, [iconSquare('shortcut'), 'Pair']),
+        el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
       ]),
 
       el('div', { class: 'card vstack' }, [
@@ -814,52 +854,10 @@ function screenChildOnboarding() {
   };
 }
 
-function screenChildPair() {
-  const c = state.childSetup;
-  const paired = c.paired;
-  return {
-    nav: navbar({ title: 'Pair device', backTo: '/child/checklist' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Scan QR'),
-        el('p', { class: 'p' }, 'Real app uses the camera. Here it simulates success.'),
-        el('button', {
-          class: 'btn primary full',
-          onClick: () => {
-            c.paired = true;
-            alert('Paired (mock)');
-            route.go('/child/checklist');
-          }
-        }, [iconSquare('qr'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
-      ]),
-
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Or enter pairing code'),
-        el('input', {
-          class: 'field',
-          placeholder: 'e.g. ABCD-1234',
-          value: c._pairCode || '',
-          onInput: (e) => { c._pairCode = e.target.value; }
-        }),
-        el('button', {
-          class: 'btn full',
-          onClick: () => {
-            if ((c._pairCode || '').trim().length < 4) return alert('Enter a code');
-            c.paired = true;
-            alert('Paired (mock)');
-            route.go('/child/checklist');
-          }
-        }, [iconSquare('shortcut'), 'Pair']),
-        el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
-      ]),
-    ]),
-  };
-}
-
 function screenChildScreenTime() {
   const c = state.childSetup;
   return {
-    nav: navbar({ title: 'Screen Time lock', backTo: '/child/checklist' }),
+    nav: navbar({ title: 'Screen Time lock', backTo: '/child/dashboard' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Shield apps'),
@@ -879,7 +877,7 @@ function screenChildScreenTime() {
           onClick: () => {
             c.shieldingApplied = true;
             alert('Shielding applied (mock)');
-            route.go('/child/checklist');
+            route.go('/child/dashboard');
           }
         }, [iconSquare('shield'), 'Apply shielding']),
         el('p', { class: 'small' }, 'Reminder: set a Screen Time passcode in Settings (apps can’t set it for you).'),
@@ -900,7 +898,7 @@ function stepRow(done, title, sub, onToggle) {
 
 function screenChildLocked() {
   return {
-    nav: navbar({ title: 'Locked', backTo: '/child/checklist' }),
+    nav: navbar({ title: 'Locked', backTo: '/child/dashboard' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'hero' }, [
         el('div', { class: 'hero-top' }, [
@@ -930,10 +928,10 @@ function screenChildLocked() {
   };
 }
 
-function screenChildChecklist() {
+function screenChildDashboard() {
   const c = state.childSetup;
   return {
-    nav: navbar({ title: 'Checklist', backTo: '/child/onboarding' }),
+    nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '1) Pair device'),
@@ -986,8 +984,11 @@ function resolveScreen() {
 
   // Child setup flow
   if (p === '/child/onboarding') return screenChildOnboarding();
-  if (p === '/child/checklist') return screenChildChecklist();
-  if (p === '/child/pair') return screenChildPair();
+  if (p === '/child/dashboard') return screenChildDashboard();
+  if (p === '/child/settings') return screenChildSettings();
+  // Legacy child routes redirect into the new structure
+  if (p === '/child/checklist') return screenChildDashboard();
+  if (p === '/child/pair') return screenChildSettings();
   if (p === '/child/screentime') return screenChildScreenTime();
   if (p === '/child/locked') return screenChildLocked();
 
@@ -1012,10 +1013,12 @@ function activeTabForPath(p) {
 
   if (p.startsWith('/child/')) {
     if (p === '/child/locked') return null;
-    if (p === '/child/onboarding') return 'setup';
-    if (p === '/child/pair') return 'pair';
-    if (p === '/child/checklist' || p === '/child/screentime') return 'checklist';
-    return 'setup';
+    if (p === '/child/dashboard') return 'dashboard';
+    if (p === '/child/settings') return 'settings';
+    if (p === '/child/screentime') return 'dashboard';
+    // Legacy routes → dashboard
+    if (p === '/child/onboarding' || p === '/child/checklist' || p === '/child/pair') return 'dashboard';
+    return 'dashboard';
   }
 
   return null;
