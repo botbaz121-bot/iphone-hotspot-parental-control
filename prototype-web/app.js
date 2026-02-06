@@ -35,7 +35,7 @@ const state = {
       activity: [
         { t: '15:05', msg: 'Check-in OK' },
         { t: '15:20', msg: 'Policy fetch OK' },
-        { t: '15:35', msg: 'Hotspot turned off: success; Password rotated: success' },
+        { t: '15:35', msg: 'Policy run logged' },
       ],
     },
     {
@@ -223,13 +223,7 @@ function screenParentDashboard() {
         stale ? el('div', { class: 'badge warn' }, '⚠️ Stale check-in') : el('div', { class: 'badge good' }, 'Recent check-in'),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Latest run'),
-        el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Hotspot turned off'), el('div', { class: 'v' }, device.latest.hotspotOff) ]),
-        el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Password rotated'), el('div', { class: 'v' }, device.latest.rotatePassword) ]),
-      ]),
-
-      el('div', { class: 'card hstack' }, [
+            el('div', { class: 'card hstack' }, [
         el('button', { class: 'btn primary', onClick: () => route.go('/parent/devices') }, 'Devices'),
         el('button', { class: 'btn', onClick: () => route.go('/child/onboarding') }, 'Set up child phone'),
       ]),

@@ -140,10 +140,6 @@ Section: **Coverage**
 - “Last check-in: 12 min ago”
 - If stale: `⚠️ No check-in for 2h 10m`
 
-Section: **Latest run**
-- “Hotspot turned off: success/failed”
-- “Password rotated: success/failed”
-
 Section: **Quick actions**
 - [Open Device Details]
 - [Setup Guide]
@@ -241,10 +237,6 @@ Header:
 Section: **Policy summary**
 - “Hotspot OFF: ON”
 - “Quiet hours: 22:00–07:00” (optional)
-
-Section: **Latest run**
-- “Action: rotated hotspot password” (if feasible)
-- “Result: success/failed”
 
 Section: **Troubleshooting**
 - [Child Shortcut not running]
