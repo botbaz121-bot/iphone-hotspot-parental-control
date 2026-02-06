@@ -185,7 +185,6 @@ function navbar({ title, backTo, rightText, rightButton }) {
 function parentTabs(active) {
   const items = [
     { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
-    { key: 'devices', label: 'Devices', to: '/parent/devices' },
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
   return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Parent tabs' }, items.map(it =>
@@ -623,26 +622,9 @@ function screenParentDashboard() {
   };
 }
 
+// Devices list removed (everything is handled on Dashboard)
 function screenParentDevices() {
-  return {
-    nav: navbar({ title: 'Devices', rightText: `${state.devices.length} total` }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'All devices'),
-        el('div', { class: 'list' }, state.devices.map(d =>
-          el('div', { class: 'row', onClick: () => route.go(`/parent/device/${d.id}`) }, [
-            el('div', {}, [
-              el('div', { class: 'title' }, d.name),
-              el('div', { class: 'sub' }, `Last seen ${d.lastCheckInMinutes}m ago`),
-            ]),
-            badgeFor(d.status),
-          ])
-        )),
-        el('button', { class: 'btn primary full', onClick: () => enrollmentSheet({ backTo: '/parent/devices' }) }, [iconSquare('qr'), 'Enroll a device']),
-      ]),
-    ]),
-    tabs: bottomTabs('devices'),
-  };
+  return screenParentDashboard();
 }
 
 function screenParentDeviceDetails(deviceId) {
@@ -710,7 +692,7 @@ function screenParentDeviceDetails(deviceId) {
         el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
       ]),
     ]),
-    tabs: bottomTabs('devices'),
+    tabs: bottomTabs('dashboard'),
   };
 }
 
@@ -939,7 +921,8 @@ function resolveScreen() {
   if (p === '/parent/onboarding') return screenParentOnboarding();
   if (p === '/parent/signin') return screenParentSignIn();
   if (p === '/parent/dashboard') return screenParentDashboard();
-  if (p === '/parent/devices') return screenParentDevices();
+  // Devices screen removed; route back to Dashboard.
+  if (p === '/parent/devices') return screenParentDashboard();
   if (p.startsWith('/parent/device/')) return screenParentDeviceDetails(p.split('/').pop());
   if (p === '/parent/settings') return screenParentSettings();
 
@@ -964,7 +947,7 @@ function activeTabForPath(p) {
   if (p.startsWith('/parent/')) {
     if (!state.signedIn) return null;
     if (p === '/parent/dashboard') return 'dashboard';
-    if (p === '/parent/devices' || p.startsWith('/parent/device/')) return 'devices';
+    if (p === '/parent/devices' || p.startsWith('/parent/device/')) return 'dashboard';
     if (p === '/parent/settings') return 'settings';
     return 'dashboard';
   }
