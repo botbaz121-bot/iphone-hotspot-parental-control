@@ -413,8 +413,7 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 }
 .btab.icon{
   flex: 0 0 56px;
-  padding: 10px 0;
-  gap: 0;
+  padding: 10px 8px; /* match other tabs for equal height */
 }
 .btab.icon .ic{ width: 22px; height: 22px; }
 .btab.active{ color: var(--text); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }

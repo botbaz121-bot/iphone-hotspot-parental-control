@@ -186,7 +186,7 @@ function navbar({ title, backTo, rightText, rightButton }) {
 
 function parentTabs(active) {
   const items = [
-    { key: 'home', icon: 'home', to: '/parent/onboarding', aria: 'Welcome' },
+    { key: 'home', icon: 'home', to: '/', aria: 'Home' },
     { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
@@ -203,7 +203,7 @@ function parentTabs(active) {
 
 function childTabs(active) {
   const items = [
-    { key: 'home', icon: 'home', to: '/child/onboarding', aria: 'Welcome' },
+    { key: 'home', icon: 'home', to: '/', aria: 'Home' },
     { key: 'dashboard', label: 'Dashboard', to: '/child/dashboard' },
     { key: 'settings', label: 'Settings', to: '/child/settings' },
   ];
