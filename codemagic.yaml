@@ -3,6 +3,15 @@ workflows:
     name: iOS (XcodeGen) → IPA artifact
     max_build_duration: 60
     environment:
+      ios_signing:
+        # App Store/TestFlight
+        distribution_type: app_store
+        bundle_identifier: com.bazapps.hotspotparent
+        # Explicitly pin the identities we created in Codemagic:
+        provisioning_profiles:
+          - hotspotparent_appstore_profile
+        certificates:
+          - hotspotparent-distribution
       vars:
         XCODEGEN_DIR: ios-app/xcodegen
         PROJECT_PATH: ios-app/xcodegen/HotspotParent.xcodeproj
@@ -18,7 +27,12 @@ workflows:
         script: |
           cd "$XCODEGEN_DIR"
           xcodegen generate
-      - name: Build (simulator) – always works without signing
+
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+
+      - name: Build (simulator)
         script: |
           xcodebuild \
             -project "$PROJECT_PATH" \
@@ -42,10 +56,6 @@ workflows:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="3SJ44B3Q7Y" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="hotspotparent-appstore" \
             archive
 
           # Minimal export options; Codemagic code signing docs may require a different method (ad-hoc/app-store).
