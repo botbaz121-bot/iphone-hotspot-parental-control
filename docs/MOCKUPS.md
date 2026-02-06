@@ -204,7 +204,7 @@ Step list:
   - Goal: make it hard for the child to disable/modify the Shortcut/automations.
 
   **In-app Screen Time integration (preferred):**
-  - We can use Apple’s **Screen Time APIs** (FamilyControls/DeviceActivity) to help the parent apply app/category restrictions.
+  - We can use Apple’s **Screen Time APIs** (FamilyControls + ManagedSettings) to help the parent apply app/category restrictions.
   - This requires the parent to **grant Screen Time control permission** when prompted.
 
   **Important:** the parent must also set a **Screen Time passcode** on the child phone, otherwise restrictions are easy to change.
@@ -213,11 +213,13 @@ Step list:
   - What we *can* do:
     - ask permission via a native authorization prompt
     - let the parent select apps/categories to restrict (e.g. Settings, Shortcuts)
-    - apply schedules/limits using Screen Time frameworks
+    - apply app/category shields (blocking) using Screen Time frameworks
     - show a checklist gate: “Screen Time passcode set ✅ / Not yet”
   - What we *cannot reliably do*:
     - set a Screen Time passcode
     - guarantee Shortcuts automations cannot be edited/deleted (we can only raise the cost)
+
+  **Pro mode (later):** optionally add DeviceActivity schedules for time-based shielding.
 
   **Fallback (manual instructions):**
   1. Settings → Screen Time → Turn on Screen Time (parent sets a Screen Time passcode)
