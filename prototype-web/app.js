@@ -75,6 +75,41 @@ const persist = () => {
   localStorage.setItem('hp.selectedDeviceId', state.selectedDeviceId);
 };
 
+/* ---------- Navigation history (for reliable Back) ---------- */
+
+const navState = {
+  stack: (() => {
+    try { return JSON.parse(localStorage.getItem('hp.navStack') || '[]') || []; }
+    catch { return []; }
+  })(),
+};
+
+function navPersist() {
+  try { localStorage.setItem('hp.navStack', JSON.stringify(navState.stack.slice(-60))); } catch {}
+}
+
+function navReset() {
+  navState.stack = [];
+  navPersist();
+}
+
+function navTrack(path) {
+  if (!path) return;
+  const last = navState.stack[navState.stack.length - 1];
+  if (last !== path) {
+    navState.stack.push(path);
+    navPersist();
+  }
+}
+
+function navBack(fallback = '/') {
+  // Pop current
+  if (navState.stack.length > 1) navState.stack.pop();
+  const prev = navState.stack[navState.stack.length - 1];
+  navPersist();
+  route.go(prev || fallback);
+}
+
 const route = {
   get path() {
     const h = location.hash || '#/';
@@ -99,7 +134,7 @@ function navbar({ title, backTo, rightText, rightButton }) {
   return el('div', { class: 'navbar' },
     el('div', { class: 'navbar-inner' }, [
       backTo
-        ? el('button', { class: 'iconbtn', onClick: () => route.go(backTo), 'aria-label': 'Back' }, '‹')
+        ? el('button', { class: 'iconbtn', onClick: () => navBack(backTo), 'aria-label': 'Back' }, '‹')
         : el('div', { style: 'width:38px' }),
       el('div', { class: 'nav-title' }, title),
       rightText ? el('div', { class: 'nav-sub' }, rightText) : el('div', { class: 'nav-sub' }, ''),
@@ -329,8 +364,8 @@ function screenLanding() {
           el('span', { class: 'badge muted' }, 'Prototype'),
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('parent'), 'Parent phone']),
-          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('child'), 'Set up child phone']),
+          el('button', { class: 'btn primary', onClick: () => { navReset(); state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('parent'), 'Parent phone']),
+          el('button', { class: 'btn', onClick: () => { navReset(); state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
 
@@ -583,6 +618,7 @@ function screenParentDeviceDetails(deviceId) {
         el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
       ]),
     ]),
+    tabs: tabs('devices'),
   };
 }
 
@@ -798,9 +834,11 @@ function render() {
 window.addEventListener('hashchange', () => {
   // Close any open sheet on navigation to prevent stacking.
   closeSheet();
+  navTrack(route.path);
   render();
 });
 
 // Initial route
 if (!location.hash) location.hash = '#/';
+navTrack(route.path);
 render();
