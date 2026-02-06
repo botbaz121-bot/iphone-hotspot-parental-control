@@ -2,6 +2,8 @@ workflows:
   ios-ipa:
     name: iOS (XcodeGen) → IPA artifact
     max_build_duration: 60
+    integrations:
+      app_store_connect: Codemagic
     environment:
       ios_signing:
         # Explicitly pin the identities we created in Codemagic (App Store/TestFlight).
@@ -87,3 +89,9 @@ workflows:
       - build/export/*.ipa
       - build/**/*.xcarchive
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Upload to App Store Connect so it appears in TestFlight.
+        submit_to_testflight: false
