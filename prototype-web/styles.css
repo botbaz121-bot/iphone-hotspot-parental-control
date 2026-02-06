@@ -350,6 +350,20 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
     radial-gradient(420px 170px at 18% 0%, rgba(79,140,255,.34), transparent 62%),
     rgba(255,255,255,.06);
 }
+
+.device-card.enroll{
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(420px 220px at 20% 0%, rgba(79,140,255,.22), transparent 60%),
+    radial-gradient(520px 260px at 70% 30%, rgba(124,92,255,.16), transparent 65%),
+    rgba(255,255,255,.05);
+}
+.enroll-inner{ text-align:center; display:flex; flex-direction:column; gap: 8px; align-items:center; }
+.enroll-icon .ic{ width: 44px; height: 44px; border-radius: 16px; }
+.enroll-title{ font-weight: 860; letter-spacing: -0.2px; }
+.enroll-sub{ color: var(--muted); font-size: 12px; }
+
 .device-card .dc-title{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
 .device-card .dc-name{ font-weight: 820; letter-spacing: -0.2px; font-size: 16px; }
 .device-card .dc-meta{ margin-top: 10px; display:flex; gap: 10px; flex-wrap: wrap; }

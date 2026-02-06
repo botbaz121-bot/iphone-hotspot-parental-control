@@ -522,10 +522,10 @@ function screenParentSignIn() {
 }
 
 function deviceCarousel() {
-  const device = getDevice();
-  return el('div', { class: 'pager', id: 'devicePager' }, state.devices.map(d => {
-    const stale = d.lastCheckInMinutes >= 120;
-    return el('div', {
+  const cards = [];
+
+  for (const d of state.devices) {
+    cards.push(el('div', {
       class: `device-card ${d.id === state.selectedDeviceId ? 'selected' : ''}`,
       role: 'button',
       'aria-label': `Select ${d.name}`,
@@ -549,8 +549,24 @@ function deviceCarousel() {
         el('span', { class: 'badge muted' }, d.hotspotOff ? 'Hotspot OFF' : 'Hotspot ON'),
         el('span', { class: 'badge muted' }, d.quietTimeEnabled ? `Quiet ${d.quietStart}–${d.quietEnd}` : 'Quiet OFF'),
       ]),
-    ]);
-  }));
+    ]));
+  }
+
+  // Add-device call-to-action as the last tile (scroll right to see it)
+  cards.push(el('div', {
+    class: 'device-card enroll',
+    role: 'button',
+    'aria-label': 'Enroll device',
+    onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }),
+  }, [
+    el('div', { class: 'enroll-inner' }, [
+      el('div', { class: 'enroll-icon' }, iconSquare('qr')),
+      el('div', { class: 'enroll-title' }, 'Enroll device'),
+      el('div', { class: 'enroll-sub' }, 'Add another child phone'),
+    ])
+  ]));
+
+  return el('div', { class: 'pager', id: 'devicePager' }, cards);
 }
 
 function screenParentDashboard() {
@@ -560,16 +576,6 @@ function screenParentDashboard() {
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}` }),
     body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero' }, [
-        el('div', { class: 'hero-top' }, [
-          el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Dashboard'),
-            el('p', { class: 'hero-sub' }, 'Quick status + device switcher. Use Devices tab for the full list.'),
-          ]),
-          el('button', { class: 'btn', onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }) }, [iconSquare('qr'), 'Enroll'])
-        ]),
-      ]),
-
       deviceCarousel(),
 
       // Inline device details (replaces the old “Policy status” card)
