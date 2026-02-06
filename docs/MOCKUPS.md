@@ -8,13 +8,24 @@ This document is **planning-first**: screens, flows, copy, and required backend/
 
 ## Information Architecture
 
-Bottom tabs (signed-in):
+This is a **two-role** app installed on **both phones**:
+- **Parent mode** (admin UI)
+- **Child mode** (pairing + config file generator for the Shortcut)
+
+On first launch, choose a mode:
+- [I’m a Parent]
+- [I’m a Child]
+
+### Parent mode (signed-in)
+Bottom tabs:
 - **Dashboard**
 - **Devices**
 - **Settings**
 
-Pre-auth flow:
-- Onboarding → Sign in → Create family (optional) → Add first device
+### Child mode
+Single flow (no tabs needed for MVP):
+- Pair device → Generate hotspot-config.json → Export to Files for the Shortcut
+
 
 ---
 
@@ -30,18 +41,33 @@ Pre-auth flow:
 
 ## Core Flows
 
-### Flow A — First run
+### Flow A — Parent first run
 1) Onboarding (what it does / what it cannot do)
-2) Sign in with Apple
-3) Add first device (Enrollment QR)
-4) Policy defaults: **Hotspot OFF = ON**
-5) Setup guide for child device
+2) Choose mode: **Parent**
+3) Sign in with Apple
+4) Add first device (Enrollment QR)
+5) Policy defaults per device: **Hotspot OFF = ON**, Quiet Time optional
+6) Setup guide for child device (install Child app + Shortcut)
 
-### Flow B — Add a device (Shortcut mode)
-1) Parent generates **Enrollment QR**
-2) On child iPhone: install Shortcut from link
-3) Child runs Shortcut once → enters/scans token → posts to backend → device shows as **Enrolled**
-4) Parent sees device status + last check-in
+### Flow B — Child first run
+1) Onboarding
+2) Choose mode: **Child**
+3) Pair device (scan QR / enter code)
+4) Generate `hotspot-config.json`
+5) Export file to **Files** (On My iPhone / Shortcuts) so the Shortcut can read it
+6) Install/enable automations
+
+### Flow C — Add a device (Shortcuts-only)
+1) Parent generates **Enrollment QR** (contains enrollment token)
+2) On child iPhone: install **Child app** + install Shortcut
+3) In **Child app**: scan QR → pair with backend → receive device credentials
+4) Child app generates `hotspot-config.json` and exports it to Files
+5) Shortcut reads `hotspot-config.json` to:
+   - authenticate to backend
+   - fetch policy
+   - post check-ins
+   - perform actions (turn hotspot off + rotate password)
+6) Parent sees device status + last check-in
 
 ### Flow C — Ongoing
 - Shortcut automation runs (battery/time-of-day) → fetch policy → attempts actions (rotate password, etc.) → posts event
@@ -59,7 +85,11 @@ Notation:
 ### 0) Onboarding
 
 **Welcome to Hotspot Parent**
-- Subtitle: “Prevent hotspot use (via Shortcuts) + get visibility.”
+- Subtitle: “Shortcuts-only hotspot control + visibility.”
+
+Mode selection:
+- [I’m a Parent]
+- [I’m a Child]
 
 Cards:
 - **What this can do**
@@ -149,12 +179,14 @@ Card: **QR**
 - QR image
 
 Card: **Next on the child phone**
-1. “Install the Shortcut” [Open Shortcut link]
-2. “Run it once and scan/enter this token”
-3. “Enable automations” [Setup Automations]
+1. “Install the Child app”
+2. “Open Child app → Pair device → Scan this QR”
+3. “Install the Shortcut” [Open Shortcut link]
+4. “In Child app: Export hotspot-config.json to Files”
+5. “Enable automations” [Setup Automations]
 
 Footer:
-- “This token links the child’s check-ins to your account.”
+- “This QR links the child device to your account and produces the config file the Shortcut uses.”
 
 ---
 
@@ -275,20 +307,35 @@ Section: Debug (hidden behind long-press or build flag)
 
 ---
 
-## Backend + Shortcut Hooks (minimum needed)
+## Backend + Child app + Shortcut Hooks (minimum needed)
 
 Even if we keep the backend tiny, the mockups assume:
 
 - `GET /healthz`
-- `POST /api/enroll` (token → device record)
-- `GET /api/policy?device_id=…` (or token-based)
-- `POST /api/checkins` (device_id, timestamp, actions attempted, results)
-- `GET /api/devices` (parent)
+
+Parent:
+- `GET /api/devices` (list)
 - `GET /api/devices/:id/activity`
+- `GET /api/devices/:id/policy`
+- `PUT /api/devices/:id/policy` (Hotspot OFF, Quiet Time start/end)
+
+Child app (pairing):
+- `POST /api/enroll` (enrollment token → returns deviceId + deviceSecret)
+
+Shortcut (runs on child phone):
+- `GET /api/policy?device_id=…` (auth using deviceSecret)
+- `POST /api/checkins` (device_id, timestamp, actions attempted, results)
 
 Security:
-- Enrollment token is **time-limited** and exchanged for a long-lived device secret.
-- Shortcut requests signed with device secret (HMAC) or sent as Bearer.
+- Enrollment token is **time-limited** and exchanged for a long-lived `deviceSecret`.
+- Shortcut requests authenticated using `deviceSecret` (Bearer or HMAC).
+
+Config file:
+- Child app generates `hotspot-config.json` containing (at minimum):
+  - `deviceId`
+  - `deviceSecret`
+  - `apiBaseURL`
+- Child app exports it to **Files** so the Shortcut can read it.
 
 ---
 
