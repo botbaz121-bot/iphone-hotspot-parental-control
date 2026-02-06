@@ -369,16 +369,17 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
   width: min(430px, calc(100% - 16px));
   border-radius: 20px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(17,19,26,.78);
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(17,19,26,.88);
   backdrop-filter: blur(18px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.62);
   display:flex;
   padding: 8px;
   gap: 8px;
-  z-index: 20;
+  z-index: 50;
 }
 .tab{
   flex:1;
