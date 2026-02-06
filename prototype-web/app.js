@@ -761,8 +761,8 @@ function screenParentSettings() {
           toggleSwitch(state.isChildPhone, () => {
             state.isChildPhone = !state.isChildPhone;
             persist();
-            if (state.isChildPhone) route.go('/child/dashboard');
-            else render();
+            // Always flip between the two Settings screens.
+            route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
           }),
         ]),
       ]),
@@ -811,9 +811,8 @@ function screenChildSettings() {
           toggleSwitch(state.isChildPhone, () => {
             state.isChildPhone = !state.isChildPhone;
             persist();
-            // If turning OFF child mode while inside child flow, bounce to parent.
-            if (!state.isChildPhone) route.go(navState.lastParentRoute || '/parent/dashboard');
-            else render();
+            // Always flip between the two Settings screens.
+            route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
           }),
         ]),
       ]),
