@@ -480,7 +480,6 @@ function screenParentOnboarding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('next'), 'Continue']),
-          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
 
@@ -792,9 +791,46 @@ function screenParentSettings() {
   };
 }
 
-// Legacy route kept for old links; we now land on /child/dashboard.
 function screenChildOnboarding() {
-  return screenChildDashboard();
+  return {
+    nav: navbar({ title: 'Welcome', backTo: '/' }),
+    body: el('div', { class: 'content' }, [
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Welcome'),
+            el('p', { class: 'hero-sub' }, 'Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.'),
+          ]),
+          el('span', { class: 'badge muted' }, 'Child')
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', {
+            class: 'btn primary',
+            onClick: () => {
+              // Child phone experience always starts in child Settings.
+              state.isChildPhone = true;
+              persist();
+              route.go('/child/settings');
+            }
+          }, [iconSquare('next'), 'Continue']),
+        ]),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'What you’ll do'),
+        el('div', { class: 'feature-row' }, [
+          featureTile({ icon: 'qr', title: 'Pair', sub: 'Scan a QR from the parent app to link this phone.' }),
+          featureTile({ icon: 'checklist', title: 'Enable automations', sub: 'So the Shortcut can enforce Hotspot OFF and Quiet Time.' }),
+          featureTile({ icon: 'alert', title: 'Stay protected', sub: 'If this stops running, the parent will see a tamper warning.' }),
+        ]),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Tip'),
+        el('p', { class: 'p' }, 'When you’re done, use Exit child setup to hand the phone back to the parent.'),
+      ]),
+    ]),
+  };
 }
 
 function screenChildSettings() {
@@ -1024,11 +1060,12 @@ function activeTabForPath(p) {
 
   if (p.startsWith('/child/')) {
     if (p === '/child/locked') return null;
+    if (p === '/child/onboarding') return null;
     if (p === '/child/dashboard') return 'dashboard';
     if (p === '/child/settings') return 'settings';
     if (p === '/child/screentime') return 'dashboard';
     // Legacy routes → dashboard
-    if (p === '/child/onboarding' || p === '/child/checklist' || p === '/child/pair') return 'dashboard';
+    if (p === '/child/checklist' || p === '/child/pair') return 'dashboard';
     return 'dashboard';
   }
 
