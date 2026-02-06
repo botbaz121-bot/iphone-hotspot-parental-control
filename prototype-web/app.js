@@ -144,7 +144,6 @@ function navbar({ title, backTo, rightText, rightButton }) {
 }
 
 function parentTabs(active) {
-  if (!state.signedIn) return null;
   const items = [
     { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
     { key: 'devices', label: 'Devices', to: '/parent/devices' },
