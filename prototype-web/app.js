@@ -242,7 +242,7 @@ function enrollmentSheet({ backTo }) {
         el('div', { class: 'vstack' }, [
           el('div', { class: 'row' }, [
             el('div', { class: 'hstack' }, [
-              iconSquare('phone'),
+              iconSquare('app'),
               el('div', {}, [
                 el('div', { class: 'title' }, 'Open this app'),
                 el('div', { class: 'sub' }, 'Set up child phone → Pair device')
@@ -329,7 +329,7 @@ function screenLanding() {
           el('span', { class: 'badge muted' }, 'Prototype'),
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('phone'), 'Parent phone']),
+          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('parent'), 'Parent phone']),
           el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
@@ -378,7 +378,7 @@ function screenParentOnboarding() {
           el('span', { class: 'badge muted' }, 'Parent'),
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('phone'), 'Continue']),
+          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('next'), 'Continue']),
           el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
@@ -414,7 +414,7 @@ function screenParentSignIn() {
             persist();
             route.go('/parent/dashboard');
           }
-        }, [iconSquare('phone'), 'Sign in']),
+        }, [iconSquare('login'), 'Sign in']),
       ]),
     ]),
   };
@@ -479,7 +479,7 @@ function screenParentDashboard() {
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Hotspot OFF'), el('div', { class: 'v' }, device.hotspotOff ? 'ON' : 'OFF') ]),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Quiet Time'), el('div', { class: 'v' }, device.quietTimeEnabled ? `${device.quietStart}–${device.quietEnd}` : 'OFF') ]),
         el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('phone'), 'Device details']),
+          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('info'), 'Device details']),
           el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare('checklist'), 'Child checklist']),
         ]),
       ]),

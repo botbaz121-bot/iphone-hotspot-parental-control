@@ -226,7 +226,7 @@ button,input,select{ font:inherit; }
 }
 .ic svg{ width: 16px; height: 16px; }
 .ic--qr{ color: rgba(255,255,255,.92); }
-.ic--phone{ color: rgba(255,255,255,.92); }
+/* (phone icon unused) */
 .ic--shortcut{ color: rgba(255,255,255,.92); }
 .ic--automations{ color: rgba(255,255,255,.92); }
 .ic--shield{ color: rgba(255,255,255,.92); }
