@@ -150,7 +150,7 @@ function parentTabs(active) {
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
   return el('div', { class: 'tabs' }, items.map(it =>
-    el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
+    el('a', { class: `btab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
   ));
 }
 
@@ -162,7 +162,7 @@ function childTabs(active) {
     { key: 'checklist', label: 'Checklist', to: '/child/checklist' },
   ];
   return el('div', { class: 'tabs' }, items.map(it =>
-    el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
+    el('a', { class: `btab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
   ));
 }
 
