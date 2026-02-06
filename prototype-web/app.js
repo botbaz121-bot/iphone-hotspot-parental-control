@@ -1,6 +1,8 @@
 // Hotspot Parent — Clickable Mockup (static HTML/JS)
 // No bundler. Keep it hackable.
 
+import { ICON_SVGS } from './iconset.js';
+
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -88,20 +90,9 @@ appRoot.classList.add('f7');
 
 /* ---------- UI helpers ---------- */
 
-const ICONS = {
-  qr: '/icons/qr-code.svg',
-  lock: '/icons/lock.svg',
-  shield: '/icons/shield.svg',
-  clock: '/icons/clock.svg',
-  link: '/icons/link.svg',
-  phone: '/icons/smartphone.svg',
-};
-
 function iconSquare(name = 'phone', extraClass = '') {
-  const src = ICONS[name] || ICONS.phone;
-  return el('span', { class: `ic ${extraClass}`.trim(), 'aria-hidden': 'true' },
-    el('img', { class: 'svgicon', src, alt: '' })
-  );
+  const svg = ICON_SVGS[name] || ICON_SVGS.phone;
+  return el('span', { class: `ic ic--${name} ${extraClass}`.trim(), 'aria-hidden': 'true', html: svg });
 }
 
 function navbar({ title, backTo, rightText, rightButton }) {
@@ -240,7 +231,7 @@ function enrollmentSheet({ backTo }) {
                 alert('Copy failed (browser permissions)');
               }
             }
-          }, [iconSquare('circle'), 'Copy token']),
+          }, [iconSquare('qr'), 'Copy token']),
           el('button', { class: 'btn ghost', onClick: () => alert('Regenerate (mock)') }, [iconSquare(), 'Regenerate']),
         ]),
         el('p', { class: 'small' }, 'The parent scans this on the child phone during pairing.'),
@@ -315,7 +306,7 @@ function enrollmentSheet({ backTo }) {
           closeSheet();
           route.go('/parent/dashboard');
         }
-      }, [iconSquare('circle'), 'Add device']),
+      }, [iconSquare('qr'), 'Add device']),
 
       el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, 'Go to child setup'),
       backTo ? el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Close') : null,
@@ -338,7 +329,7 @@ function screenLanding() {
           el('span', { class: 'badge muted' }, 'Prototype'),
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('circle'), 'Parent phone']),
+          el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('phone'), 'Parent phone']),
           el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare(), 'Set up child phone']),
         ]),
       ]),
@@ -387,7 +378,7 @@ function screenParentOnboarding() {
           el('span', { class: 'badge muted' }, 'Parent'),
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('circle'), 'Continue']),
+          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('phone'), 'Continue']),
           el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare(), 'Set up child phone']),
         ]),
       ]),
@@ -423,7 +414,7 @@ function screenParentSignIn() {
             persist();
             route.go('/parent/dashboard');
           }
-        }, [iconSquare('circle'), 'Sign in']),
+        }, [iconSquare('phone'), 'Sign in']),
       ]),
     ]),
   };
@@ -488,7 +479,7 @@ function screenParentDashboard() {
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Hotspot OFF'), el('div', { class: 'v' }, device.hotspotOff ? 'ON' : 'OFF') ]),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Quiet Time'), el('div', { class: 'v' }, device.quietTimeEnabled ? `${device.quietStart}–${device.quietEnd}` : 'OFF') ]),
         el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('circle'), 'Device details']),
+          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, [iconSquare('phone'), 'Device details']),
           el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Child checklist']),
         ]),
       ]),
@@ -521,7 +512,7 @@ function screenParentDevices() {
             badgeFor(d.status),
           ])
         )),
-        el('button', { class: 'btn primary full', onClick: () => enrollmentSheet({ backTo: '/parent/devices' }) }, [iconSquare('circle'), 'Enroll a device']),
+        el('button', { class: 'btn primary full', onClick: () => enrollmentSheet({ backTo: '/parent/devices' }) }, [iconSquare('qr'), 'Enroll a device']),
       ]),
     ]),
     tabs: tabs('devices'),
@@ -633,7 +624,7 @@ function screenChildOnboarding() {
           el('span', { class: 'badge muted' }, 'Child')
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('circle'), 'Start pairing']),
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), 'Start pairing']),
           el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Open checklist']),
         ]),
       ]),
@@ -662,7 +653,7 @@ function screenChildPair() {
             alert('Paired (mock)');
             route.go('/child/checklist');
           }
-        }, [iconSquare('circle'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
+        }, [iconSquare('qr'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
       ]),
 
       el('div', { class: 'card vstack' }, [
@@ -713,7 +704,7 @@ function screenChildScreenTime() {
             alert('Shielding applied (mock)');
             route.go('/child/checklist');
           }
-        }, [iconSquare('circle'), 'Apply shielding']),
+        }, [iconSquare('shield'), 'Apply shielding']),
         el('p', { class: 'small' }, 'Reminder: set a Screen Time passcode in Settings (apps can’t set it for you).'),
       ]),
     ]),

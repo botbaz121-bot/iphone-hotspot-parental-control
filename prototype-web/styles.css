@@ -224,7 +224,15 @@ button,input,select{ font:inherit; }
   display:grid;
   place-items:center;
 }
-.svgicon{ width: 14px; height: 14px; opacity: .92; }
+.ic svg{ width: 16px; height: 16px; }
+.ic--qr{ color: rgba(255,255,255,.92); }
+.ic--phone{ color: rgba(255,255,255,.92); }
+.ic--shortcut{ color: rgba(255,255,255,.92); }
+.ic--automations{ color: rgba(255,255,255,.92); }
+.ic--shield{ color: rgba(255,255,255,.92); }
+
+/* Softer icon container: no harsh outline */
+.ic{ border: 0; background: rgba(255,255,255,.06); }
 
 /* Fields */
 .field{
