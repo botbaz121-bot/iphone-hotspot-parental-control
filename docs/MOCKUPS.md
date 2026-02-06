@@ -98,7 +98,7 @@ Cards:
 - **What this can do**
   - “Set ‘Hotspot OFF’ policy”
   - “Guide setup on child phone”
-  - “Show last seen + tamper warnings”
+  - “Warn if the child may have disabled the Shortcut/automations (tamper warning)”
 - **What iOS doesn’t allow**
   - “Apps can’t directly toggle Personal Hotspot.”
   - “We use Shortcuts automations instead.”
