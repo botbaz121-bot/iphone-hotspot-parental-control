@@ -415,7 +415,7 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
   flex: 0 0 56px;
   padding: 10px 8px; /* match other tabs for equal height */
 }
-.btab.icon .ic{ width: 22px; height: 22px; }
+.btab.icon .ic{ width: 22px; height: 22px; background: transparent; box-shadow: none; }
 .btab.active{ color: var(--text); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
 
 /* Bottom sheet modal */
