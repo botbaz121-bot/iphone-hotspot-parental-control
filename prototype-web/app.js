@@ -330,7 +330,7 @@ function screenLanding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('phone'), 'Parent phone']),
-          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('phone'), 'Set up child phone']),
+          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
 
@@ -379,7 +379,7 @@ function screenParentOnboarding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('phone'), 'Continue']),
-          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare('phone'), 'Set up child phone']),
+          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare('child'), 'Set up child phone']),
         ]),
       ]),
 
