@@ -78,36 +78,75 @@ const persist = () => {
 /* ---------- Navigation history (for reliable Back) ---------- */
 
 const navState = {
-  stack: (() => {
-    try { return JSON.parse(localStorage.getItem('hp.navStack') || '[]') || []; }
-    catch { return []; }
+  stacks: (() => {
+    try {
+      return JSON.parse(localStorage.getItem('hp.navStacks') || '{"parent":[],"child":[]}') || { parent: [], child: [] };
+    } catch {
+      return { parent: [], child: [] };
+    }
   })(),
+  lastParentRoute: localStorage.getItem('hp.lastParentRoute') || '/parent/dashboard',
+  // When switching tabs, iOS doesn’t treat it as “back stack”; we replace the top.
+  _isTabSwitch: false,
 };
 
+function navKeyForPath(p) {
+  if ((p || '').startsWith('/child/')) return 'child';
+  return 'parent';
+}
+
 function navPersist() {
-  try { localStorage.setItem('hp.navStack', JSON.stringify(navState.stack.slice(-60))); } catch {}
+  try { localStorage.setItem('hp.navStacks', JSON.stringify({
+    parent: (navState.stacks.parent || []).slice(-60),
+    child: (navState.stacks.child || []).slice(-60),
+  })); } catch {}
+  try { localStorage.setItem('hp.lastParentRoute', navState.lastParentRoute || '/parent/dashboard'); } catch {}
 }
 
 function navReset() {
-  navState.stack = [];
+  navState.stacks.parent = [];
+  navState.stacks.child = [];
   navPersist();
 }
 
 function navTrack(path) {
   if (!path) return;
-  const last = navState.stack[navState.stack.length - 1];
-  if (last !== path) {
-    navState.stack.push(path);
+  const k = navKeyForPath(path);
+  const stack = navState.stacks[k] || (navState.stacks[k] = []);
+
+  if (k === 'parent') navState.lastParentRoute = path;
+
+  const last = stack[stack.length - 1];
+  if (last === path) {
+    navState._isTabSwitch = false;
     navPersist();
+    return;
   }
+
+  if (navState._isTabSwitch && stack.length) {
+    stack[stack.length - 1] = path;
+  } else {
+    stack.push(path);
+  }
+
+  navState._isTabSwitch = false;
+  navPersist();
 }
 
 function navBack(fallback = '/') {
-  // Pop current
-  if (navState.stack.length > 1) navState.stack.pop();
-  const prev = navState.stack[navState.stack.length - 1];
+  const p = route.path || '/';
+  const k = navKeyForPath(p);
+  const stack = navState.stacks[k] || (navState.stacks[k] = []);
+
+  if (stack.length > 1) stack.pop();
+  const prev = stack[stack.length - 1];
   navPersist();
   route.go(prev || fallback);
+}
+
+function navTabGo(to) {
+  navState._isTabSwitch = true;
+  route.go(to);
 }
 
 const route = {
@@ -149,20 +188,29 @@ function parentTabs(active) {
     { key: 'devices', label: 'Devices', to: '/parent/devices' },
     { key: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
-  return el('div', { class: 'tabs' }, items.map(it =>
-    el('a', { class: `btab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
+  return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Parent tabs' }, items.map(it =>
+    el('button', {
+      class: `btab ${active === it.key ? 'active' : ''}`,
+      onClick: () => navTabGo(it.to),
+      role: 'tab',
+      'aria-selected': active === it.key ? 'true' : 'false'
+    }, it.label)
   ));
 }
 
 function childTabs(active) {
-  // Child flow bottom bar (prototype convenience)
   const items = [
     { key: 'setup', label: 'Setup', to: '/child/onboarding' },
     { key: 'pair', label: 'Pair', to: '/child/pair' },
     { key: 'checklist', label: 'Checklist', to: '/child/checklist' },
   ];
-  return el('div', { class: 'tabs' }, items.map(it =>
-    el('a', { class: `btab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
+  return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Child setup tabs' }, items.map(it =>
+    el('button', {
+      class: `btab ${active === it.key ? 'active' : ''}`,
+      onClick: () => navTabGo(it.to),
+      role: 'tab',
+      'aria-selected': active === it.key ? 'true' : 'false'
+    }, it.label)
   ));
 }
 
@@ -361,7 +409,7 @@ function enrollmentSheet({ backTo }) {
         }
       }, [iconSquare('qr'), 'Add device']),
 
-      el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, 'Go to child setup'),
+      el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, 'Set up child phone'),
       backTo ? el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Close') : null,
     ].filter(Boolean),
   });
@@ -515,8 +563,8 @@ function screenParentDashboard() {
       el('div', { class: 'hero' }, [
         el('div', { class: 'hero-top' }, [
           el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Devices'),
-            el('p', { class: 'hero-sub' }, 'Swipe to switch devices. Tap to open details.'),
+            el('h1', { class: 'hero-title' }, 'Dashboard'),
+            el('p', { class: 'hero-sub' }, 'Quick status + device switcher. Use Devices tab for the full list.'),
           ]),
           el('button', { class: 'btn', onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }) }, [iconSquare('qr'), 'Enroll'])
         ]),
@@ -811,7 +859,13 @@ function screenChildChecklist() {
 
       el('div', { class: 'card vstack' }, [
         el('button', { class: 'btn full', onClick: () => alert('Done. Hand phone back to child.') }, [iconSquare('check'), 'Finish setup']),
-        el('button', { class: 'btn primary full', onClick: () => route.go('/parent/dashboard') }, [iconSquare('home'), 'Back to parent dashboard']),
+        el('button', {
+          class: 'btn primary full',
+          onClick: () => {
+            // Exit child setup cleanly back to wherever the parent was.
+            route.go(navState.lastParentRoute || '/parent/dashboard');
+          }
+        }, [iconSquare('home'), 'Exit child setup']),
       ]),
     ]),
   };
@@ -842,18 +896,25 @@ function resolveScreen() {
 }
 
 function activeTabForPath(p) {
+  // Hide tab bars during landing + onboarding/auth (iOS convention)
+  if (p === '/' || p === '') return null;
+  if (p === '/parent/onboarding' || p === '/parent/signin') return null;
+
   if (p.startsWith('/parent/')) {
+    if (!state.signedIn) return null;
     if (p === '/parent/dashboard') return 'dashboard';
     if (p === '/parent/devices' || p.startsWith('/parent/device/')) return 'devices';
     if (p === '/parent/settings') return 'settings';
     return 'dashboard';
   }
+
   if (p.startsWith('/child/')) {
     if (p === '/child/onboarding') return 'setup';
     if (p === '/child/pair') return 'pair';
     if (p === '/child/checklist' || p === '/child/screentime') return 'checklist';
     return 'setup';
   }
+
   return null;
 }
 
