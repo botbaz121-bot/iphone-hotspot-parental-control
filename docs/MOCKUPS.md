@@ -202,22 +202,29 @@ Step list:
   - Note: “iOS may prompt; set ‘Ask Before Running’ off if available.”
 - Step 3: Lock down changes (important)
   - Goal: make it hard for the child to disable/modify the Shortcut/automations.
-  - In iOS this is done via **Screen Time** (not by our app directly).
 
-  **Recommended Screen Time lock-down checklist:**
+  **In-app Screen Time integration (preferred):**
+  - We can use Apple’s **Screen Time APIs** (FamilyControls/DeviceActivity) to help the parent apply app/category restrictions.
+  - This requires the parent to **grant Screen Time control permission** when prompted.
+  - What we *can* do:
+    - ask permission via a native authorization prompt
+    - let the parent select apps/categories to restrict (e.g. Settings, Shortcuts)
+    - apply schedules/limits using Screen Time frameworks
+  - What we *cannot reliably do*:
+    - set a Screen Time passcode
+    - guarantee Shortcuts automations cannot be edited/deleted (we can only raise the cost)
+
+  **Fallback (manual instructions):**
   1. Settings → Screen Time → Turn on Screen Time (parent sets a Screen Time passcode)
-  2. Screen Time → **Content & Privacy Restrictions** → ON
-  3. Screen Time → Content & Privacy Restrictions → **Account Changes** → “Don’t Allow”
-  4. Screen Time → Content & Privacy Restrictions → **Passcode Changes** → “Don’t Allow”
-  5. Screen Time → **App Limits / Downtime** (optional) to limit access to Settings/Shortcuts at night
-  6. Screen Time → **Always Allowed**: keep Phone/Messages allowed (your choice)
+  2. Screen Time → Content & Privacy Restrictions → ON
+  3. Content & Privacy Restrictions → Account Changes → Don’t Allow
+  4. Content & Privacy Restrictions → Passcode Changes → Don’t Allow
+  5. Use App Limits/Downtime to reduce access to Settings/Shortcuts
 
-  **Shortcut-specific guidance (best-effort):**
-  - Ask the parent to keep the **Shortcuts app** accessible (it needs to exist), but restrict the child’s ability to edit.
-  - Provide a quick “Audit” page in our app:
-    - “Last check-in …”
-    - “Gap detected …”
-    - “Likely causes: automations disabled, Shortcut deleted, no network, phone off.”
+  **Shortcut tamper signals (in-app):**
+  - Show “Last check-in …”
+  - Show “Stale check-in” warnings
+  - Explain likely causes: automations disabled, Shortcut deleted, no network, phone off
 
 Actions:
 - [I’ve done this]
