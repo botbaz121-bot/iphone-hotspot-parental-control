@@ -143,8 +143,8 @@ function navbar({ title, backTo, rightText, rightButton }) {
   );
 }
 
-function tabs(active) {
-  if (state.mode !== 'parent' || !state.signedIn) return null;
+function parentTabs(active) {
+  if (!state.signedIn) return null;
   const items = [
     { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
     { key: 'devices', label: 'Devices', to: '/parent/devices' },
@@ -153,6 +153,25 @@ function tabs(active) {
   return el('div', { class: 'tabs' }, items.map(it =>
     el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
   ));
+}
+
+function childTabs(active) {
+  // Child flow bottom bar (prototype convenience)
+  const items = [
+    { key: 'setup', label: 'Setup', to: '/child/onboarding' },
+    { key: 'pair', label: 'Pair', to: '/child/pair' },
+    { key: 'checklist', label: 'Checklist', to: '/child/checklist' },
+  ];
+  return el('div', { class: 'tabs' }, items.map(it =>
+    el('a', { class: `tab ${active === it.key ? 'active' : ''}`, href: `#${it.to}` }, it.label)
+  ));
+}
+
+function bottomTabs(active) {
+  const p = route.path || '/';
+  if (p.startsWith('/parent/')) return parentTabs(active);
+  if (p.startsWith('/child/')) return childTabs(active);
+  return null;
 }
 
 function badgeFor(status) {
@@ -528,7 +547,7 @@ function screenParentDashboard() {
         el('p', { class: 'small' }, 'Troubleshoot: verify automations, Shortcut is present, network access, and Screen Time passcode.'),
       ]),
     ]),
-    tabs: tabs('dashboard'),
+    tabs: bottomTabs('dashboard'),
   };
 }
 
@@ -550,7 +569,7 @@ function screenParentDevices() {
         el('button', { class: 'btn primary full', onClick: () => enrollmentSheet({ backTo: '/parent/devices' }) }, [iconSquare('qr'), 'Enroll a device']),
       ]),
     ]),
-    tabs: tabs('devices'),
+    tabs: bottomTabs('devices'),
   };
 }
 
@@ -618,7 +637,7 @@ function screenParentDeviceDetails(deviceId) {
         el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
       ]),
     ]),
-    tabs: tabs('devices'),
+    tabs: bottomTabs('devices'),
   };
 }
 
@@ -643,7 +662,7 @@ function screenParentSettings() {
         el('p', { class: 'p' }, 'Static prototype. No server, no push, no background tasks.'),
       ]),
     ]),
-    tabs: tabs('settings'),
+    tabs: bottomTabs('settings'),
   };
 }
 
@@ -834,11 +853,24 @@ function render() {
 window.addEventListener('hashchange', () => {
   // Close any open sheet on navigation to prevent stacking.
   closeSheet();
-  navTrack(route.path);
+
+  // Keep mode in sync with the current route so the correct bottom bar shows.
+  const p = route.path || '/';
+  if (p.startsWith('/parent/')) state.mode = 'parent';
+  if (p.startsWith('/child/')) state.mode = 'childsetup';
+  persist();
+
+  navTrack(p);
   render();
 });
 
 // Initial route
 if (!location.hash) location.hash = '#/';
-navTrack(route.path);
+{
+  const p = route.path || '/';
+  if (p.startsWith('/parent/')) state.mode = 'parent';
+  if (p.startsWith('/child/')) state.mode = 'childsetup';
+  persist();
+  navTrack(p);
+}
 render();
