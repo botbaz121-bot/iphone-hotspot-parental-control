@@ -154,11 +154,27 @@ Nav title: **Setup**
 Step list:
 - Step 1: Install Shortcut
 - Step 2: Turn on Automations
-  - “Battery level” (e.g., 10%, 20%, …) 
+  - “Battery level” (e.g., 10%, 20%, …)
   - “Time of day” (e.g., every 15 min blocks)
   - Note: “iOS may prompt; set ‘Ask Before Running’ off if available.”
-- Step 3: Lock down changes
-  - “Use Screen Time to restrict Shortcuts editing”
+- Step 3: Lock down changes (important)
+  - Goal: make it hard for the child to disable/modify the Shortcut/automations.
+  - In iOS this is done via **Screen Time** (not by our app directly).
+
+  **Recommended Screen Time lock-down checklist:**
+  1. Settings → Screen Time → Turn on Screen Time (parent sets a Screen Time passcode)
+  2. Screen Time → **Content & Privacy Restrictions** → ON
+  3. Screen Time → Content & Privacy Restrictions → **Account Changes** → “Don’t Allow”
+  4. Screen Time → Content & Privacy Restrictions → **Passcode Changes** → “Don’t Allow”
+  5. Screen Time → **App Limits / Downtime** (optional) to limit access to Settings/Shortcuts at night
+  6. Screen Time → **Always Allowed**: keep Phone/Messages allowed (your choice)
+
+  **Shortcut-specific guidance (best-effort):**
+  - Ask the parent to keep the **Shortcuts app** accessible (it needs to exist), but restrict the child’s ability to edit.
+  - Provide a quick “Audit” page in our app:
+    - “Last check-in …”
+    - “Gap detected …”
+    - “Likely causes: automations disabled, Shortcut deleted, no network, phone off.”
 
 Actions:
 - [I’ve done this]
