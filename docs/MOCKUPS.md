@@ -35,7 +35,7 @@ Single flow (no tabs needed for MVP):
 - **Family** (optional; can be single-parent account)
 - **Device** (child phone; enrolled via QR/token)
 - **Policy** (what we want enforced)
-- **Check-ins** (child-side Shortcut/app events proving coverage)
+- **Signals** (high-level tamper signals: “last seen”, stale, missing activity)
 
 ---
 
@@ -68,13 +68,13 @@ Single flow (no tabs needed for MVP):
 6) Shortcut uses that config to:
    - authenticate to backend
    - fetch policy
-   - post check-ins
+   - post activity
    - perform actions (turn hotspot off + rotate password)
-6) Parent sees device status + last check-in
+6) Parent sees device status + last seen
 
 ### Flow C — Ongoing
-- Shortcut automation runs (battery/time-of-day) → fetch policy → attempts actions (rotate password, etc.) → posts event
-- Parent app shows compliance + gaps
+- Shortcut automation runs (battery/time-of-day) → fetches policy → attempts actions (turn off hotspot + rotate password)
+- Parent app shows **last seen** and warns if the device is likely tampered (stale / missing activity)
 
 ---
 
@@ -98,7 +98,7 @@ Cards:
 - **What this can do**
   - “Set ‘Hotspot OFF’ policy”
   - “Guide setup on child phone”
-  - “Show last check-in + gaps”
+  - “Show last seen + tamper warnings”
 - **What iOS doesn’t allow**
   - “Apps can’t directly toggle Personal Hotspot.”
   - “We use Shortcuts automations instead.”
@@ -136,16 +136,16 @@ Section: **Status**
 - “Quiet Time: ON/OFF” (per device)
   - If ON: show “22:00–07:00”
 
-Section: **Coverage**
-- “Last check-in: 12 min ago”
-- If stale: `⚠️ No check-in for 2h 10m`
+Section: **Device status**
+- “Last seen: 12 min ago”
+- If stale: `⚠️ Device may be tampered (no recent activity for 2h 10m)`
 
 Section: **Quick actions**
 - [Open Device Details]
 - [Setup Guide]
 
 Global summary (small, optional):
-- “Devices with gaps: 1”
+- “Devices with tamper warnings: 1”
 
 Pull to refresh.
 
@@ -157,7 +157,7 @@ Nav title: **Devices**
 
 List rows:
 - Device name (e.g., “Child iPhone”)
-  - Subtitle: “Last check-in 12m ago”
+  - Subtitle: “Last seen 12m ago”
   - Badge: `OK` / `GAP` / `SETUP` / `OFFLINE`
 
 Actions:
@@ -232,7 +232,7 @@ Nav title: **Child iPhone**
 
 Header:
 - Status badge
-- “Last check-in …”
+- “Last seen …”
 
 Section: **Policy summary**
 - “Hotspot OFF: ON”
@@ -277,7 +277,7 @@ Filter chips:
 - All / Errors / Gaps
 
 Timeline rows:
-- “15:05 Check-in OK”
+- “15:05 Activity OK”
 - “15:20 Policy fetch OK”
 - “15:35 ⚠️ Gap detected”
 
@@ -359,4 +359,4 @@ Resolved:
 3) Devices: **multiple devices supported**.
 
 Remaining:
-- None (cadence/expected frequency removed; we’ll just show last check-in and a simple “stale” warning).
+- None (we’ll just show last seen and a simple “device may be tampered” warning).

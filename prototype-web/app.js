@@ -33,7 +33,7 @@ const state = {
       quietEnd: '07:00',
       latest: { hotspotOff: 'success', rotatePassword: 'success' },
       activity: [
-        { t: '15:05', msg: 'Check-in OK' },
+        { t: '15:05', msg: 'Activity OK' },
         { t: '15:20', msg: 'Policy fetch OK' },
         { t: '15:35', msg: 'Policy run logged' },
       ],
@@ -49,8 +49,8 @@ const state = {
       quietEnd: '07:00',
       latest: { hotspotOff: 'failed', rotatePassword: 'success' },
       activity: [
-        { t: '12:00', msg: 'Check-in OK' },
-        { t: '13:00', msg: '⚠️ Stale check-in' },
+        { t: '12:00', msg: 'Activity OK' },
+        { t: '13:00', msg: '⚠️ Stale activity' },
       ],
     },
   ],
@@ -83,6 +83,9 @@ const route = {
 };
 
 const appRoot = document.getElementById('app');
+
+// Add a class so Framework7 styles apply
+appRoot.classList.add('f7');
 
 function navbar({ title, backTo, rightText }) {
   return el('div', { class: 'navbar' },
@@ -158,10 +161,10 @@ function screenParentOnboarding() {
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h1' }, 'Welcome'),
-        el('p', { class: 'p' }, 'This app helps parents deter hotspot use via Shortcuts and track device check-ins.'),
+        el('p', { class: 'p' }, 'This app helps parents deter hotspot use via Shortcuts and track device activitys.'),
         el('div', { class: 'card', style: 'box-shadow:none; background: rgba(255,255,255,.04)' }, [
           el('div', { class: 'h2' }, 'What this can do'),
-          el('p', { class: 'p' }, '• Set per-device policy (Hotspot OFF + Quiet Time)\n• Guide child phone setup\n• Show last check-in + activity')
+          el('p', { class: 'p' }, '• Set per-device policy (Hotspot OFF + Quiet Time)\n• Guide child phone setup\n• Show last activity + activity')
         ]),
         el('div', { class: 'card', style: 'box-shadow:none; background: rgba(255,255,255,.04)' }, [
           el('div', { class: 'h2' }, 'Constraint'),
@@ -193,39 +196,42 @@ function screenParentDashboard() {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}` }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Device switcher'),
-        el('div', { class: 'pager' }, state.devices.map(d =>
-          el('div', { class: `card device-card`, style: `box-shadow:none; border-color:${d.id===state.selectedDeviceId?'rgba(79,140,255,.35)':'var(--line)'}` }, [
-            el('div', { class: 'hstack' }, [
-              el('div', { class: 'vstack', style:'gap:2px; flex:1' }, [
-                el('div', { style:'font-weight:800' }, d.name),
-                el('div', { class: 'small' }, `Last check-in: ${d.lastCheckInMinutes}m ago`),
-              ]),
-              badgeFor(d.status),
-            ]),
-            el('div', { class: 'hstack', style:'margin-top:10px' }, [
-              el('button', { class: 'btn', onClick: () => { state.selectedDeviceId = d.id; persist(); render(); } }, d.id===state.selectedDeviceId?'Selected':'View'),
-              el('button', { class: 'btn primary', onClick: () => { state.selectedDeviceId = d.id; persist(); route.go(`/parent/device/${d.id}`); } }, 'Details'),
-            ]),
-          ])
+        el('div', { class: 'h2' }, 'Device'),
+        el('div', { class: 'segmented segmented-raised' }, state.devices.map(d =>
+          el('a', {
+            class: `button ${d.id === state.selectedDeviceId ? 'button-active' : ''}`,
+            href: '#',
+            onClick: (e) => { e.preventDefault(); state.selectedDeviceId = d.id; persist(); render(); }
+          }, d.name)
         )),
+        el('div', { class: 'hstack', style: 'justify-content:space-between; margin-top:10px' }, [
+          el('div', { class: 'small' }, `Last seen: ${device.lastCheckInMinutes}m ago`),
+          badgeFor(device.status),
+        ]),
+        el('div', { class: 'hstack', style: 'margin-top:10px' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go(`/parent/device/${device.id}`) }, 'Device details'),
+          el('button', { class: 'btn', onClick: () => route.go('/parent/add-device') }, 'Add device'),
+        ]),
       ]),
 
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Status'),
+        el('div', { class: 'h2' }, 'Policy status'),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Hotspot OFF'), el('div', { class: 'v' }, device.hotspotOff ? 'ON' : 'OFF') ]),
         el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Quiet Time'), el('div', { class: 'v' }, device.quietTimeEnabled ? `${device.quietStart}–${device.quietEnd}` : 'OFF') ]),
       ]),
 
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Coverage'),
-        el('p', { class: 'p' }, `Last check-in: ${device.lastCheckInMinutes} minutes ago`),
-        stale ? el('div', { class: 'badge warn' }, '⚠️ Stale check-in') : el('div', { class: 'badge good' }, 'Recent check-in'),
+        el('div', { class: 'h2' }, 'Tamper warning'),
+        el('p', { class: 'p' }, stale
+          ? '⚠️ Device may have been tampered with (no recent activity).'
+          : 'No tamper warning (recent activity).'
+        ),
+        el('p', { class: 'p' }, 'If this persists: check automations, Shortcut still installed, network access, and Screen Time lock.'),
       ]),
 
-            el('div', { class: 'card hstack' }, [
-        el('button', { class: 'btn primary', onClick: () => route.go('/parent/devices') }, 'Devices'),
+      el('div', { class: 'card hstack' }, [
         el('button', { class: 'btn', onClick: () => route.go('/child/onboarding') }, 'Set up child phone'),
+        el('button', { class: 'btn', onClick: () => route.go('/parent/settings') }, 'Settings'),
       ]),
     ]),
     tabs: tabs('dashboard'),
@@ -242,7 +248,7 @@ function screenParentDevices() {
           el('div', { class: 'row', onClick: () => route.go(`/parent/device/${d.id}`) }, [
             el('div', {}, [
               el('div', { class: 'title' }, d.name),
-              el('div', { class: 'sub' }, `Last check-in ${d.lastCheckInMinutes}m ago`),
+              el('div', { class: 'sub' }, `Last seen ${d.lastCheckInMinutes}m ago`),
             ]),
             badgeFor(d.status),
           ])
@@ -290,8 +296,8 @@ function screenParentDeviceDetails(deviceId) {
           el('div', { class: 'h2' }, 'Overview'),
           badgeFor(d.status),
         ]),
-        el('p', { class: 'p' }, `Last check-in: ${d.lastCheckInMinutes}m ago`),
-        stale ? el('div', { class: 'badge warn' }, '⚠️ Stale check-in') : el('div', { class: 'badge good' }, 'Recent check-in'),
+        el('p', { class: 'p' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
+        stale ? el('div', { class: 'badge warn' }, '⚠️ Stale activity') : el('div', { class: 'badge good' }, 'Recent activity'),
       ]),
 
       el('div', { class: 'card vstack' }, [
