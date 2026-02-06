@@ -2,7 +2,7 @@
 
 This document is **planning-first**: screens, flows, copy, and required backend/Shortcut hooks.
 
-> Constraint reminder: iOS apps cannot reliably toggle Personal Hotspot via public APIs. Enforcement is via **Shortcuts automations** (deterrence + audit) and/or **MDM (supervised devices)** for “real enforcement”. This app is the **parent/admin UI**.
+> Constraint reminder: iOS apps cannot reliably toggle Personal Hotspot via public APIs. Enforcement is via **Shortcuts automations** (deterrence + audit). This app is the **parent/admin UI**.
 
 ---
 
@@ -35,9 +35,7 @@ Pre-auth flow:
 ### Flow A — First run
 1) Onboarding (what it does / what it cannot do)
 2) Sign in with Apple
-3) Create/Add Device → choose enforcement mode:
-   - **Shortcut mode (MVP)**
-   - **MDM mode (Pro / later)**
+3) Add first device (Enrollment QR)
 4) Policy defaults: **Hotspot OFF = ON**
 5) Setup guide for child device
 
@@ -63,7 +61,7 @@ Notation:
 ### 0) Onboarding
 
 **Welcome to Hotspot Parent**
-- Subtitle: “Prevent hotspot use (via Shortcuts/MDM) + get visibility.”
+- Subtitle: “Prevent hotspot use (via Shortcuts) + get visibility.”
 
 Cards:
 - **What this can do**
@@ -72,7 +70,7 @@ Cards:
   - “Show last check-in + gaps”
 - **What iOS doesn’t allow**
   - “Apps can’t directly toggle Personal Hotspot.”
-  - “We use Shortcuts automations (MVP) or MDM (advanced).”
+  - “We use Shortcuts automations instead.”
 
 Actions:
 - [Continue]
@@ -128,24 +126,7 @@ Actions:
 
 ---
 
-### 4) Add Device — Choose mode
-
-Nav title: **Add Device**
-
-Choice cards:
-- **Shortcut mode (Recommended for MVP)**
-  - “No supervision required”
-  - “Deterrence + audit trail”
-  - [Use Shortcut mode]
-
-- **MDM mode (Later)**
-  - “Requires supervised device / MDM”
-  - “Stronger enforcement”
-  - [Learn more] (disabled/coming soon)
-
----
-
-### 5) Add Device — Enrollment QR (Shortcut mode)
+### 4) Add Device — Enrollment QR
 
 Nav title: **Enroll Device**
 
@@ -166,7 +147,7 @@ Footer:
 
 ---
 
-### 6) Setup Automations (guide)
+### 5) Setup Automations (guide)
 
 Nav title: **Setup**
 
@@ -184,7 +165,7 @@ Actions:
 
 ---
 
-### 7) Device Details
+### 6) Device Details
 
 Nav title: **Child iPhone**
 
@@ -207,7 +188,7 @@ Section: **Troubleshooting**
 
 ---
 
-### 8) Policy (tab)
+### 7) Policy (tab)
 
 Nav title: **Policy**
 
@@ -228,7 +209,7 @@ Action:
 
 ---
 
-### 9) Activity (tab)
+### 8) Activity (tab)
 
 Nav title: **Activity**
 
@@ -245,7 +226,7 @@ Row tap → detail:
 
 ---
 
-### 10) Settings (tab)
+### 9) Settings (tab)
 
 Nav title: **Settings**
 
@@ -295,7 +276,7 @@ Security:
 ## Open questions (need Leon decisions)
 
 Resolved:
-1) Enforcement mode: **Shortcut-only** (no MDM).
+1) Enforcement mode: **Shortcut-only**.
 2) Shortcut actions: **turn hotspot off + rotate password**.
 3) Devices: **multiple devices supported**.
 
