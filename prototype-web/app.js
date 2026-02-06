@@ -842,12 +842,33 @@ function resolveScreen() {
   };
 }
 
+function activeTabForPath(p) {
+  if (p.startsWith('/parent/')) {
+    if (p === '/parent/dashboard') return 'dashboard';
+    if (p === '/parent/devices' || p.startsWith('/parent/device/')) return 'devices';
+    if (p === '/parent/settings') return 'settings';
+    return 'dashboard';
+  }
+  if (p.startsWith('/child/')) {
+    if (p === '/child/onboarding') return 'setup';
+    if (p === '/child/pair') return 'pair';
+    if (p === '/child/checklist' || p === '/child/screentime') return 'checklist';
+    return 'setup';
+  }
+  return null;
+}
+
 function render() {
   const s = resolveScreen();
+  const p = route.path || '/';
+
   appRoot.innerHTML = '';
   appRoot.appendChild(s.nav);
   appRoot.appendChild(s.body);
-  if (s.tabs) appRoot.appendChild(s.tabs);
+
+  const active = activeTabForPath(p);
+  const tabsNode = s.tabs || (active ? bottomTabs(active) : null);
+  if (tabsNode) appRoot.appendChild(tabsNode);
 }
 
 window.addEventListener('hashchange', () => {
