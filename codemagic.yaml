@@ -1,53 +1,60 @@
 workflows:
   ios-ipa:
-    name: iOS (XcodeGen) → IPA artifact
+    name: iOS (XcodeGen) → IPA + upload to TestFlight
     max_build_duration: 60
     integrations:
       app_store_connect: Codemagic
+
     environment:
       ios_signing:
-        # Explicitly pin the identities we created in Codemagic (App Store/TestFlight).
+        # These are *Codemagic* resource reference names (not the Apple profile “display name”).
+        # Use an App Store (distribution) provisioning profile for TestFlight/App Store Connect.
         provisioning_profiles:
           - hotspotparent_appstore_profile
         certificates:
           - hotspotparent-distribution
+
       vars:
         XCODEGEN_DIR: ios-app/xcodegen
         PROJECT_PATH: ios-app/xcodegen/HotspotParent.xcodeproj
         SCHEME: HotspotParent
         BUNDLE_ID: com.bazapps.hotspotparent
-        # If you want to set a different API default without editing code, wire this later via Info.plist or build settings.
+        TEAM_ID: 3SJ44B3Q7Y
+
     scripts:
       - name: Install XcodeGen
         script: |
-          brew update
-          brew install xcodegen
+          # Avoid `brew update` (slow/flaky in CI)
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+
+      - name: Set build number (CURRENT_PROJECT_VERSION) for App Store Connect uniqueness
+        script: |
+          set -e
+          # App Store Connect requires a monotonically increasing build number per version.
+          # Codemagic provides CM_BUILD_NUMBER (auto-increment per workflow).
+          BUILD_NUMBER="${CM_BUILD_NUMBER:-1}"
+          echo "Using build number: $BUILD_NUMBER"
+
+          # Patch the XcodeGen spec so the generated .xcodeproj has the right build number.
+          SPEC_FILE="$CM_BUILD_DIR/ios-app/xcodegen/project.yml"
+          sed -i.bak -E "s/(CURRENT_PROJECT_VERSION: )\"?[0-9]+\"?/\1\"${BUILD_NUMBER}\"/" "$SPEC_FILE"
+          echo "Updated CURRENT_PROJECT_VERSION in $SPEC_FILE"
+
       - name: Generate Xcode project
         script: |
           cd "$XCODEGEN_DIR"
           xcodegen generate
 
-      - name: Set up code signing settings on Xcode project
+      - name: Apply Codemagic provisioning profiles to the generated Xcode project
         script: |
           xcode-project use-profiles
 
-      - name: Build (simulator)
-        script: |
-          xcodebuild \
-            -project "$PROJECT_PATH" \
-            -scheme "$SCHEME" \
-            -sdk iphonesimulator \
-            -configuration Release \
-            -destination 'generic/platform=iOS Simulator' \
-            build
-      - name: Archive (device) + Export IPA (requires signing)
+      - name: Archive + Export IPA (App Store)
         script: |
           set -e
-          ARCHIVE_PATH=$CM_BUILD_DIR/build/HotspotParent.xcarchive
-          EXPORT_PATH=$CM_BUILD_DIR/build/export
+          ARCHIVE_PATH="$CM_BUILD_DIR/build/HotspotParent.xcarchive"
+          EXPORT_PATH="$CM_BUILD_DIR/build/export"
           mkdir -p "$EXPORT_PATH"
-
-          echo "Attempting device archive + IPA export (will fail if signing isn't configured)…"
 
           xcodebuild \
             -project "$PROJECT_PATH" \
@@ -57,23 +64,20 @@ workflows:
             -archivePath "$ARCHIVE_PATH" \
             archive
 
-          # Minimal export options; Codemagic code signing docs may require a different method (ad-hoc/app-store).
-          cat > $CM_BUILD_DIR/ExportOptions.plist <<'PLIST'
+          # Use `method = app-store` for TestFlight/App Store Connect uploads.
+          # Prefer `signingStyle = automatic` here because Codemagic already installed the right cert/profile
+          # and `xcode-project use-profiles` sets the project accordingly.
+          cat > "$CM_BUILD_DIR/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store-connect</string>
+            <string>app-store</string>
             <key>signingStyle</key>
-            <string>manual</string>
+            <string>automatic</string>
             <key>teamID</key>
-            <string>3SJ44B3Q7Y</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.bazapps.hotspotparent</key>
-              <string>hotspotparent-appstore</string>
-            </dict>
+            <string>${TEAM_ID}</string>
             <key>compileBitcode</key>
             <false/>
           </dict>
@@ -94,4 +98,7 @@ workflows:
       app_store_connect:
         auth: integration
         # Upload to App Store Connect so it appears in TestFlight.
-        submit_to_testflight: false
+        submit_to_testflight: true
+        # Optional: uncomment and set to your TestFlight beta group names in App Store Connect
+        # beta_groups:
+        #   - Internal Testers
