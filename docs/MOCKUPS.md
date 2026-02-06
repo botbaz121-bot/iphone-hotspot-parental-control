@@ -22,9 +22,9 @@ Bottom tabs:
 - **Devices**
 - **Settings**
 
-### Child mode
+### Setup Child Device mode
 Single flow (no tabs needed for MVP):
-- Pair device → Generate hotspot-config.json → Export to Files for the Shortcut
+- Pair device → Store config in-app → Shortcut reads config via App Intent (fallback: export json)
 
 
 ---
@@ -53,16 +53,18 @@ Single flow (no tabs needed for MVP):
 1) Onboarding
 2) Choose mode: **Set up child phone**
 3) Pair device (scan QR / enter code)
-4) Generate `hotspot-config.json`
-5) Export file to **Files → On My iPhone → Shortcuts** as **`hotspot-config.json`** so the Shortcut can read it
-6) Install/enable automations
+4) Store config securely in the app (deviceId/deviceSecret/apiBaseURL)
+5) Shortcut uses an **App Intent** (e.g. “Get Hotspot Config”) to read the config at runtime
+6) (Fallback) Export `hotspot-config.json` to Files if needed
+7) Install/enable automations
 
 ### Flow C — Add a device (Shortcuts-only)
 1) Parent generates **Enrollment QR** (contains enrollment token)
 2) On child iPhone: install **Child app** + install Shortcut
 3) In **Child app**: scan QR → pair with backend → receive device credentials
-4) Child app generates **`hotspot-config.json`** and exports it to **Files → On My iPhone → Shortcuts**
-5) Shortcut reads **`hotspot-config.json`** to:
+4) Setup flow stores device credentials securely in the app (deviceId/deviceSecret/apiBaseURL)
+5) Shortcut calls an **App Intent** to retrieve config at runtime (no Files step needed)
+6) Shortcut uses that config to:
    - authenticate to backend
    - fetch policy
    - post check-ins
@@ -125,7 +127,6 @@ Nav title: **Dashboard**
 
 Top: **Device switcher**
 - Horizontal paging/swipe between devices (like cards)
-- Or a compact picker: “Device: Child iPhone ▾”
 
 Per-device card shows:
 
@@ -179,14 +180,14 @@ Card: **QR**
 - QR image
 
 Card: **Next on the child phone**
-1. “Install the Child app”
-2. “Open Child app → Pair device → Scan this QR”
+1. “Install the app on the child phone”
+2. “Open app → Set up child phone → Pair device → Scan this QR”
 3. “Install the Shortcut” [Open Shortcut link]
-4. “In Child app: Export hotspot-config.json to Files”
+4. “In Shortcut: add action ‘Get Hotspot Config’ (App Intent) as the first step”
 5. “Enable automations” [Setup Automations]
 
 Footer:
-- “This QR links the child device to your account and produces the config file the Shortcut uses.”
+- “This QR links the child device to your account. The Shortcut reads config from the app via App Intent.”
 
 ---
 
@@ -344,12 +345,15 @@ Security:
 - Enrollment token is **time-limited** and exchanged for a long-lived `deviceSecret`.
 - Shortcut requests authenticated using `deviceSecret` (Bearer or HMAC).
 
-Config file:
-- Child app generates **`hotspot-config.json`** containing (at minimum):
+Config (preferred):
+- Setup flow stores config securely in the app (Keychain recommended), containing (at minimum):
   - `deviceId`
   - `deviceSecret`
   - `apiBaseURL`
-- Child app exports it to **Files → On My iPhone → Shortcuts** so the Shortcut can read it.
+- Shortcut retrieves it via an **App Intent** (e.g. “Get Hotspot Config”) each run.
+
+Config file (fallback):
+- Offer an export button to save **`hotspot-config.json`** to Files if App Intent is blocked by iOS automation prompts.
 
 ---
 
