@@ -54,15 +54,15 @@ Single flow (no tabs needed for MVP):
 2) Choose mode: **Child**
 3) Pair device (scan QR / enter code)
 4) Generate `hotspot-config.json`
-5) Export file to **Files** (On My iPhone / Shortcuts) so the Shortcut can read it
+5) Export file to **Files → On My iPhone → Shortcuts** as **`hotspot-config.json`** so the Shortcut can read it
 6) Install/enable automations
 
 ### Flow C — Add a device (Shortcuts-only)
 1) Parent generates **Enrollment QR** (contains enrollment token)
 2) On child iPhone: install **Child app** + install Shortcut
 3) In **Child app**: scan QR → pair with backend → receive device credentials
-4) Child app generates `hotspot-config.json` and exports it to Files
-5) Shortcut reads `hotspot-config.json` to:
+4) Child app generates **`hotspot-config.json`** and exports it to **Files → On My iPhone → Shortcuts**
+5) Shortcut reads **`hotspot-config.json`** to:
    - authenticate to backend
    - fetch policy
    - post check-ins
@@ -331,11 +331,11 @@ Security:
 - Shortcut requests authenticated using `deviceSecret` (Bearer or HMAC).
 
 Config file:
-- Child app generates `hotspot-config.json` containing (at minimum):
+- Child app generates **`hotspot-config.json`** containing (at minimum):
   - `deviceId`
   - `deviceSecret`
   - `apiBaseURL`
-- Child app exports it to **Files** so the Shortcut can read it.
+- Child app exports it to **Files → On My iPhone → Shortcuts** so the Shortcut can read it.
 
 ---
 
