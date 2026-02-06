@@ -17,7 +17,8 @@ let package = Package(
     ),
     .testTarget(
       name: "HotspotParentAppTests",
-      dependencies: ["HotspotParentApp"]
+      dependencies: ["HotspotParentApp"],
+      path: "Tests/HotspotParentAppTests"
     )
   ]
 )
