@@ -64,20 +64,25 @@ workflows:
             -archivePath "$ARCHIVE_PATH" \
             archive
 
-          # Use `method = app-store` for TestFlight/App Store Connect uploads.
-          # Prefer `signingStyle = automatic` here because Codemagic already installed the right cert/profile
-          # and `xcode-project use-profiles` sets the project accordingly.
+          # ExportOptions must be explicit in CI; otherwise exportArchive can fail with:
+          # "No profiles for 'com.bazapps.hotspotparent' were found".
+          # We already see the profile name during codesign: "hotspotparent-appstore".
           cat > "$CM_BUILD_DIR/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
             <key>teamID</key>
             <string>${TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${BUNDLE_ID}</key>
+              <string>hotspotparent-appstore</string>
+            </dict>
             <key>compileBitcode</key>
             <false/>
           </dict>
