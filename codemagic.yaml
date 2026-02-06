@@ -43,7 +43,7 @@ workflows:
             -destination 'generic/platform=iOS' \
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            DEVELOPMENT_TEAM="3SJ44B3Q7Y" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="hotspotparent-appstore" \
             archive
