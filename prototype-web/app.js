@@ -1,4 +1,4 @@
-// HomeGriffin — Clickable Mockup (static HTML/JS)
+// Hardstop — Clickable Mockup (static HTML/JS)
 // No bundler. Keep it hackable.
 
 import { ICON_SVGS } from './iconset.js';
@@ -423,12 +423,12 @@ function enrollmentSheet({ backTo }) {
 
 function screenLanding() {
   return {
-    nav: navbar({ title: 'HomeGriffin' }),
+    nav: navbar({ title: 'Hardstop' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'hero' }, [
         el('div', { class: 'hero-top' }, [
           el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'HomeGriffin'),
+            el('h1', { class: 'hero-title' }, 'Hardstop'),
             el('p', { class: 'hero-sub' }, 'High‑fidelity prototype to design parent + child setup flows (no iOS build).'),
           ]),
           el('span', { class: 'badge muted' }, 'Prototype'),
