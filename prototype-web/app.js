@@ -361,7 +361,54 @@ function screenChildOnboarding() {
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h1' }, 'Child phone setup'),
         el('p', { class: 'p' }, 'Parent uses the child phone to pair, then sets up the Shortcut + Screen Time lock.'),
-        el('button', { class: 'btn primary', onClick: () => route.go('/child/checklist') }, 'Start'),
+        el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, 'Start pairing'),
+        el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, 'Open checklist'),
+      ]),
+    ]),
+  };
+}
+
+function screenChildPair() {
+  const c = state.childSetup;
+  const paired = c.paired;
+  return {
+    nav: navbar({ title: 'Pair device', backTo: '/child/checklist' }),
+    body: el('div', { class: 'content' }, [
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Scan QR'),
+        el('p', { class: 'p' }, 'On the real app, this uses the camera. In this mockup, it just simulates success.'),
+        el('button', { class: 'btn primary', onClick: () => { c.paired = true; alert('Paired (mock)'); route.go('/child/checklist'); } }, paired ? 'Re-scan (mock)' : 'Scan QR (mock)'),
+      ]),
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Or enter pairing code'),
+        el('input', { class: 'field', placeholder: 'e.g. ABCD-1234', value: c._pairCode || '', onInput: (e) => { c._pairCode = e.target.value; } }),
+        el('button', { class: 'btn', onClick: () => { if ((c._pairCode||'').trim().length < 4) return alert('Enter a code'); c.paired = true; alert('Paired (mock)'); route.go('/child/checklist'); } }, 'Pair'),
+        el('p', { class: 'p' }, 'Pairing stores device credentials securely in the app (used by the Shortcut via App Intent).'),
+      ]),
+    ]),
+  };
+}
+
+function screenChildScreenTime() {
+  const c = state.childSetup;
+  return {
+    nav: navbar({ title: 'Screen Time lock', backTo: '/child/checklist' }),
+    body: el('div', { class: 'content' }, [
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Shield apps'),
+        el('p', { class: 'p' }, 'In the real app, we show Apple’s picker (FamilyControls) then apply shielding (ManagedSettings).'),
+        el('div', { class: 'list' }, [
+          el('div', { class:'row', onClick: () => { c._shieldSettings = !c._shieldSettings; render(); } }, [
+            el('div', {}, [el('div', { class:'title' }, 'Settings'), el('div', { class:'sub' }, 'Recommended')]),
+            el('span', { class: `badge ${c._shieldSettings?'good':'muted'}` }, c._shieldSettings?'Selected':'Not')
+          ]),
+          el('div', { class:'row', onClick: () => { c._shieldShortcuts = !c._shieldShortcuts; render(); } }, [
+            el('div', {}, [el('div', { class:'title' }, 'Shortcuts'), el('div', { class:'sub' }, 'Recommended')]),
+            el('span', { class: `badge ${c._shieldShortcuts?'good':'muted'}` }, c._shieldShortcuts?'Selected':'Not')
+          ]),
+        ]),
+        el('button', { class: 'btn primary', onClick: () => { c.shieldingApplied = true; alert('Shielding applied (mock)'); route.go('/child/checklist'); } }, 'Apply shielding'),
+        el('p', { class: 'p' }, 'Reminder: you must set a Screen Time passcode in Settings (we can’t set it for you).'),
       ]),
     ]),
   };
@@ -380,28 +427,50 @@ function stepRow(done, title, sub, onToggle) {
 function screenChildChecklist() {
   const c = state.childSetup;
   return {
-    nav: navbar({ title: 'Checklist', backTo: '/child/onboarding' }),
+    nav: navbar({ title: 'Child phone setup', backTo: '/child/onboarding' }),
     body: el('div', { class: 'content' }, [
       el('div', { class:'card vstack' }, [
         el('div', { class:'h2' }, '1) Pair device'),
-        stepRow(c.paired, 'Pair device', 'Scan QR / enter code', () => { c.paired = !c.paired; render(); }),
+        el('p', { class:'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
+        el('div', { class:'hstack' }, [
+          el('button', { class:'btn primary', onClick: () => route.go('/child/pair') }, c.paired ? 'View pairing' : 'Start pairing'),
+          c.paired ? el('button', { class:'btn', onClick: () => { c.paired = false; render(); } }, 'Unpair') : null,
+        ].filter(Boolean)),
       ]),
+
       el('div', { class:'card vstack' }, [
         el('div', { class:'h2' }, '2) Shortcut'),
         stepRow(c.shortcutInstalled, 'Install Shortcut', 'Open shortcut link and add it', () => { c.shortcutInstalled = !c.shortcutInstalled; render(); }),
         stepRow(c.appIntentAdded, 'Add “Get Hotspot Config”', 'Ensure the first step is the App Intent', () => { c.appIntentAdded = !c.appIntentAdded; render(); }),
+        el('div', { class:'hstack' }, [
+          el('button', { class:'btn', onClick: () => alert('Open Shortcut link (mock)') }, 'Open Shortcut link'),
+        ]),
       ]),
+
       el('div', { class:'card vstack' }, [
         el('div', { class:'h2' }, '3) Automations'),
         stepRow(c.automationsEnabled, 'Enable automations', 'Battery + time-of-day', () => { c.automationsEnabled = !c.automationsEnabled; render(); }),
       ]),
+
       el('div', { class:'card vstack' }, [
         el('div', { class:'h2' }, '4) Screen Time lock'),
-        stepRow(c.screenTimeAuthorized, 'Authorize Screen Time', 'Grant permission in-app (FamilyControls)', () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }),
-        stepRow(c.screenTimePasscodeSet, 'Set Screen Time passcode', 'Parent sets passcode in Settings', () => { c.screenTimePasscodeSet = !c.screenTimePasscodeSet; render(); }),
-        stepRow(c.shieldingApplied, 'Apply shielding', 'Block Settings + Shortcuts', () => { c.shieldingApplied = !c.shieldingApplied; render(); }),
-        el('p', { class:'p' }, 'Note: app can’t set the passcode; it can only remind + verify.'),
+        el('p', { class:'p' }, 'We do the shielding in-app, but you must set a Screen Time passcode manually.'),
+        el('div', { class:'list' }, [
+          el('div', { class:'row', onClick: () => { c.screenTimeAuthorized = true; render(); } }, [
+            el('div', {}, [el('div', { class:'title' }, 'Authorize Screen Time'), el('div', { class:'sub' }, 'Grant permission in-app (FamilyControls)')]),
+            el('span', { class: `badge ${c.screenTimeAuthorized?'good':'muted'}` }, c.screenTimeAuthorized?'Done':'Todo'),
+          ]),
+          el('div', { class:'row', onClick: () => { c.screenTimePasscodeSet = true; render(); } }, [
+            el('div', {}, [el('div', { class:'title' }, 'Set Screen Time passcode'), el('div', { class:'sub' }, 'Parent sets passcode in Settings')]),
+            el('span', { class: `badge ${c.screenTimePasscodeSet?'good':'muted'}` }, c.screenTimePasscodeSet?'Done':'Todo'),
+          ]),
+          el('div', { class:'row', onClick: () => route.go('/child/screentime') }, [
+            el('div', {}, [el('div', { class:'title' }, 'Select apps to shield'), el('div', { class:'sub' }, 'Recommended: Settings + Shortcuts')]),
+            el('span', { class: 'badge muted' }, 'Open'),
+          ]),
+        ]),
       ]),
+
       el('div', { class:'card hstack' }, [
         el('button', { class:'btn', onClick: () => { alert('Done. Hand phone back to child.'); } }, 'Done'),
         el('button', { class:'btn primary', onClick: () => route.go('/parent/dashboard') }, 'Back to parent dashboard'),
@@ -426,6 +495,8 @@ function resolveScreen() {
   // Child setup flow
   if (p === '/child/onboarding') return screenChildOnboarding();
   if (p === '/child/checklist') return screenChildChecklist();
+  if (p === '/child/pair') return screenChildPair();
+  if (p === '/child/screentime') return screenChildScreenTime();
 
   return {
     nav: navbar({ title: 'Not Found', backTo: '/' }),
