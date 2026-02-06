@@ -330,7 +330,7 @@ function screenLanding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => { state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('phone'), 'Parent phone']),
-          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare(), 'Set up child phone']),
+          el('button', { class: 'btn', onClick: () => { state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('phone'), 'Set up child phone']),
         ]),
       ]),
 
@@ -348,7 +348,7 @@ function screenLanding() {
             location.hash = '#/';
             location.reload();
           }
-        }, [iconSquare(), 'Clear local state']),
+        }, [iconSquare('trash'), 'Clear local state']),
         el('p', { class: 'small' }, 'Clears localStorage only (no server).'),
       ]),
     ]),
@@ -379,7 +379,7 @@ function screenParentOnboarding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('phone'), 'Continue']),
-          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare(), 'Set up child phone']),
+          el('button', { class: 'btn ghost', onClick: () => route.go('/child/onboarding') }, [iconSquare('phone'), 'Set up child phone']),
         ]),
       ]),
 
@@ -625,7 +625,7 @@ function screenChildOnboarding() {
         ]),
         el('div', { class: 'hero-actions' }, [
           el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), 'Start pairing']),
-          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare(), 'Open checklist']),
+          el('button', { class: 'btn', onClick: () => route.go('/child/checklist') }, [iconSquare('checklist'), 'Open checklist']),
         ]),
       ]),
 
@@ -672,7 +672,7 @@ function screenChildPair() {
             alert('Paired (mock)');
             route.go('/child/checklist');
           }
-        }, [iconSquare(), 'Pair']),
+        }, [iconSquare('shortcut'), 'Pair']),
         el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
       ]),
     ]),
@@ -730,8 +730,8 @@ function screenChildChecklist() {
         el('div', { class: 'h2' }, '1) Pair device'),
         el('p', { class: 'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
         el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('circle'), c.paired ? 'View pairing' : 'Start pairing']),
-          c.paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare(), 'Unpair']) : null,
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), c.paired ? 'View pairing' : 'Start pairing']),
+          c.paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
         ].filter(Boolean)),
       ]),
 
@@ -739,7 +739,7 @@ function screenChildChecklist() {
         el('div', { class: 'h2' }, '2) Shortcut'),
         stepRow(c.shortcutInstalled, 'Install Shortcut', 'Open link and add it', () => { c.shortcutInstalled = !c.shortcutInstalled; render(); }),
         stepRow(c.appIntentAdded, 'Add “Get Hotspot Config”', 'Ensure the first step is the App Intent', () => { c.appIntentAdded = !c.appIntentAdded; render(); }),
-        el('button', { class: 'btn full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare(), 'Open Shortcut link']),
+        el('button', { class: 'btn full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare('shortcut'), 'Open Shortcut link']),
       ]),
 
       el('div', { class: 'card vstack' }, [
@@ -752,12 +752,12 @@ function screenChildChecklist() {
         el('p', { class: 'p' }, 'Authorize in-app, set a passcode in Settings, then shield apps.'),
         stepRow(c.screenTimeAuthorized, 'Authorize Screen Time', 'Grant permission in-app (FamilyControls)', () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }),
         stepRow(c.screenTimePasscodeSet, 'Set Screen Time passcode', 'Parent sets passcode in Settings', () => { c.screenTimePasscodeSet = !c.screenTimePasscodeSet; render(); }),
-        el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('circle'), 'Select apps to shield']),
+        el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
       ]),
 
       el('div', { class: 'card vstack' }, [
-        el('button', { class: 'btn full', onClick: () => alert('Done. Hand phone back to child.') }, [iconSquare(), 'Finish setup']),
-        el('button', { class: 'btn primary full', onClick: () => route.go('/parent/dashboard') }, [iconSquare('circle'), 'Back to parent dashboard']),
+        el('button', { class: 'btn full', onClick: () => alert('Done. Hand phone back to child.') }, [iconSquare('check'), 'Finish setup']),
+        el('button', { class: 'btn primary full', onClick: () => route.go('/parent/dashboard') }, [iconSquare('home'), 'Back to parent dashboard']),
       ]),
     ]),
   };
