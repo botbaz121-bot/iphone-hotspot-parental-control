@@ -106,8 +106,7 @@ Section: **Status**
 
 Section: **Coverage**
 - “Last check-in: 12 min ago”
-- “Expected frequency: 15 min / Not set”
-- If gap (only if expected frequency set): `⚠️ No check-in for 2h 10m`
+- If stale: `⚠️ No check-in for 2h 10m`
 
 Section: **Latest run**
 - “Hotspot turned off: success/failed”
@@ -233,9 +232,7 @@ Section: **Quiet Time**
   - End (time)
 - Timezone: device local (display it)
 
-Section: **Expected frequency (optional)**
-- Picker: 15m / 30m / 60m / Custom / Not sure
-- Helper: “Used only to detect gaps in check-ins.”
+(Removed: expected frequency)
 
 Action:
 - [Save]
@@ -314,7 +311,4 @@ Resolved:
 3) Devices: **multiple devices supported**.
 
 Remaining:
-4) **Expected check-in cadence** is *parent-defined* (based on the automations they create). In-app we will:
-   - store an optional **Expected frequency** per device (15m / 30m / 60m / custom / Not sure)
-   - if unset: show last check-in but **no gap alerts**
-   - if set: show **gap warnings** when last check-in exceeds a threshold (e.g., 2× expected frequency)
+- None (cadence/expected frequency removed; we’ll just show last check-in and a simple “stale” warning).
