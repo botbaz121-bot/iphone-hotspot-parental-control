@@ -195,11 +195,24 @@ function openSheet({ title, body, actions = [], onClose }) {
 
 function enrollmentSheet({ backTo }) {
   const token = 'ABCD1234-EFGH-IJKL';
+  const tmp = { name: '' };
+
   openSheet({
-    title: 'Enroll device',
+    title: 'Add device',
     body: el('div', { class: 'vstack' }, [
       el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
-        el('div', { class: 'h2' }, 'Enrollment token'),
+        el('div', { class: 'h2' }, 'Device name'),
+        el('input', {
+          class: 'field',
+          placeholder: 'e.g. Jack\'s iPhone',
+          value: tmp.name,
+          onInput: (e) => { tmp.name = e.target.value; },
+        }),
+        el('p', { class: 'small' }, 'Shown in the device switcher.'),
+      ]),
+
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, 'Enrollment QR'),
         el('div', { class: 'kv' }, [
           el('div', { class: 'k' }, 'Token'),
           el('div', { class: 'v' }, token)
@@ -215,18 +228,44 @@ function enrollmentSheet({ backTo }) {
                 alert('Copy failed (browser permissions)');
               }
             }
-          }, [iconSquare('circle'), 'Copy']),
+          }, [iconSquare('circle'), 'Copy token']),
           el('button', { class: 'btn ghost', onClick: () => alert('Regenerate (mock)') }, [iconSquare(), 'Regenerate']),
-        ])
+        ]),
+        el('p', { class: 'small' }, 'The parent scans this on the child phone during pairing.'),
       ]),
+
       el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
-        el('div', { class: 'h2' }, 'Next on the child phone'),
-        el('p', { class: 'p' }, 'Install the app → Set up child phone → Pair device → Install the Shortcut → Create automations → Apply Screen Time lock.'),
+        el('div', { class: 'h2' }, 'Next'),
+        el('p', { class: 'p' }, 'On the child phone: open this app → Set up child phone → Pair device → install the Shortcut → create automations → apply Screen Time lock.'),
       ]),
     ]),
     actions: [
-      el('button', { class: 'btn primary full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, [iconSquare('circle'), 'Go to child setup']),
-      backTo ? el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Done') : null,
+      el('button', {
+        class: 'btn primary full',
+        onClick: () => {
+          const name = (tmp.name || '').trim() || 'Child iPhone';
+          const id = `dev_${Math.random().toString(16).slice(2,8)}`;
+          state.devices.unshift({
+            id,
+            name,
+            status: 'SETUP',
+            lastCheckInMinutes: 0,
+            hotspotOff: true,
+            quietTimeEnabled: false,
+            quietStart: '22:00',
+            quietEnd: '07:00',
+            latest: { hotspotOff: 'unknown', rotatePassword: 'unknown' },
+            activity: [{ t: 'Now', msg: 'Device added (setup pending)' }],
+          });
+          state.selectedDeviceId = id;
+          persist();
+          closeSheet();
+          route.go('/parent/dashboard');
+        }
+      }, [iconSquare('circle'), 'Add device']),
+
+      el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, 'Go to child setup'),
+      backTo ? el('button', { class: 'btn full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Close') : null,
     ].filter(Boolean),
   });
 }
@@ -351,12 +390,17 @@ function deviceCarousel() {
         render();
       }
     }, [
-      el('div', { class: 'dc-title' }, [
-        el('div', { class: 'dc-name' }, d.name),
+      el('div', { class: 'dc-head' }, [
+        el('div', { class: 'dc-avatar' }, [
+          el('div', { class: 'dc-avatar-inner' }, d.name.slice(0,1).toUpperCase())
+        ]),
+        el('div', { class: 'dc-text' }, [
+          el('div', { class: 'dc-name' }, d.name),
+          el('div', { class: 'dc-sub' }, `Last seen ${d.lastCheckInMinutes}m ago`),
+        ]),
         badgeFor(d.status)
       ]),
       el('div', { class: 'dc-meta' }, [
-        el('span', { class: `badge ${stale ? 'warn' : 'good'}` }, stale ? `Last seen ${d.lastCheckInMinutes}m` : `Seen ${d.lastCheckInMinutes}m`),
         el('span', { class: 'badge muted' }, d.hotspotOff ? 'Hotspot OFF' : 'Hotspot ON'),
         el('span', { class: 'badge muted' }, d.quietTimeEnabled ? `Quiet ${d.quietStart}–${d.quietEnd}` : 'Quiet OFF'),
       ]),
