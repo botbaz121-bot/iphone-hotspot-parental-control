@@ -213,7 +213,7 @@ button,input,select{ font:inherit; }
 .btn.full{ width:100%; }
 .btn .ic{ width: 18px; height: 18px; display:inline-block; }
 
-/* Simple icon placeholders */
+/* Icons (inline SVG via <img>) */
 .ic{
   width: 18px;
   height: 18px;
@@ -221,8 +221,10 @@ button,input,select{ font:inherit; }
   border: 1px solid rgba(255,255,255,.16);
   background: rgba(255,255,255,.06);
   box-shadow: var(--shadowInset);
+  display:grid;
+  place-items:center;
 }
-.ic.circle{ border-radius: 999px; }
+.svgicon{ width: 14px; height: 14px; opacity: .92; }
 
 /* Fields */
 .field{

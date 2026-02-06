@@ -88,8 +88,20 @@ appRoot.classList.add('f7');
 
 /* ---------- UI helpers ---------- */
 
-function iconSquare(extraClass = '') {
-  return el('span', { class: `ic ${extraClass}`.trim(), 'aria-hidden': 'true' });
+const ICONS = {
+  qr: '/icons/qr-code.svg',
+  lock: '/icons/lock.svg',
+  shield: '/icons/shield.svg',
+  clock: '/icons/clock.svg',
+  link: '/icons/link.svg',
+  phone: '/icons/smartphone.svg',
+};
+
+function iconSquare(name = 'phone', extraClass = '') {
+  const src = ICONS[name] || ICONS.phone;
+  return el('span', { class: `ic ${extraClass}`.trim(), 'aria-hidden': 'true' },
+    el('img', { class: 'svgicon', src, alt: '' })
+  );
 }
 
 function navbar({ title, backTo, rightText, rightButton }) {
@@ -235,8 +247,49 @@ function enrollmentSheet({ backTo }) {
       ]),
 
       el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
-        el('div', { class: 'h2' }, 'Next'),
-        el('p', { class: 'p' }, 'On the child phone: open this app → Set up child phone → Pair device → install the Shortcut → create automations → apply Screen Time lock.'),
+        el('div', { class: 'h2' }, 'Next on the child phone'),
+        el('div', { class: 'vstack' }, [
+          el('div', { class: 'row' }, [
+            el('div', { class: 'hstack' }, [
+              iconSquare('phone'),
+              el('div', {}, [
+                el('div', { class: 'title' }, 'Open this app'),
+                el('div', { class: 'sub' }, 'Set up child phone → Pair device')
+              ])
+            ]),
+            el('span', { class: 'badge muted' }, '1')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', { class: 'hstack' }, [
+              iconSquare('link'),
+              el('div', {}, [
+                el('div', { class: 'title' }, 'Install the Shortcut'),
+                el('div', { class: 'sub' }, 'Add “Get Hotspot Config” at the start')
+              ])
+            ]),
+            el('span', { class: 'badge muted' }, '2')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', { class: 'hstack' }, [
+              iconSquare('clock'),
+              el('div', {}, [
+                el('div', { class: 'title' }, 'Create automations'),
+                el('div', { class: 'sub' }, 'Battery + time-of-day')
+              ])
+            ]),
+            el('span', { class: 'badge muted' }, '3')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', { class: 'hstack' }, [
+              iconSquare('shield'),
+              el('div', {}, [
+                el('div', { class: 'title' }, 'Apply Screen Time lock'),
+                el('div', { class: 'sub' }, 'Authorize + set passcode + shield apps')
+              ])
+            ]),
+            el('span', { class: 'badge muted' }, '4')
+          ]),
+        ])
       ]),
     ]),
     actions: [
