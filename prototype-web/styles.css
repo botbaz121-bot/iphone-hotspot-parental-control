@@ -502,6 +502,21 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 .activity-line + .activity-line{ margin-top: 8px; }
 .activity-line .title{ font-weight: 720; }
 
+/* Ads */
+.ad{
+  border-radius: var(--r3);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(520px 220px at 18% 0%, rgba(255,176,32,.22), transparent 55%),
+    radial-gradient(520px 220px at 88% 30%, rgba(79,140,255,.22), transparent 60%),
+    rgba(255,255,255,.04);
+  box-shadow: var(--shadow2);
+}
+.ad-badge{ display:inline-flex; padding: 4px 10px; border-radius: var(--rPill); border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.20); font-size: 12px; color: rgba(244,246,251,.85); }
+.ad-title{ font-weight: 860; font-size: 16px; margin-top: 10px; letter-spacing: -0.2px; }
+.ad-sub{ color: rgba(244,246,251,.78); font-size: 12px; margin-top: 6px; line-height: 1.45; }
+
 /* “Screenshot” placeholder block (used in instructions) */
 .shot{
   border-radius: var(--r2);

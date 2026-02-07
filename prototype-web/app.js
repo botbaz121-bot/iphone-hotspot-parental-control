@@ -25,6 +25,7 @@ const el = (tag, attrs = {}, children = []) => {
 const state = {
   mode: localStorage.getItem('hp.mode') || null, // parent|childsetup
   signedIn: localStorage.getItem('hp.signedIn') === '1',
+  adsRemoved: localStorage.getItem('hp.adsRemoved') === '1',
   // v2 key intentionally resets old prototypes where this got stuck ON by default.
   isChildPhone: localStorage.getItem(IS_CHILD_KEY) === '1',
   parentName: 'Leon',
@@ -83,6 +84,7 @@ const state = {
 const persist = () => {
   localStorage.setItem('hp.mode', state.mode || '');
   localStorage.setItem('hp.signedIn', state.signedIn ? '1' : '0');
+  localStorage.setItem('hp.adsRemoved', state.adsRemoved ? '1' : '0');
   localStorage.setItem(IS_CHILD_KEY, state.isChildPhone ? '1' : '0');
   localStorage.setItem('hp.selectedDeviceId', state.selectedDeviceId);
 };
@@ -311,6 +313,15 @@ function openSheet({ title, body, actions = [], onClose }) {
   activeSheet = { scrim, sheet, onClose };
 }
 
+function adsCard() {
+  if (state.adsRemoved) return null;
+  return el('div', { class: 'ad' }, [
+    el('div', { class: 'ad-badge' }, 'Ad'),
+    el('div', { class: 'ad-title' }, 'SpeedifyPress — Make WordPress Fast'),
+    el('div', { class: 'ad-sub' }, 'Real-world performance audits + fixes. (Prototype placeholder)')
+  ]);
+}
+
 function enrollmentSheet({ backTo }) {
   const token = 'ABCD1234-EFGH-IJKL';
   const tmp = { name: '' };
@@ -513,6 +524,8 @@ function screenLanding() {
         ]),
       ]),
 
+      adsCard(),
+
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'What this models'),
         el('p', { class: 'p' }, 'Shortcuts-only enforcement (hotspot off + password rotation), device activity signals, and a guided child-phone checklist.'),
@@ -653,6 +666,7 @@ function screenParentDashboard() {
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}` }),
     body: el('div', { class: 'content' }, [
+      adsCard(),
       deviceCarousel(),
 
       // Inline device details (replaces the old “Policy status” card)
@@ -851,6 +865,19 @@ function screenParentSettings() {
             route.go('/');
           }
         }, [iconSquare('logout'), 'Sign out']),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'In-app purchase'),
+        el('p', { class: 'p' }, state.adsRemoved ? 'Ads removed ✅' : 'Remove ads from the parent experience.'),
+        el('button', {
+          class: `btn ${state.adsRemoved ? '' : 'primary'} full`,
+          onClick: () => {
+            state.adsRemoved = !state.adsRemoved;
+            persist();
+            render();
+          }
+        }, [iconSquare('check'), state.adsRemoved ? 'Restore purchase (mock)' : 'Remove ads (mock)']),
       ]),
 
       el('div', { class: 'card vstack' }, [
