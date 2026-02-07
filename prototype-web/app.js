@@ -999,14 +999,6 @@ function screenChildSettings() {
         }, [iconSquare('trash'), 'Reset child setup state']),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Exit'),
-        el('p', { class: 'p' }, 'When you’re done configuring the child phone, exit back to the parent app.'),
-        el('button', {
-          class: 'btn primary full',
-          onClick: () => route.go(navState.lastParentRoute || '/parent/dashboard'),
-        }, [iconSquare('home'), 'Exit child setup']),
-      ]),
     ]),
   };
 }
