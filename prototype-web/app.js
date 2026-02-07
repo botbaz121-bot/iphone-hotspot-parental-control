@@ -1094,13 +1094,6 @@ function screenChildLocked() {
           el('button', { class: 'btn primary', onClick: () => route.go('/child/unlock') }, [iconSquare('login'), 'Unlock (parent)']),
         ]),
       ]),
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'What the child should do'),
-        el('div', { class: 'list' }, [
-          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Don’t change settings'), el('div', { class: 'sub' }, 'Shortcuts + Screen Time must stay enabled')])]),
-          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Leave this app open'), el('div', { class: 'sub' }, 'If asked, tap “Always Allow” for automations')])]),
-        ]),
-      ]),
     ]),
   };
 }
