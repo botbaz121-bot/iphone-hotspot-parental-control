@@ -12,6 +12,8 @@ public enum AppDefaults {
     static let apiBaseURL = "hotspotParent.api.baseURL"
     static let adminToken = "hotspotParent.api.adminToken"
     static let deviceId = "hotspotParent.device.id"
+
+    static let adsRemoved = "spotcheck.iap.adsRemoved"
   }
 
   public static var onboardingCompleted: Bool {
@@ -80,6 +82,13 @@ public enum AppDefaults {
     set { defaults.set(newValue, forKey: Key.deviceId) }
   }
 
+  // MARK: - IAP (stub)
+
+  public static var adsRemoved: Bool {
+    get { defaults.object(forKey: Key.adsRemoved) as? Bool ?? false }
+    set { defaults.set(newValue, forKey: Key.adsRemoved) }
+  }
+
   public static func resetAll() {
     defaults.removeObject(forKey: Key.onboardingCompleted)
     defaults.removeObject(forKey: Key.appleUserID)
@@ -89,5 +98,6 @@ public enum AppDefaults {
     defaults.removeObject(forKey: Key.apiBaseURL)
     defaults.removeObject(forKey: Key.adminToken)
     defaults.removeObject(forKey: Key.deviceId)
+    defaults.removeObject(forKey: Key.adsRemoved)
   }
 }

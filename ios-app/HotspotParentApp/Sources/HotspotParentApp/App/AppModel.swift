@@ -24,6 +24,10 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.selectedDeviceId = selectedDeviceId }
   }
 
+  @Published public var adsRemoved: Bool {
+    didSet { AppDefaults.adsRemoved = adsRemoved }
+  }
+
   // MARK: - Child setup state
 
   @Published public var childIsLocked: Bool {
@@ -75,6 +79,8 @@ public final class AppModel: ObservableObject {
     self.appleUserID = AppDefaults.appleUserID
 
     self.selectedDeviceId = SharedDefaults.selectedDeviceId
+
+    self.adsRemoved = AppDefaults.adsRemoved
 
     self.childIsLocked = SharedDefaults.childLocked
     self.childPairedDeviceId = SharedDefaults.childPairingDeviceId
@@ -213,6 +219,8 @@ public final class AppModel: ObservableObject {
     // Reset in-memory state
     appMode = nil
     signOut()
+
+    adsRemoved = AppDefaults.adsRemoved
 
     apiBaseURL = AppDefaults.apiBaseURL
     adminToken = AppDefaults.adminToken ?? ""

@@ -6,6 +6,12 @@ import SwiftUI
 public struct ParentDashboardView: View {
   @EnvironmentObject private var model: AppModel
   @State private var showingAddDevice = false
+  @State private var showingShortcutHelp = false
+
+  private var shortcutLooksStale: Bool {
+    guard let last = model.lastAppIntentRunAt else { return true }
+    return Date().timeIntervalSince(last) > 60 * 60 * 12
+  }
 
   public init() {}
 
@@ -28,6 +34,86 @@ public struct ParentDashboardView: View {
               .frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent)
+
+          // Recent activity (based on App Intent telemetry written by the Shortcut)
+          VStack(alignment: .leading, spacing: 10) {
+            HStack {
+              Text("Recent activity")
+                .font(.headline)
+
+              Spacer()
+
+              if shortcutLooksStale {
+                Text("No recent run")
+                  .font(.caption.weight(.semibold))
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 4)
+                  .background(Color.orange.opacity(0.15))
+                  .clipShape(Capsule())
+              } else {
+                Text("Active")
+                  .font(.caption.weight(.semibold))
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 4)
+                  .background(Color.green.opacity(0.15))
+                  .clipShape(Capsule())
+              }
+            }
+
+            LabeledContent("Shortcut runs") {
+              Text("\(model.appIntentRunCount)")
+                .font(.system(.footnote, design: .monospaced))
+                .foregroundStyle(.secondary)
+            }
+
+            LabeledContent("Last run") {
+              if let last = model.lastAppIntentRunAt {
+                Text(last.formatted(date: .abbreviated, time: .shortened))
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
+              } else {
+                Text("—")
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
+              }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+              HStack(spacing: 10) {
+                recentChip(title: "Hotspot check", subtitle: "from Shortcut")
+                recentChip(title: "Policy fetch", subtitle: "best-effort")
+                recentChip(title: "Enforcement", subtitle: "in Shortcuts")
+              }
+              .padding(.vertical, 2)
+            }
+          }
+          .padding()
+          .background(.thinMaterial)
+          .clipShape(RoundedRectangle(cornerRadius: 16))
+
+          VStack(alignment: .leading, spacing: 10) {
+            Text("Troubleshooting")
+              .font(.headline)
+
+            Button {
+              showingShortcutHelp = true
+            } label: {
+              Label("Shortcut not running", systemImage: "wrench.and.screwdriver")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+
+            Button(role: .destructive) {
+              model.resetLocalData()
+            } label: {
+              Label("Remove local pairing", systemImage: "trash")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+          }
+          .padding()
+          .background(.thinMaterial)
+          .clipShape(RoundedRectangle(cornerRadius: 16))
 
           VStack(alignment: .leading, spacing: 10) {
             Text("How pairing works")
@@ -86,12 +172,29 @@ public struct ParentDashboardView: View {
         AddDeviceSheetView()
           .environmentObject(model)
       }
+      .sheet(isPresented: $showingShortcutHelp) {
+        ShortcutNotRunningSheetView()
+      }
       .task {
         #if DEBUG
         await model.refreshBackendStatus()
         #endif
       }
     }
+  }
+
+  private func recentChip(title: String, subtitle: String) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+      Text(subtitle)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+    .padding(.horizontal, 10)
+    .padding(.vertical, 8)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 12))
   }
 }
 

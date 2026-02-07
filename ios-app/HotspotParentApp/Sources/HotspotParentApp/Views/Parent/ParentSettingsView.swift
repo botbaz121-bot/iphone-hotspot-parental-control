@@ -5,7 +5,9 @@ import SwiftUI
 
 public struct ParentSettingsView: View {
   @EnvironmentObject private var model: AppModel
+  @StateObject private var iap = IAPManager.shared
   @State private var showingResetConfirm = false
+  @State private var iapStatus: String?
 
   public init() {}
 
@@ -34,6 +36,49 @@ public struct ParentSettingsView: View {
 
           Button("Sign out", role: .destructive) {
             model.signOut()
+          }
+        }
+
+        Section("In‑app purchases") {
+          LabeledContent("Remove ads") {
+            Text(iap.adsRemoved ? "Purchased" : "Not purchased")
+              .foregroundStyle(iap.adsRemoved ? .green : .secondary)
+          }
+
+          Button("Buy: Remove ads") {
+            Task {
+              iapStatus = nil
+              await iap.purchaseRemoveAds()
+              await MainActor.run {
+                model.adsRemoved = iap.adsRemoved
+                iapStatus = "(Stub) Marked as purchased on this device"
+              }
+            }
+          }
+          .disabled(iap.adsRemoved)
+
+          Button("Restore purchases") {
+            Task {
+              iapStatus = nil
+              await iap.restorePurchases()
+              await MainActor.run {
+                model.adsRemoved = iap.adsRemoved
+                iapStatus = "Restore not implemented yet"
+              }
+            }
+          }
+
+          #if DEBUG
+          Toggle("Debug: ads removed", isOn: Binding(
+            get: { iap.adsRemoved },
+            set: { iap.setAdsRemovedForDebug($0); model.adsRemoved = iap.adsRemoved }
+          ))
+          #endif
+
+          if let iapStatus {
+            Text(iapStatus)
+              .font(.footnote)
+              .foregroundStyle(.secondary)
           }
         }
 
