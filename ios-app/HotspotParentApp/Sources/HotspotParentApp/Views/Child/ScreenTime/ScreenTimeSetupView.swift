@@ -3,9 +3,18 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if canImport(FamilyControls)
+import FamilyControls
+#endif
+
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
   @State private var status: String?
+
+  #if canImport(FamilyControls)
+  @State private var selection = FamilyActivitySelection()
+  @State private var showingPicker = false
+  #endif
 
   public init() {}
 
@@ -43,10 +52,22 @@ public struct ScreenTimeSetupView: View {
           }
         }
 
+        #if canImport(FamilyControls)
+        Button("Choose apps to shield") {
+          showingPicker = true
+        }
+        .disabled(!model.screenTimeAuthorized)
+        #endif
+
         Button("Apply shielding") {
           Task {
             do {
-              try await ScreenTimeManager.shared.applyRecommendedShielding()
+              #if canImport(FamilyControls)
+              try await ScreenTimeManager.shared.applyShielding(selection: selection)
+              #else
+              try await ScreenTimeManager.shared.applyShielding()
+              #endif
+
               await MainActor.run {
                 model.shieldingApplied = true
                 status = nil
@@ -80,6 +101,20 @@ public struct ScreenTimeSetupView: View {
       }
     }
     .navigationTitle("Screen Time")
+    #if canImport(FamilyControls)
+    .sheet(isPresented: $showingPicker) {
+      NavigationStack {
+        FamilyActivityPicker(selection: $selection)
+          .navigationTitle("Select apps")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Done") { showingPicker = false }
+            }
+          }
+      }
+    }
+    #endif
   }
 }
 

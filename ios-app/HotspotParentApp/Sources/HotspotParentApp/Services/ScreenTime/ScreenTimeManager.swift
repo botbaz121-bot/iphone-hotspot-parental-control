@@ -37,19 +37,25 @@ public final class ScreenTimeManager {
     #endif
   }
 
-  /// Applies a minimal, recommended shielding set.
+    /// Applies a minimal shielding set.
   ///
-  /// For v1A we keep this conservative; further selection UI (FamilyActivityPicker)
-  /// can be added later.
-  public func applyRecommendedShielding() async throws {
-    #if canImport(ManagedSettings)
-    // Best-effort. App tokens require user selection via FamilyActivityPicker;
-    // here we only set the app/category shields when available.
-    // Leaving empty is still a successful no-op if selection isn't implemented.
-    store.shield.applications = nil
-    store.shield.applicationCategories = nil
+  /// If you pass a non-empty `FamilyActivitySelection`, we shield those apps/categories.
+  ///
+  /// Note: This is **best-effort**. If FamilyControls/ManagedSettings aren’t available
+  /// (or entitlements are missing), this becomes a no-op.
+  public func applyShielding(selection: Any? = nil) async throws {
+    #if canImport(FamilyControls) && canImport(ManagedSettings)
+    if let sel = selection as? FamilyActivitySelection {
+      store.shield.applications = sel.applicationTokens.isEmpty ? nil : sel.applicationTokens
+      store.shield.applicationCategories = sel.categoryTokens.isEmpty ? nil : sel.categoryTokens
+    } else {
+      // No selection provided: clear any per-app/category shields.
+      store.shield.applications = nil
+      store.shield.applicationCategories = nil
+    }
     #else
     // No-op
+    _ = selection
     #endif
   }
 
