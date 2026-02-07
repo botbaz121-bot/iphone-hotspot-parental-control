@@ -485,6 +485,33 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 .sheet-body{ padding: 12px 14px 16px 14px; }
 .sheet-actions{ display:flex; gap: 10px; margin-top: 12px; }
 
+/* Scroll box for Recent activity */
+.activity-box{
+  max-height: 168px;
+  overflow: auto;
+  padding: 6px;
+  border-radius: var(--r2);
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+.activity-line{
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+.activity-line + .activity-line{ margin-top: 8px; }
+.activity-line .title{ font-weight: 720; }
+
+/* “Screenshot” placeholder block (used in instructions) */
+.shot{
+  border-radius: var(--r2);
+  border: 1px dashed rgba(255,255,255,.20);
+  background: rgba(255,255,255,.03);
+  padding: 12px;
+}
+.shot-title{ font-weight: 780; }
+.shot-sub{ color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.45; }
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; scroll-behavior: auto !important; }

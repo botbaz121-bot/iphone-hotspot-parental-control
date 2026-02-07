@@ -3,6 +3,8 @@
 
 import { ICON_SVGS } from './iconset.js';
 
+const IS_CHILD_KEY = 'hp.isChildPhone.v2';
+
 const el = (tag, attrs = {}, children = []) => {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -23,7 +25,8 @@ const el = (tag, attrs = {}, children = []) => {
 const state = {
   mode: localStorage.getItem('hp.mode') || null, // parent|childsetup
   signedIn: localStorage.getItem('hp.signedIn') === '1',
-  isChildPhone: localStorage.getItem('hp.isChildPhone') === '1',
+  // v2 key intentionally resets old prototypes where this got stuck ON by default.
+  isChildPhone: localStorage.getItem(IS_CHILD_KEY) === '1',
   parentName: 'Leon',
   devices: [
     {
@@ -63,8 +66,15 @@ const state = {
     paired: false,
     shortcutInstalled: false,
     appIntentAdded: false,
+
+    // Real app idea: treat successful Shortcut/App Intent runs as the source of truth.
+    appIntentRunCount: 0,
+    lastAppIntentRunAt: null,
+
     automationsEnabled: false,
+
     screenTimeAuthorized: false,
+    // NOTE: Real apps generally cannot detect whether a Screen Time passcode was set.
     screenTimePasscodeSet: false,
     shieldingApplied: false,
   },
@@ -73,7 +83,7 @@ const state = {
 const persist = () => {
   localStorage.setItem('hp.mode', state.mode || '');
   localStorage.setItem('hp.signedIn', state.signedIn ? '1' : '0');
-  localStorage.setItem('hp.isChildPhone', state.isChildPhone ? '1' : '0');
+  localStorage.setItem(IS_CHILD_KEY, state.isChildPhone ? '1' : '0');
   localStorage.setItem('hp.selectedDeviceId', state.selectedDeviceId);
 };
 
@@ -419,6 +429,70 @@ function enrollmentSheet({ backTo }) {
   });
 }
 
+function shortcutNotRunningSheet({ device }) {
+  const name = device?.name || 'Child iPhone';
+  openSheet({
+    title: 'Shortcut not running',
+    body: el('div', { class: 'vstack' }, [
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, `Device: ${name}`),
+        el('p', { class: 'p' }, 'If we stop receiving activity, it usually means the automation was disabled, permissions changed, or the Shortcut hit an error.'),
+      ]),
+
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, 'Quick checks (in order)'),
+        el('div', { class: 'list' }, [
+          el('div', { class: 'row' }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, '1) Open Shortcuts → Automations'),
+              el('div', { class: 'sub' }, 'Make sure your “SpotCheck” automations still exist and are enabled.')
+            ]),
+            el('span', { class: 'badge muted' }, 'Check')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, '2) Run the Shortcut once manually'),
+              el('div', { class: 'sub' }, 'This triggers our App Intent and typically surfaces the real error (permissions, missing action, etc.).')
+            ]),
+            el('span', { class: 'badge muted' }, 'Run')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, '3) Verify “Ask Before Running” is OFF (if iOS allows)'),
+              el('div', { class: 'sub' }, 'Some automations will silently stop if they require confirmation.')
+            ]),
+            el('span', { class: 'badge muted' }, 'Verify')
+          ]),
+          el('div', { class: 'row' }, [
+            el('div', {}, [
+              el('div', { class: 'title' }, '4) Check Focus / Low Power Mode / device reboots'),
+              el('div', { class: 'sub' }, 'After updates or reboots, iOS may require re-confirming certain automations.')
+            ]),
+            el('span', { class: 'badge muted' }, 'Review')
+          ]),
+        ]),
+      ]),
+
+      el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
+        el('div', { class: 'h2' }, 'What to look for (common issues)'),
+        el('div', { class: 'list' }, [
+          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Missing step: “Get Hotspot Config”'), el('div', { class: 'sub' }, 'It should be the first step so the Shortcut can authenticate.')])]),
+          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Permissions prompts'), el('div', { class: 'sub' }, 'If iOS asks, choose “Always Allow” where possible.')])]),
+          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Automation disabled'), el('div', { class: 'sub' }, 'Toggling Screen Time / Shortcuts restrictions can disable automations.')])]),
+        ]),
+        el('div', { class: 'shot' }, [
+          el('div', { class: 'shot-title' }, 'Example: manual run'),
+          el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If there’s an error, screenshot it.'),
+        ]),
+      ]),
+    ]),
+    actions: [
+      el('button', { class: 'btn primary full', onClick: () => alert('Open Shortcuts (mock)') }, [iconSquare('shortcut'), 'Open Shortcuts']),
+      el('button', { class: 'btn full', onClick: closeSheet }, 'Close'),
+    ]
+  });
+}
+
 /* ---------- Screens ---------- */
 
 function screenLanding() {
@@ -621,20 +695,17 @@ function screenParentDashboard() {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Recent activity'),
-        el('div', { class: 'list' }, (device.activity || []).map(a =>
-          el('div', { class: 'row', onClick: () => alert('Open activity details (mock)') }, [
-            el('div', {}, [
-              el('div', { class: 'title' }, a.msg),
-              el('div', { class: 'sub' }, a.t)
-            ]),
-            el('span', { class: 'badge muted' }, 'View')
+        el('div', { class: 'activity-box' }, (device.activity || []).map(a =>
+          el('div', { class: 'activity-line' }, [
+            el('div', { class: 'title' }, `${a.t} — ${a.msg}`),
           ])
         )),
+        el('p', { class: 'small' }, 'Tip: this list is scrollable; details are inline (no tap-to-open).'),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Troubleshooting'),
-        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare('tool'), 'Shortcut not running']),
+        el('button', { class: 'btn full', onClick: () => shortcutNotRunningSheet({ device }) }, [iconSquare('tool'), 'Shortcut not running']),
         el('button', {
           class: 'btn danger full',
           onClick: () => {
@@ -729,20 +800,16 @@ function screenParentDeviceDetails(deviceId) {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Recent activity'),
-        el('div', { class: 'list' }, d.activity.map(a =>
-          el('div', { class: 'row', onClick: () => alert('Open activity details (mock)') }, [
-            el('div', {}, [
-              el('div', { class: 'title' }, a.msg),
-              el('div', { class: 'sub' }, a.t)
-            ]),
-            el('span', { class: 'badge muted' }, 'View')
+        el('div', { class: 'activity-box' }, (d.activity || []).map(a =>
+          el('div', { class: 'activity-line' }, [
+            el('div', { class: 'title' }, `${a.t} — ${a.msg}`),
           ])
         )),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Troubleshooting'),
-        el('button', { class: 'btn full', onClick: () => alert('Show troubleshooting (mock)') }, [iconSquare('tool'), 'Shortcut not running']),
+        el('button', { class: 'btn full', onClick: () => shortcutNotRunningSheet({ device: d }) }, [iconSquare('tool'), 'Shortcut not running']),
         el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
       ]),
     ]),
@@ -894,6 +961,45 @@ function screenChildSettings() {
       ]),
 
       el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Debug (prototype helpers)'),
+        el('p', { class: 'p' }, 'These simulate signals the real app would infer from App Intent runs + permissions.'),
+        el('div', { class: 'hstack' }, [
+          el('button', {
+            class: 'btn full',
+            onClick: () => {
+              c.shortcutInstalled = true;
+              c.appIntentAdded = true;
+              c.appIntentRunCount = (c.appIntentRunCount || 0) + 1;
+              c.lastAppIntentRunAt = new Date().toISOString();
+              alert(`Simulated Shortcut run (${c.appIntentRunCount})`);
+              render();
+            }
+          }, [iconSquare('shortcut'), 'Simulate Shortcut run']),
+          el('button', {
+            class: 'btn full',
+            onClick: () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }
+          }, [iconSquare('shield'), c.screenTimeAuthorized ? 'Unset Screen Time auth' : 'Set Screen Time auth']),
+        ]),
+        el('button', {
+          class: 'btn danger full',
+          onClick: () => {
+            Object.assign(c, {
+              paired: false,
+              shortcutInstalled: false,
+              appIntentAdded: false,
+              appIntentRunCount: 0,
+              lastAppIntentRunAt: null,
+              automationsEnabled: false,
+              screenTimeAuthorized: false,
+              screenTimePasscodeSet: false,
+              shieldingApplied: false,
+            });
+            render();
+          }
+        }, [iconSquare('trash'), 'Reset child setup state']),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, 'Exit'),
         el('p', { class: 'p' }, 'When you’re done configuring the child phone, exit back to the parent app.'),
         el('button', {
@@ -981,6 +1087,19 @@ function screenChildLocked() {
 
 function screenChildDashboard() {
   const c = state.childSetup;
+
+  const infoRow = ({ title, sub, badgeText, badgeClass = 'muted' }) =>
+    el('div', { class: 'row' }, [
+      el('div', {}, [
+        el('div', { class: 'title' }, title),
+        sub ? el('div', { class: 'sub' }, sub) : null,
+      ].filter(Boolean)),
+      el('span', { class: `badge ${badgeClass}` }, badgeText),
+    ]);
+
+  const initialRunDone = c.appIntentRunCount >= 1;
+  const automationConfidenceDone = c.appIntentRunCount >= 2;
+
   return {
     nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
     body: el('div', { class: 'content' }, [
@@ -994,22 +1113,54 @@ function screenChildDashboard() {
       ]),
 
       el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '2) Shortcut'),
-        stepRow(c.shortcutInstalled, 'Install Shortcut', 'Open link and add it', () => { c.shortcutInstalled = !c.shortcutInstalled; render(); }),
-        stepRow(c.appIntentAdded, 'Add “Get Hotspot Config”', 'Ensure the first step is the App Intent', () => { c.appIntentAdded = !c.appIntentAdded; render(); }),
+        el('div', { class: 'h2' }, '2) Install our Shortcut'),
+        el('p', { class: 'p' }, 'Install the Shortcut, then run it once manually. That first run calls our App Intent (Get Hotspot Config) and can mark this step as complete.'),
         el('button', { class: 'btn full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare('shortcut'), 'Open Shortcut link']),
+        el('div', { class: 'shot' }, [
+          el('div', { class: 'shot-title' }, 'Initial run (one time)'),
+          el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If iOS prompts, choose “Always Allow” where possible.'),
+        ]),
+        infoRow({
+          title: 'Initial run detected',
+          sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Waiting for the first successful run',
+          badgeText: initialRunDone ? 'Done' : 'Todo',
+          badgeClass: initialRunDone ? 'good' : 'muted'
+        }),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '3) Automations'),
-        stepRow(c.automationsEnabled, 'Enable automations', 'Battery + time-of-day triggers', () => { c.automationsEnabled = !c.automationsEnabled; render(); }),
+        el('p', { class: 'p' }, 'After enabling automations, we watch for multiple runs (roughly spaced apart) to gain confidence they’re actually firing.'),
+        infoRow({
+          title: 'Automation runs',
+          sub: automationConfidenceDone ? 'Multiple runs observed' : 'Awaiting multiple runs',
+          badgeText: automationConfidenceDone ? 'Done' : 'Awaiting',
+          badgeClass: automationConfidenceDone ? 'good' : 'warn'
+        }),
+        el('p', { class: 'small' }, 'In the real app: we can treat repeated App Intent calls from the automation as the signal.'),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '4) Screen Time lock'),
-        el('p', { class: 'p' }, 'Authorize in-app, set a passcode in Settings, then shield apps.'),
-        stepRow(c.screenTimeAuthorized, 'Authorize Screen Time', 'Grant permission in-app (FamilyControls)', () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }),
-        stepRow(c.screenTimePasscodeSet, 'Set Screen Time passcode', 'Parent sets passcode in Settings', () => { c.screenTimePasscodeSet = !c.screenTimePasscodeSet; render(); }),
+        el('p', { class: 'p' }, 'We can detect some parts (authorization + shielding), but iOS generally does not let apps confirm a Screen Time passcode was set.'),
+        infoRow({
+          title: 'Screen Time authorization',
+          sub: 'FamilyControls permission granted',
+          badgeText: c.screenTimeAuthorized ? 'Done' : 'Todo',
+          badgeClass: c.screenTimeAuthorized ? 'good' : 'muted'
+        }),
+        infoRow({
+          title: 'Shielding applied',
+          sub: 'Shortcuts/Settings selected for shielding',
+          badgeText: c.shieldingApplied ? 'Done' : 'Todo',
+          badgeClass: c.shieldingApplied ? 'good' : 'muted'
+        }),
+        infoRow({
+          title: 'Screen Time passcode',
+          sub: 'Parent sets passcode in Settings (manual check)',
+          badgeText: 'Can’t detect',
+          badgeClass: 'muted'
+        }),
         el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
       ]),
 
