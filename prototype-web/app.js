@@ -1031,7 +1031,7 @@ function screenChildUnlock() {
               persist();
               route.go('/child/dashboard');
             }
-          }, [iconSquare('lock'), 'Sign in with Apple (mock)']),
+          }, [iconSquare('login'), 'Sign in with Apple (mock)']),
           el('button', { class: 'btn ghost', onClick: () => { state.signedIn = true; persist(); route.go('/child/dashboard'); } }, 'Continue (dev)'),
         ]),
       ]),
@@ -1099,7 +1099,7 @@ function screenChildLocked() {
           el('span', { class: 'badge good' }, 'Ready')
         ]),
         el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/unlock') }, [iconSquare('lock'), 'Unlock (parent)']),
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/unlock') }, [iconSquare('login'), 'Unlock (parent)']),
         ]),
       ]),
       el('div', { class: 'card vstack' }, [
