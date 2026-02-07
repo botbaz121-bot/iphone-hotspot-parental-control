@@ -1024,7 +1024,6 @@ function screenChildUnlock() {
               route.go('/child/dashboard');
             }
           }, [iconSquare('login'), 'Sign in with Apple (mock)']),
-          el('button', { class: 'btn ghost', onClick: () => { state.signedIn = true; persist(); route.go('/child/dashboard'); } }, 'Continue (dev)'),
         ]),
       ]),
 
