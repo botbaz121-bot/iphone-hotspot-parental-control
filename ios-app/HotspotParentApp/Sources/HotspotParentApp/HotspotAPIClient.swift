@@ -16,7 +16,14 @@ public final class HotspotAPIClient {
     try await HTTP.getJSON(api.url("/healthz"))
   }
 
-  // Admin (dev only)
+  // MARK: - Public endpoints (v1A)
+
+  public func pairDevice(code: String, name: String?) async throws -> PairDeviceResponse {
+    try await HTTP.postJSON(api.url("/pair"), body: PairDeviceRequest(code: code, name: name))
+  }
+
+  // MARK: - Admin (dev only)
+
   public func listDevices() async throws -> [Device] {
     try await HTTP.getJSON(api.url("/api/devices"), headers: adminHeaders())
   }

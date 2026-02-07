@@ -3,75 +3,100 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
-/// Global app state for the MVP.
+/// Global app state for SpotCheck iOS.
 ///
-/// Notes:
-/// - This is intentionally lightweight (single ObservableObject).
-/// - Networking is best-effort and *optional*; the UI works without a backend.
+/// v1A scope: child setup + shortcut config + basic parent UI (no admin token shipped).
 @MainActor
 public final class AppModel: ObservableObject {
-  // MARK: - Onboarding / Auth
+  // MARK: - Mode / Session
 
-  @Published public var onboardingCompleted: Bool
+  @Published public var appMode: AppMode? {
+    didSet { SharedDefaults.appModeRaw = appMode?.rawValue }
+  }
+
+  /// Parent unlock/sign-in (stub for v1A). Used for child unlock.
   @Published public private(set) var appleUserID: String?
-
   public var isSignedIn: Bool { appleUserID != nil }
 
-  // MARK: - Enrollment
+  // MARK: - Parent state (v1A mostly cosmetic)
 
-  /// Local enrollment token (works offline).
-  @Published public var enrollmentToken: String
+  @Published public var selectedDeviceId: String? {
+    didSet { SharedDefaults.selectedDeviceId = selectedDeviceId }
+  }
 
-  /// Optional backend device id. If present and API is configured, the app can request a pairing code.
-  @Published public var deviceId: String?
+  // MARK: - Child setup state
 
-  @Published public var pairingCode: String?
-  @Published public var pairingCodeExpiresAt: Date?
+  @Published public var childIsLocked: Bool {
+    didSet { SharedDefaults.childLocked = childIsLocked }
+  }
 
-  // MARK: - Dashboard status
+  @Published public var childPairedDeviceId: String? {
+    didSet { SharedDefaults.childPairingDeviceId = childPairedDeviceId }
+  }
 
-  @Published public var lastCheckIn: Date?
-  @Published public var hotspotOffPolicyEnabled: Bool
+  @Published public var childPairedDeviceName: String? {
+    didSet { SharedDefaults.childPairingName = childPairedDeviceName }
+  }
+
+  @Published public var appIntentRunCount: Int {
+    didSet { SharedDefaults.appIntentRunCount = appIntentRunCount }
+  }
+
+  @Published public var lastAppIntentRunAt: Date? {
+    didSet { SharedDefaults.lastAppIntentRunAt = lastAppIntentRunAt }
+  }
+
+  @Published public var screenTimeAuthorized: Bool {
+    didSet { SharedDefaults.screenTimeAuthorized = screenTimeAuthorized }
+  }
+
+  @Published public var shieldingApplied: Bool {
+    didSet { SharedDefaults.shieldingApplied = shieldingApplied }
+  }
+
+  // MARK: - API Config
+
+  /// Base URL for the backend. Needed on child for pairing + shortcut execution.
+  @Published public var apiBaseURL: String
+
+  /// Dev-only admin token (kept for local debugging; should be blank in App Store builds).
+  @Published public var adminToken: String
+
+  // MARK: - Backend status (debug)
 
   @Published public var backendHealthOK: Bool?
   @Published public var backendLastError: String?
   @Published public var backendLastRefresh: Date?
-  @Published public var backendDeviceCount: Int?
-
-  // MARK: - API Config
-
-  @Published public var apiBaseURL: String
-  @Published public var adminToken: String
 
   // MARK: - Init
 
   public init() {
-    self.onboardingCompleted = AppDefaults.onboardingCompleted
+    self.appMode = SharedDefaults.appModeRaw.flatMap { AppMode(rawValue: $0) }
     self.appleUserID = AppDefaults.appleUserID
 
-    self.enrollmentToken = AppDefaults.enrollmentToken ?? Self.generateEnrollmentToken()
+    self.selectedDeviceId = SharedDefaults.selectedDeviceId
 
-    self.lastCheckIn = AppDefaults.lastCheckIn
-    self.hotspotOffPolicyEnabled = AppDefaults.policyHotspotOff
+    self.childIsLocked = SharedDefaults.childLocked
+    self.childPairedDeviceId = SharedDefaults.childPairingDeviceId
+    self.childPairedDeviceName = SharedDefaults.childPairingName
+
+    self.appIntentRunCount = SharedDefaults.appIntentRunCount
+    self.lastAppIntentRunAt = SharedDefaults.lastAppIntentRunAt
+
+    self.screenTimeAuthorized = SharedDefaults.screenTimeAuthorized
+    self.shieldingApplied = SharedDefaults.shieldingApplied
 
     self.apiBaseURL = AppDefaults.apiBaseURL
     self.adminToken = AppDefaults.adminToken ?? ""
-    self.deviceId = AppDefaults.deviceId
-
-    // Ensure a token exists on first run.
-    if AppDefaults.enrollmentToken == nil {
-      AppDefaults.enrollmentToken = enrollmentToken
-    }
   }
 
-  // MARK: - Onboarding
+  // MARK: - Mode switching
 
-  public func completeOnboarding() {
-    onboardingCompleted = true
-    AppDefaults.onboardingCompleted = true
+  public func setAppMode(_ mode: AppMode?) {
+    appMode = mode
   }
 
-  // MARK: - Auth (stub)
+  // MARK: - Auth (stub for v1A)
 
   public func signInStub(userID: String) {
     appleUserID = userID
@@ -83,47 +108,7 @@ public final class AppModel: ObservableObject {
     AppDefaults.appleUserID = nil
   }
 
-  // MARK: - Enrollment
-
-  public func regenerateEnrollmentToken() {
-    enrollmentToken = Self.generateEnrollmentToken()
-    AppDefaults.enrollmentToken = enrollmentToken
-  }
-
-  public func clearPairingCode() {
-    pairingCode = nil
-    pairingCodeExpiresAt = nil
-  }
-
-  // MARK: - Policy
-
-  public func setHotspotOffPolicyEnabled(_ enabled: Bool) {
-    hotspotOffPolicyEnabled = enabled
-    AppDefaults.policyHotspotOff = enabled
-  }
-
-  public func recordCheckInNow() {
-    let now = Date()
-    lastCheckIn = now
-    AppDefaults.lastCheckIn = now
-  }
-
-  // MARK: - API Config
-
-  public func setAPIBaseURL(_ value: String) {
-    apiBaseURL = value
-    AppDefaults.apiBaseURL = value
-  }
-
-  public func setAdminToken(_ value: String) {
-    adminToken = value
-    AppDefaults.adminToken = value.isEmpty ? nil : value
-  }
-
-  public func setDeviceId(_ value: String?) {
-    deviceId = (value?.isEmpty ?? true) ? nil : value
-    AppDefaults.deviceId = deviceId
-  }
+  // MARK: - Child pairing
 
   public var isBackendConfigured: Bool {
     URL(string: apiBaseURL) != nil
@@ -136,7 +121,65 @@ public final class AppModel: ObservableObject {
     return HotspotAPIClient(api: api)
   }
 
-  // MARK: - Backend actions (best-effort)
+  public func pairChildDevice(code: String, name: String?) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let resp = try await client.pairDevice(code: code, name: name)
+
+    childPairedDeviceId = resp.deviceId
+    childPairedDeviceName = resp.name
+
+    let cfg = HotspotConfig(apiBaseURL: apiBaseURL, deviceToken: resp.deviceToken, deviceSecret: resp.deviceSecret)
+    try KeychainStore.setCodable(cfg, account: KeychainAccounts.hotspotConfig)
+  }
+
+  public func unpairChildDevice() {
+    childPairedDeviceId = nil
+    childPairedDeviceName = nil
+    do {
+      try KeychainStore.setCodable(Optional<HotspotConfig>.none, account: KeychainAccounts.hotspotConfig)
+    } catch {
+      // Best-effort. If Keychain fails, the UI will still consider the device unpaired.
+    }
+  }
+
+  public func loadHotspotConfig() -> HotspotConfig? {
+    do {
+      return try KeychainStore.getCodable(HotspotConfig.self, account: KeychainAccounts.hotspotConfig)
+    } catch {
+      return nil
+    }
+  }
+
+  // MARK: - Child lock
+
+  public func lockChildSetup() {
+    childIsLocked = true
+  }
+
+  public func unlockChildSetup() {
+    childIsLocked = false
+  }
+
+  // MARK: - Intent telemetry
+
+  public func recordIntentRun(now: Date = Date()) {
+    appIntentRunCount += 1
+    lastAppIntentRunAt = now
+  }
+
+  // MARK: - API config persistence
+
+  public func setAPIBaseURL(_ value: String) {
+    apiBaseURL = value
+    AppDefaults.apiBaseURL = value
+  }
+
+  public func setAdminToken(_ value: String) {
+    adminToken = value
+    AppDefaults.adminToken = value.isEmpty ? nil : value
+  }
+
+  // MARK: - Backend status (debug)
 
   public func refreshBackendStatus() async {
     backendLastError = nil
@@ -144,7 +187,6 @@ public final class AppModel: ObservableObject {
 
     guard let client = apiClient else {
       backendHealthOK = nil
-      backendDeviceCount = nil
       backendLastError = "Invalid API base URL"
       return
     }
@@ -155,51 +197,33 @@ public final class AppModel: ObservableObject {
     } catch {
       backendHealthOK = false
       backendLastError = "Health check failed: \(error)"
-      return
-    }
-
-    // Admin-only info; ignore errors if admin token missing.
-    do {
-      let devices = try await client.listDevices()
-      backendDeviceCount = devices.count
-    } catch {
-      backendDeviceCount = nil
     }
   }
 
-  /// Creates a backend device (admin-only) and stores its deviceId.
-  public func createBackendDeviceIfNeeded(name: String? = nil) async throws {
-    guard deviceId == nil else { return }
-    guard let client = apiClient else {
-      throw APIError.invalidResponse
-    }
-    let resp = try await client.createDevice(name: name)
-    setDeviceId(resp.id)
+  // MARK: - Debug
+
+  public func resetLocalData() {
+    // Non-secure defaults
+    AppDefaults.resetAll()
+    // App group defaults
+    SharedDefaults.resetAll()
+    // Keychain (best-effort)
+    unpairChildDevice()
+
+    // Reset in-memory state
+    appMode = nil
+    signOut()
+
+    apiBaseURL = AppDefaults.apiBaseURL
+    adminToken = AppDefaults.adminToken ?? ""
+
+    backendHealthOK = nil
+    backendLastError = nil
+    backendLastRefresh = nil
   }
+}
 
-  /// Requests a short-lived pairing code (admin-only) for the stored deviceId.
-  public func refreshPairingCode() async throws {
-    guard let client = apiClient else {
-      throw APIError.invalidResponse
-    }
-    guard let deviceId else {
-      throw APIError.invalidResponse
-    }
-    let resp = try await client.createPairingCode(deviceId: deviceId)
-    pairingCode = resp.code
-    pairingCodeExpiresAt = Date(timeIntervalSince1970: TimeInterval(resp.expiresAt))
-  }
-
-  // MARK: - Token generation
-
-  private static func generateEnrollmentToken() -> String {
-    // Human-friendly token: 8-4-4 (not a UUID, but similar).
-    func chunk(_ n: Int) -> String {
-      let alphabet = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
-      return String((0..<n).compactMap { _ in alphabet.randomElement() })
-    }
-
-    return "\(chunk(8))-\(chunk(4))-\(chunk(4))"
-  }
+public enum KeychainAccounts {
+  public static let hotspotConfig = "spotcheck.hotspotConfig"
 }
 #endif
