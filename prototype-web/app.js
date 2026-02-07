@@ -673,8 +673,8 @@ function screenParentDashboard() {
 
         el('div', { class: 'toggle' }, [
           el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'Quiet Time'),
-            el('div', { class: 'small' }, 'Per-device schedule')
+            el('div', { style: 'font-weight:720' }, 'Set schedule'),
+            el('div', { class: 'small' }, 'Quiet hours for this device')
           ]),
           toggleSwitch(device.quietTimeEnabled, () => { device.quietTimeEnabled = !device.quietTimeEnabled; render(); }),
         ]),
@@ -780,8 +780,8 @@ function screenParentDeviceDetails(deviceId) {
         ]),
         el('div', { class: 'toggle' }, [
           el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'Quiet Time'),
-            el('div', { class: 'small' }, 'Per-device schedule')
+            el('div', { style: 'font-weight:720' }, 'Set schedule'),
+            el('div', { class: 'small' }, 'Quiet hours for this device')
           ]),
           toggleSwitch(d.quietTimeEnabled, () => { d.quietTimeEnabled = !d.quietTimeEnabled; render(); }),
         ]),
@@ -1011,6 +1011,39 @@ function screenChildSettings() {
   };
 }
 
+function screenChildUnlock() {
+  return {
+    nav: navbar({ title: 'Unlock', backTo: '/child/locked' }),
+    body: el('div', { class: 'content' }, [
+      el('div', { class: 'hero' }, [
+        el('div', { class: 'hero-top' }, [
+          el('div', {}, [
+            el('h1', { class: 'hero-title' }, 'Parent unlock'),
+            el('p', { class: 'hero-sub' }, 'Sign in to unlock setup screens on this phone.'),
+          ]),
+          el('span', { class: 'badge muted' }, 'Parent')
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', {
+            class: 'btn primary',
+            onClick: () => {
+              state.signedIn = true;
+              persist();
+              route.go('/child/dashboard');
+            }
+          }, [iconSquare('lock'), 'Sign in with Apple (mock)']),
+          el('button', { class: 'btn ghost', onClick: () => { state.signedIn = true; persist(); route.go('/child/dashboard'); } }, 'Continue (dev)'),
+        ]),
+      ]),
+
+      el('div', { class: 'card vstack' }, [
+        el('div', { class: 'h2' }, 'Why this exists'),
+        el('p', { class: 'p' }, 'After setup, the child phone stays in a locked screen. The parent can unlock to adjust settings or re-run setup steps.'),
+      ]),
+    ]),
+  };
+}
+
 function screenChildScreenTime() {
   const c = state.childSetup;
   return {
@@ -1061,9 +1094,12 @@ function screenChildLocked() {
         el('div', { class: 'hero-top' }, [
           el('div', {}, [
             el('h1', { class: 'hero-title' }, 'Setup complete'),
-            el('p', { class: 'hero-sub' }, 'Hand the phone back to the child. This screen stays on.'),
+            el('p', { class: 'hero-sub' }, 'This screen stays on. To change anything, the parent must unlock.'),
           ]),
           el('span', { class: 'badge good' }, 'Ready')
+        ]),
+        el('div', { class: 'hero-actions' }, [
+          el('button', { class: 'btn primary', onClick: () => route.go('/child/unlock') }, [iconSquare('lock'), 'Unlock (parent)']),
         ]),
       ]),
       el('div', { class: 'card vstack' }, [
@@ -1072,14 +1108,6 @@ function screenChildLocked() {
           el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Don’t change settings'), el('div', { class: 'sub' }, 'Shortcuts + Screen Time must stay enabled')])]),
           el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Leave this app open'), el('div', { class: 'sub' }, 'If asked, tap “Always Allow” for automations')])]),
         ]),
-      ]),
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Parent only'),
-        el('p', { class: 'p' }, 'If you need to make changes, go back to the parent app.'),
-        el('button', {
-          class: 'btn primary full',
-          onClick: () => route.go(navState.lastParentRoute || '/parent/dashboard'),
-        }, [iconSquare('home'), 'Return to parent app']),
       ]),
     ]),
   };
@@ -1114,52 +1142,42 @@ function screenChildDashboard() {
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '2) Install our Shortcut'),
-        el('p', { class: 'p' }, 'Install the Shortcut, then run it once manually. That first run calls our App Intent (Get Hotspot Config) and can mark this step as complete.'),
         el('button', { class: 'btn full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare('shortcut'), 'Open Shortcut link']),
         el('div', { class: 'shot' }, [
-          el('div', { class: 'shot-title' }, 'Initial run (one time)'),
+          el('div', { class: 'shot-title' }, 'Initial run'),
           el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If iOS prompts, choose “Always Allow” where possible.'),
         ]),
         infoRow({
-          title: 'Initial run detected',
-          sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Waiting for the first successful run',
-          badgeText: initialRunDone ? 'Done' : 'Todo',
-          badgeClass: initialRunDone ? 'good' : 'muted'
+          title: 'Shortcut runs',
+          sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run',
+          badgeText: initialRunDone ? 'Done' : 'Awaiting',
+          badgeClass: initialRunDone ? 'good' : 'warn'
         }),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '3) Automations'),
-        el('p', { class: 'p' }, 'After enabling automations, we watch for multiple runs (roughly spaced apart) to gain confidence they’re actually firing.'),
         infoRow({
           title: 'Automation runs',
           sub: automationConfidenceDone ? 'Multiple runs observed' : 'Awaiting multiple runs',
           badgeText: automationConfidenceDone ? 'Done' : 'Awaiting',
           badgeClass: automationConfidenceDone ? 'good' : 'warn'
         }),
-        el('p', { class: 'small' }, 'In the real app: we can treat repeated App Intent calls from the automation as the signal.'),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '4) Screen Time lock'),
-        el('p', { class: 'p' }, 'We can detect some parts (authorization + shielding), but iOS generally does not let apps confirm a Screen Time passcode was set.'),
         infoRow({
           title: 'Screen Time authorization',
           sub: 'FamilyControls permission granted',
-          badgeText: c.screenTimeAuthorized ? 'Done' : 'Todo',
-          badgeClass: c.screenTimeAuthorized ? 'good' : 'muted'
+          badgeText: c.screenTimeAuthorized ? 'Done' : 'Awaiting',
+          badgeClass: c.screenTimeAuthorized ? 'good' : 'warn'
         }),
         infoRow({
           title: 'Shielding applied',
           sub: 'Shortcuts/Settings selected for shielding',
-          badgeText: c.shieldingApplied ? 'Done' : 'Todo',
-          badgeClass: c.shieldingApplied ? 'good' : 'muted'
-        }),
-        infoRow({
-          title: 'Screen Time passcode',
-          sub: 'Parent sets passcode in Settings (manual check)',
-          badgeText: 'Can’t detect',
-          badgeClass: 'muted'
+          badgeText: c.shieldingApplied ? 'Done' : 'Awaiting',
+          badgeClass: c.shieldingApplied ? 'good' : 'warn'
         }),
         el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
       ]),
@@ -1192,6 +1210,7 @@ function resolveScreen() {
   if (p === '/child/checklist') return screenChildDashboard();
   if (p === '/child/pair') return screenChildSettings();
   if (p === '/child/screentime') return screenChildScreenTime();
+  if (p === '/child/unlock') return screenChildUnlock();
   if (p === '/child/locked') return screenChildLocked();
 
   return {
