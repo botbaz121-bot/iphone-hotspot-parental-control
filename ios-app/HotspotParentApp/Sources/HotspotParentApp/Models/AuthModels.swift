@@ -40,8 +40,13 @@ public struct DashboardDevice: Decodable {
   public var shouldBeRunning: Bool
   public var gapMs: Int
 
-  public var quietHours: QuietHours?
+  public var actions: Actions
+  public struct Actions: Decodable {
+    public var setHotspotOff: Bool
+    public var rotatePassword: Bool
+  }
 
+  public var quietHours: QuietHours?
   public struct QuietHours: Decodable {
     public var start: String?
     public var end: String?

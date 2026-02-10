@@ -114,27 +114,8 @@ public struct ParentDashboardView: View {
 
           // Policy editor (selected device)
           if let d = model.selectedParentDevice {
-            VStack(alignment: .leading, spacing: 10) {
-              Text("Device rules")
-                .font(.headline)
-
-              Toggle("Enforce", isOn: Binding(
-                get: { d.enforce },
-                set: { v in Task { try? await model.updateSelectedDevicePolicy(enforce: v) } }
-              ))
-
-              Toggle("Hotspot OFF", isOn: .constant(true))
-                .disabled(true)
-              Toggle("Rotate password", isOn: .constant(true))
-                .disabled(true)
-
-              Text("Quiet hours + gap editing coming next (wired on backend).")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-            .padding()
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            PolicyEditorCard(device: d)
+              .environmentObject(model)
           }
 
           VStack(alignment: .leading, spacing: 10) {
@@ -242,6 +223,133 @@ public struct ParentDashboardView: View {
     .padding(.vertical, 8)
     .background(Color.primary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 12))
+  }
+}
+
+private struct PolicyEditorCard: View {
+  @EnvironmentObject private var model: AppModel
+  public var device: DashboardDevice
+
+  @State private var quietStart: String
+  @State private var quietEnd: String
+  @State private var tz: String
+  @State private var gapMinutesText: String
+  @State private var pairingCode: String?
+  @State private var status: String?
+
+  init(device: DashboardDevice) {
+    self.device = device
+    _quietStart = State(initialValue: device.quietHours?.start ?? "")
+    _quietEnd = State(initialValue: device.quietHours?.end ?? "")
+    _tz = State(initialValue: device.quietHours?.tz ?? "")
+    _gapMinutesText = State(initialValue: String(max(1, Int(round(Double(device.gapMs) / 60000.0)))))
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack {
+        Text("Device rules")
+          .font(.headline)
+        Spacer()
+        Button("Pair code") {
+          status = nil
+          pairingCode = nil
+          Task {
+            do {
+              let out = try await model.createPairingCodeForSelectedDevice()
+              pairingCode = out.code
+            } catch {
+              status = String(describing: error)
+            }
+          }
+        }
+        .buttonStyle(.bordered)
+      }
+
+      Toggle("Enforce", isOn: Binding(
+        get: { device.enforce },
+        set: { v in Task { try? await model.updateSelectedDevicePolicy(enforce: v) } }
+      ))
+
+      Toggle("Hotspot OFF", isOn: Binding(
+        get: { device.actions.setHotspotOff },
+        set: { v in Task { try? await model.updateSelectedDevicePolicy(setHotspotOff: v) } }
+      ))
+
+      Toggle("Rotate password", isOn: Binding(
+        get: { device.actions.rotatePassword },
+        set: { v in Task { try? await model.updateSelectedDevicePolicy(rotatePassword: v) } }
+      ))
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Quiet hours")
+          .font(.subheadline.weight(.semibold))
+
+        HStack {
+          TextField("Start HH:MM", text: $quietStart)
+            .textFieldStyle(.roundedBorder)
+          TextField("End HH:MM", text: $quietEnd)
+            .textFieldStyle(.roundedBorder)
+        }
+
+        TextField("Time zone (e.g. Europe/Paris)", text: $tz)
+          .textFieldStyle(.roundedBorder)
+
+        Button("Save quiet hours") {
+          Task {
+            do {
+              try await model.updateSelectedDevicePolicy(
+                quietStart: quietStart.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : quietStart,
+                quietEnd: quietEnd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : quietEnd,
+                tz: tz.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : tz
+              )
+            } catch {
+              status = String(describing: error)
+            }
+          }
+        }
+        .buttonStyle(.bordered)
+      }
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Gap threshold")
+          .font(.subheadline.weight(.semibold))
+
+        HStack {
+          TextField("Minutes", text: $gapMinutesText)
+            .keyboardType(.numberPad)
+            .textFieldStyle(.roundedBorder)
+          Button("Save") {
+            Task {
+              do {
+                let m = Int(gapMinutesText.trimmingCharacters(in: .whitespacesAndNewlines))
+                if let m, m > 0 {
+                  try await model.updateSelectedDevicePolicy(gapMinutes: m)
+                }
+              } catch {
+                status = String(describing: error)
+              }
+            }
+          }
+          .buttonStyle(.bordered)
+        }
+      }
+
+      if let code = pairingCode {
+        Text("Pairing code: \(code)")
+          .font(.system(.footnote, design: .monospaced))
+          .textSelection(.enabled)
+      }
+
+      if let status {
+        Text(status)
+          .font(.footnote)
+          .foregroundStyle(.red)
+      }
+    }
+    .padding()
+    .background(.thinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 16))
   }
 }
 

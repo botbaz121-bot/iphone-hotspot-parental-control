@@ -892,6 +892,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         d.last_seen_at,
         MAX(e.ts) AS last_event_ts,
         p.enforce AS enforce,
+        p.set_hotspot_off AS set_hotspot_off,
+        p.rotate_password AS rotate_password,
         p.quiet_start AS quiet_start,
         p.quiet_end AS quiet_end,
         p.tz AS tz,
@@ -912,6 +914,9 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const gapMs = r.gap_ms != null ? Number(r.gap_ms) : 7200000;
 
     const enforce = r.enforce == null ? true : !!r.enforce;
+    const setHotspotOff = r.set_hotspot_off == null ? true : !!r.set_hotspot_off;
+    const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
+
     const inQuiet = enforce ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : false;
     const shouldBeRunning = enforce && !inQuiet;
 
@@ -926,6 +931,10 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       last_event_ts: lastEventTs,
       last_event_at: lastEventTs ? new Date(lastEventTs).toISOString() : null,
       enforce,
+      actions: {
+        setHotspotOff,
+        rotatePassword
+      },
       quietHours:
         r.quiet_start || r.quiet_end || r.tz
           ? { start: r.quiet_start || null, end: r.quiet_end || null, tz: r.tz || null }
