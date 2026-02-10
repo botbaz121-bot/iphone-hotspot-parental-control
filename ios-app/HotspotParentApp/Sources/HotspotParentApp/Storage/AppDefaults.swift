@@ -11,6 +11,7 @@ public enum AppDefaults {
     static let policyHotspotOff = "hotspotParent.policy.hotspotOff"
     static let apiBaseURL = "hotspotParent.api.baseURL"
     static let adminToken = "hotspotParent.api.adminToken"
+    static let parentSessionToken = "hotspotParent.parent.sessionToken"
     static let deviceId = "hotspotParent.device.id"
 
     static let adsRemoved = "spotcheck.iap.adsRemoved"
@@ -74,6 +75,14 @@ public enum AppDefaults {
     set { defaults.set(newValue, forKey: Key.adminToken) }
   }
 
+  public static var parentSessionToken: String? {
+    get {
+      let v = defaults.string(forKey: Key.parentSessionToken)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { defaults.set(newValue, forKey: Key.parentSessionToken) }
+  }
+
   public static var deviceId: String? {
     get {
       let v = defaults.string(forKey: Key.deviceId)
@@ -97,6 +106,7 @@ public enum AppDefaults {
     defaults.removeObject(forKey: Key.policyHotspotOff)
     defaults.removeObject(forKey: Key.apiBaseURL)
     defaults.removeObject(forKey: Key.adminToken)
+    defaults.removeObject(forKey: Key.parentSessionToken)
     defaults.removeObject(forKey: Key.deviceId)
     defaults.removeObject(forKey: Key.adsRemoved)
   }

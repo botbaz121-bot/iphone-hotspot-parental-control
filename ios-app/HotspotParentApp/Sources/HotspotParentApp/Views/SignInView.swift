@@ -28,33 +28,47 @@ public struct SignInView: View {
 
       VStack(spacing: 12) {
         #if canImport(AuthenticationServices)
-        SignInWithAppleButton { request in
-          request.requestedScopes = []
-        } onCompletion: { result in
-          // MVP: we don't exchange/verify tokens yet.
-          switch result {
-            case .success:
-              let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
-              model.signInStub(userID: userID)
-            case .failure(let error):
+        Button {
+          status = nil
+          Task {
+            do {
+              let coord = AppleSignInCoordinator()
+              let creds = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<AppleSignInCoordinator.AppleCredentials, Error>) in
+                coord.start { result in
+                  cont.resume(with: result)
+                }
+              }
+
+              try await model.signInWithApple(
+                identityToken: creds.identityToken,
+                appleUserID: creds.userID,
+                email: creds.email,
+                fullName: creds.fullName
+              )
+            } catch {
               status = "Apple sign-in failed: \(error)"
+            }
           }
+        } label: {
+          Label("Sign in with Apple", systemImage: "person.crop.circle")
+            .frame(maxWidth: .infinity)
         }
-        .signInWithAppleButtonStyle(.black)
-        .frame(height: 48)
+        .buttonStyle(.borderedProminent)
         .padding(.horizontal)
 
+        #if DEBUG
         Button("Continue without Apple (dev)") {
           let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
           model.signInStub(userID: userID)
         }
         .buttonStyle(.bordered)
 
-        Text("Sign in with Apple may fail until the capability is enabled for this App ID. The app can run with a local stub for now.")
+        Text("DEBUG: Stub sign-in is enabled. Release/TestFlight should use real Apple sign-in.")
           .font(.footnote)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
           .padding(.horizontal)
+        #endif
         #else
         Button("Continue (stub)") {
           let userID = "apple-stub-\(UUID().uuidString.prefix(8))"

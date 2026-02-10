@@ -8,6 +8,15 @@ import morgan from 'morgan';
 import Database from 'better-sqlite3';
 import { z } from 'zod';
 
+import {
+  optionalEnv,
+  splitCsv,
+  verifyAppleIdentityToken,
+  mintSessionJwt,
+  verifySessionJwt,
+  hashSub
+} from './auth_parent.js';
+
 function env(name, fallback = undefined) {
   const v = process.env[name];
   if (v == null || v === '') return fallback;
@@ -19,6 +28,11 @@ const HOST = env('HOST', '0.0.0.0');
 const PORT = Number(env('PORT', '3003'));
 const DATABASE_PATH = env('DATABASE_PATH', path.resolve('data/hotspot.sqlite3'));
 const ADMIN_TOKEN = env('ADMIN_TOKEN', 'change-me');
+const SESSION_JWT_SECRET = env('SESSION_JWT_SECRET');
+// Apple identity tokens will have an audience of your app's bundle id (iOS) or service id (web).
+// Configure as comma-separated list: e.g. "com.bazapps.hotspotparent,com.bazapps.hotspotparent.dev".
+const APPLE_AUDIENCES = splitCsv(env('APPLE_AUDIENCES', env('APPLE_SERVICE_ID', '')));
+
 const MAX_SKEW_MS = Number(env('MAX_SKEW_MS', String(5 * 60 * 1000)));
 const LOG_REQUEST_BODIES = env('LOG_REQUEST_BODIES', '0') === '1';
 
@@ -28,21 +42,30 @@ db.pragma('journal_mode = WAL');
 
 // Schema
 // Notes:
-// - devices are "owned" by a parent account keyed by admin token for now (MVP).
-// - later we can add real users/auth.
+// - MVP started with a single ADMIN_TOKEN. We now add parent auth (Sign in with Apple)
+//   and a session JWT, and gradually move /api endpoints to parent-scoped access.
 function tableHasColumn(table, column) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all();
   return cols.some(c => c.name === column);
 }
 
 db.exec(`
+CREATE TABLE IF NOT EXISTS parents (
+  id TEXT PRIMARY KEY,
+  apple_sub TEXT NOT NULL UNIQUE,
+  email TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS devices (
   id TEXT PRIMARY KEY,
+  parent_id TEXT,
   name TEXT NOT NULL DEFAULT '',
   device_token TEXT NOT NULL UNIQUE,
   device_secret TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  last_seen_at TEXT
+  last_seen_at TEXT,
+  FOREIGN KEY(parent_id) REFERENCES parents(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS device_policies (
@@ -94,6 +117,12 @@ CREATE INDEX IF NOT EXISTS idx_pairing_codes_expires ON pairing_codes(expires_at
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_policies'").get()) {
   if (!tableHasColumn('device_policies', 'gap_ms')) {
     db.exec('ALTER TABLE device_policies ADD COLUMN gap_ms INTEGER NOT NULL DEFAULT 7200000');
+  }
+}
+
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devices'").get()) {
+  if (!tableHasColumn('devices', 'parent_id')) {
+    db.exec('ALTER TABLE devices ADD COLUMN parent_id TEXT');
   }
 }
 
@@ -231,6 +260,33 @@ function requireAdmin(req, res, next) {
   const token = String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!token || token !== ADMIN_TOKEN) return res.status(401).json({ error: 'unauthorized' });
   return next();
+}
+
+async function requireParent(req, res, next) {
+  try {
+    const token = String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    if (!token) return res.status(401).json({ error: 'unauthorized' });
+    if (!SESSION_JWT_SECRET) return res.status(500).json({ error: 'missing_session_secret' });
+
+    const payload = await verifySessionJwt({ token, secret: SESSION_JWT_SECRET });
+    const appleSub = String(payload.sub || '');
+    const parentId = String(payload.parentId || '');
+    if (!appleSub || !parentId) return res.status(401).json({ error: 'unauthorized' });
+
+    const parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ? AND apple_sub = ?').get(parentId, appleSub);
+    if (!parent) return res.status(401).json({ error: 'unauthorized' });
+
+    req.parent = parent;
+    return next();
+  } catch (e) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+}
+
+function requireParentOrAdmin(req, res, next) {
+  const token = String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (token && token === ADMIN_TOKEN) return next();
+  return requireParent(req, res, next);
 }
 
 app.get('/healthz', (req, res) => res.json({ ok: true }));
@@ -398,6 +454,54 @@ app.all('/auth/apple/callback', async (req, res) => {
   }
 });
 
+// --- Sign in with Apple (Native iOS) ---
+// iOS sends us the identityToken (JWT signed by Apple). We verify it and mint our own session token.
+app.post('/auth/apple/native', async (req, res) => {
+  try {
+    const schema = z.object({
+      identityToken: z.string().min(20),
+      email: z.string().email().optional(),
+      fullName: z.string().max(200).optional()
+    });
+    const { identityToken, email } = schema.parse(req.body || {});
+
+    if (!APPLE_AUDIENCES.length) return res.status(500).json({ error: 'missing_APPLE_AUDIENCES' });
+    if (!SESSION_JWT_SECRET) return res.status(500).json({ error: 'missing_SESSION_JWT_SECRET' });
+
+    // Try all allowed audiences.
+    let payload = null;
+    let lastErr = null;
+    for (const aud of APPLE_AUDIENCES) {
+      try {
+        payload = await verifyAppleIdentityToken({ identityToken, audience: aud });
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!payload) return res.status(401).json({ error: 'invalid_identity_token' });
+
+    const appleSub = String(payload.sub || '');
+    if (!appleSub) return res.status(401).json({ error: 'invalid_identity_token' });
+
+    // Upsert parent.
+    let parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
+    if (!parent) {
+      const parentId = id();
+      db.prepare('INSERT INTO parents (id, apple_sub, email) VALUES (?, ?, ?)').run(parentId, appleSub, email || null);
+      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parentId);
+    } else if (email && (!parent.email || String(parent.email).trim() === '')) {
+      db.prepare('UPDATE parents SET email = ? WHERE id = ?').run(email, parent.id);
+      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parent.id);
+    }
+
+    const sessionToken = await mintSessionJwt({ parentId: parent.id, appleSub, secret: SESSION_JWT_SECRET });
+    return res.json({ ok: true, parent: { id: parent.id, email: parent.email || null, appleSubHash: hashSub(appleSub) }, sessionToken });
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 // When running behind ngrok for testing, we want ONLY the Shortcut endpoints public.
 // ngrok forwards requests from the public internet to localhost, so IP-based checks won't help.
 // Instead, we gate admin surfaces by Host.
@@ -422,8 +526,9 @@ app.use((req, res, next) => {
   )
     return next();
 
-  // Block admin surfaces when accessed via a non-local Host (e.g., ngrok public URL).
-  if (!localHost && (req.path === '/admin' || req.path.startsWith('/api/'))) {
+  // Block /admin when accessed via a non-local Host (e.g., ngrok public URL).
+  // Note: /api is now used by the iOS app and is auth-gated instead.
+  if (!localHost && req.path === '/admin') {
     return res.status(404).type('text').send('not found');
   }
 
@@ -769,53 +874,13 @@ app.post('/pair', (req, res, next) => {
   }
 });
 
-// --- Admin endpoints (temporary, for parent app / dashboard prototyping) ---
-function parseHHMM(s) {
-  if (s == null) return null;
-  const m = String(s).trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const hh = Number(m[1]);
-  const mm = Number(m[2]);
-  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  return hh * 60 + mm;
-}
+// --- Parent API (iOS app) ---
+// These are the endpoints the parent iOS app will call once signed in.
 
-function getMinutesInTzNow(tz) {
-  // Returns minutes since midnight in the given IANA TZ.
-  // If tz is invalid, falls back to local time.
-  const d = new Date();
-  if (!tz) return d.getHours() * 60 + d.getMinutes();
-  try {
-    const parts = new Intl.DateTimeFormat('en-GB', {
-      timeZone: tz,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).formatToParts(d);
-    const hh = Number(parts.find(p => p.type === 'hour')?.value);
-    const mm = Number(parts.find(p => p.type === 'minute')?.value);
-    if (!Number.isFinite(hh) || !Number.isFinite(mm)) throw new Error('bad parts');
-    return hh * 60 + mm;
-  } catch {
-    return d.getHours() * 60 + d.getMinutes();
-  }
-}
-
-function isWithinQuietHours({ quietStart, quietEnd, tz }) {
-  const s = parseHHMM(quietStart);
-  const e = parseHHMM(quietEnd);
-  if (s == null || e == null) return false;
-
-  const nowMin = getMinutesInTzNow(tz);
-  if (s === e) return true; // 24h quiet
-
-  // Range can cross midnight.
-  if (s < e) return nowMin >= s && nowMin < e;
-  return nowMin >= s || nowMin < e;
-}
-
-// "dashboard" summary (gap heuristic + quiet hours)
-app.get('/api/dashboard', requireAdmin, (req, res) => {
+// Parent dashboard summary (scoped to parent).
+app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
+  const parentId = req.parent?.id || null;
+  const where = parentId ? 'WHERE d.parent_id = ?' : '';
   const rows = db
     .prepare(
       `
@@ -834,11 +899,12 @@ app.get('/api/dashboard', requireAdmin, (req, res) => {
       FROM devices d
       LEFT JOIN device_events e ON e.device_id = d.id
       LEFT JOIN device_policies p ON p.device_id = d.id
+      ${where}
       GROUP BY d.id
       ORDER BY d.created_at DESC
       `
     )
-    .all();
+    .all(...(parentId ? [parentId] : []));
 
   const now = Date.now();
   const devices = rows.map(r => {
@@ -849,9 +915,7 @@ app.get('/api/dashboard', requireAdmin, (req, res) => {
     const inQuiet = enforce ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : false;
     const shouldBeRunning = enforce && !inQuiet;
 
-    const gap = shouldBeRunning
-      ? (lastEventTs == null ? true : now - lastEventTs > gapMs)
-      : false;
+    const gap = shouldBeRunning ? (lastEventTs == null ? true : now - lastEventTs > gapMs) : false;
 
     return {
       id: r.id,
@@ -862,7 +926,10 @@ app.get('/api/dashboard', requireAdmin, (req, res) => {
       last_event_ts: lastEventTs,
       last_event_at: lastEventTs ? new Date(lastEventTs).toISOString() : null,
       enforce,
-      quietHours: (r.quiet_start || r.quiet_end || r.tz) ? { start: r.quiet_start || null, end: r.quiet_end || null, tz: r.tz || null } : null,
+      quietHours:
+        r.quiet_start || r.quiet_end || r.tz
+          ? { start: r.quiet_start || null, end: r.quiet_end || null, tz: r.tz || null }
+          : null,
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
@@ -873,23 +940,31 @@ app.get('/api/dashboard', requireAdmin, (req, res) => {
   res.json({ devices });
 });
 
-app.get('/api/devices', requireAdmin, (req, res) => {
-  const devices = db
-    .prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices ORDER BY created_at DESC')
-    .all();
+app.get('/api/devices', requireParentOrAdmin, (req, res) => {
+  const parentId = req.parent?.id || null;
+  const devices = parentId
+    ? db
+        .prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices WHERE parent_id = ? ORDER BY created_at DESC')
+        .all(parentId)
+    : db.prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices ORDER BY created_at DESC').all();
   res.json({ devices });
 });
 
-app.post('/api/devices', requireAdmin, (req, res) => {
+app.post('/api/devices', requireParentOrAdmin, (req, res) => {
   const schema = z.object({ name: z.string().min(1).max(200).optional().default('Child device') });
   const { name } = schema.parse(req.body);
+
+  if (!req.parent && String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim() !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
 
   const deviceId = id();
   const deviceToken = crypto.randomBytes(16).toString('hex');
   const deviceSecret = crypto.randomBytes(32).toString('hex');
 
-  db.prepare('INSERT INTO devices (id, name, device_token, device_secret) VALUES (?, ?, ?, ?)').run(
+  db.prepare('INSERT INTO devices (id, parent_id, name, device_token, device_secret) VALUES (?, ?, ?, ?, ?)').run(
     deviceId,
+    req.parent?.id || null,
     name,
     deviceToken,
     deviceSecret
@@ -902,23 +977,27 @@ app.post('/api/devices', requireAdmin, (req, res) => {
     `
   ).run(id(), deviceId);
 
+  // NOTE: deviceSecret should not be shown in the parent app UI; it is for the child/Shortcut.
   res.status(201).json({ id: deviceId, name, deviceToken, deviceSecret });
 });
 
 // Create a short-lived pairing code for a device.
-// The child app redeems it via POST /pair.
-app.post('/api/devices/:deviceId/pairing-code', requireAdmin, (req, res, next) => {
+app.post('/api/devices/:deviceId/pairing-code', requireParentOrAdmin, (req, res, next) => {
   try {
     const { deviceId } = req.params;
     const schema = z.object({ ttlMinutes: z.number().int().min(1).max(60).optional().default(10) });
     const { ttlMinutes } = schema.parse(req.body || {});
 
-    const device = db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+    const device = req.parent
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+
     if (!device) return res.status(404).json({ error: 'not_found' });
 
-    // Best-effort cleanup of old codes for this device
-    db.prepare('DELETE FROM pairing_codes WHERE device_id = ? AND (redeemed_at IS NOT NULL OR expires_at < ?)')
-      .run(deviceId, Date.now());
+    db.prepare('DELETE FROM pairing_codes WHERE device_id = ? AND (redeemed_at IS NOT NULL OR expires_at < ?)').run(
+      deviceId,
+      Date.now()
+    );
 
     const code = randomPairingCode();
     const expiresAt = Date.now() + ttlMinutes * 60_000;
@@ -930,9 +1009,11 @@ app.post('/api/devices/:deviceId/pairing-code', requireAdmin, (req, res, next) =
   }
 });
 
-app.patch('/api/devices/:deviceId/policy', requireAdmin, (req, res) => {
+app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   const { deviceId } = req.params;
-  const device = db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+  const device = req.parent
+    ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+    : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
   if (!device) return res.status(404).json({ error: 'not_found' });
 
   const schema = z.object({
@@ -977,7 +1058,7 @@ app.patch('/api/devices/:deviceId/policy', requireAdmin, (req, res) => {
     values.push(patch.tz);
   }
 
-  const gapMs = patch.gapMs != null ? patch.gapMs : (patch.gapMinutes != null ? patch.gapMinutes * 60_000 : null);
+  const gapMs = patch.gapMs != null ? patch.gapMs : patch.gapMinutes != null ? patch.gapMinutes * 60_000 : null;
   if (gapMs != null) {
     fields.push('gap_ms = ?');
     values.push(gapMs);
@@ -985,13 +1066,17 @@ app.patch('/api/devices/:deviceId/policy', requireAdmin, (req, res) => {
 
   fields.push("updated_at = datetime('now')");
 
+  if (!fields.length) return res.json({ ok: true });
+
   db.prepare(`UPDATE device_policies SET ${fields.join(', ')} WHERE device_id = ?`).run(...values, deviceId);
   res.json({ ok: true });
 });
 
-app.get('/api/devices/:deviceId/events', requireAdmin, (req, res) => {
+app.get('/api/devices/:deviceId/events', requireParentOrAdmin, (req, res) => {
   const { deviceId } = req.params;
-  const device = db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+  const device = req.parent
+    ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+    : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
   if (!device) return res.status(404).json({ error: 'not_found' });
 
   const events = db
@@ -1013,6 +1098,51 @@ app.get('/api/devices/:deviceId/events', requireAdmin, (req, res) => {
 
   res.json({ events });
 });
+
+// --- Admin endpoints (temporary, for parent app / dashboard prototyping) ---
+function parseHHMM(s) {
+  if (s == null) return null;
+  const m = String(s).trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return hh * 60 + mm;
+}
+
+function getMinutesInTzNow(tz) {
+  // Returns minutes since midnight in the given IANA TZ.
+  // If tz is invalid, falls back to local time.
+  const d = new Date();
+  if (!tz) return d.getHours() * 60 + d.getMinutes();
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(d);
+    const hh = Number(parts.find(p => p.type === 'hour')?.value);
+    const mm = Number(parts.find(p => p.type === 'minute')?.value);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) throw new Error('bad parts');
+    return hh * 60 + mm;
+  } catch {
+    return d.getHours() * 60 + d.getMinutes();
+  }
+}
+
+function isWithinQuietHours({ quietStart, quietEnd, tz }) {
+  const s = parseHHMM(quietStart);
+  const e = parseHHMM(quietEnd);
+  if (s == null || e == null) return false;
+
+  const nowMin = getMinutesInTzNow(tz);
+  if (s === e) return true; // 24h quiet
+
+  // Range can cross midnight.
+  if (s < e) return nowMin >= s && nowMin < e;
+  return nowMin >= s || nowMin < e;
+}
 
 // Basic JSON error handler
 app.use((err, req, res, next) => {

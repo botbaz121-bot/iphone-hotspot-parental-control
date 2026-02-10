@@ -14,11 +14,18 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.appModeRaw = appMode?.rawValue }
   }
 
-  /// Parent unlock/sign-in (stub for v1A). Used for child unlock.
-  @Published public private(set) var appleUserID: String?
-  public var isSignedIn: Bool { appleUserID != nil }
+  /// Parent unlock/sign-in (v1B). Server-minted session JWT.
+  @Published public private(set) var parentSessionToken: String?
+  public var isSignedIn: Bool { parentSessionToken != nil }
 
-  // MARK: - Parent state (v1A mostly cosmetic)
+  /// Apple user id (best-effort, informational).
+  @Published public private(set) var appleUserID: String?
+
+  // MARK: - Parent state (v1B)
+
+  @Published public var parentDevices: [DashboardDevice] = []
+  @Published public var parentLoading: Bool = false
+  @Published public var parentLastError: String?
 
   @Published public var selectedDeviceId: String? {
     didSet { SharedDefaults.selectedDeviceId = selectedDeviceId }
@@ -76,6 +83,7 @@ public final class AppModel: ObservableObject {
 
   public init() {
     self.appMode = SharedDefaults.appModeRaw.flatMap { AppMode(rawValue: $0) }
+    self.parentSessionToken = AppDefaults.parentSessionToken
     self.appleUserID = AppDefaults.appleUserID
 
     self.selectedDeviceId = SharedDefaults.selectedDeviceId
@@ -102,14 +110,36 @@ public final class AppModel: ObservableObject {
     appMode = mode
   }
 
-  // MARK: - Auth (stub for v1A)
+  // MARK: - Auth (v1B)
 
   public func signInStub(userID: String) {
+    // Kept for DEBUG/dev flows.
     appleUserID = userID
     AppDefaults.appleUserID = userID
   }
 
+  public func signInWithApple(identityToken: String, appleUserID: String, email: String?, fullName: PersonNameComponents?) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+
+    let displayName: String? = {
+      guard let fullName else { return nil }
+      let parts = [fullName.givenName, fullName.familyName].compactMap { $0 }.filter { !$0.isEmpty }
+      return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }()
+
+    let resp = try await client.signInWithAppleNative(identityToken: identityToken, email: email, fullName: displayName)
+
+    parentSessionToken = resp.sessionToken
+    AppDefaults.parentSessionToken = resp.sessionToken
+
+    self.appleUserID = appleUserID
+    AppDefaults.appleUserID = appleUserID
+  }
+
   public func signOut() {
+    parentSessionToken = nil
+    AppDefaults.parentSessionToken = nil
+
     appleUserID = nil
     AppDefaults.appleUserID = nil
   }
@@ -122,8 +152,9 @@ public final class AppModel: ObservableObject {
 
   private var apiClient: HotspotAPIClient? {
     guard let url = URL(string: apiBaseURL) else { return nil }
-    let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines)
-    let api = API(baseURL: url, adminToken: token.isEmpty ? nil : token)
+    let admin = adminToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    let parent = (parentSessionToken ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let api = API(baseURL: url, parentSessionToken: parent.isEmpty ? nil : parent, adminToken: admin.isEmpty ? nil : admin)
     return HotspotAPIClient(api: api)
   }
 
@@ -204,6 +235,70 @@ public final class AppModel: ObservableObject {
       backendHealthOK = false
       backendLastError = "Health check failed: \(error)"
     }
+  }
+
+  // MARK: - Parent API
+
+  public var selectedParentDevice: DashboardDevice? {
+    guard let id = selectedDeviceId else { return nil }
+    return parentDevices.first(where: { $0.id == id })
+  }
+
+  public func refreshParentDashboard() async {
+    parentLastError = nil
+    guard isSignedIn else { return }
+    guard let client = apiClient else {
+      parentLastError = "Invalid API base URL"
+      return
+    }
+
+    parentLoading = true
+    defer { parentLoading = false }
+
+    do {
+      let dash = try await client.dashboard()
+      parentDevices = dash.devices
+      if selectedDeviceId == nil {
+        selectedDeviceId = dash.devices.first?.id
+      }
+    } catch {
+      parentLastError = String(describing: error)
+    }
+  }
+
+  public func updateSelectedDevicePolicy(
+    enforce: Bool? = nil,
+    setHotspotOff: Bool? = nil,
+    rotatePassword: Bool? = nil,
+    quietStart: String? = nil,
+    quietEnd: String? = nil,
+    tz: String? = nil,
+    gapMinutes: Int? = nil
+  ) async throws {
+    guard let deviceId = selectedDeviceId else { throw APIError.invalidResponse }
+    guard let client = apiClient else { throw APIError.invalidResponse }
+
+    let patch = UpdatePolicyRequest(
+      enforce: enforce,
+      setHotspotOff: setHotspotOff,
+      rotatePassword: rotatePassword,
+      quietStart: quietStart,
+      quietEnd: quietEnd,
+      tz: tz,
+      gapMinutes: gapMinutes
+    )
+
+    try await client.updatePolicy(deviceId: deviceId, patch: patch)
+    await refreshParentDashboard()
+  }
+
+  public func createDeviceAndPairingCode(name: String?) async throws -> PairingCodeResponse {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let created = try await client.createDevice(name: name)
+    let code = try await client.createPairingCode(deviceId: created.id)
+    await refreshParentDashboard()
+    selectedDeviceId = created.id
+    return code
   }
 
   // MARK: - Debug

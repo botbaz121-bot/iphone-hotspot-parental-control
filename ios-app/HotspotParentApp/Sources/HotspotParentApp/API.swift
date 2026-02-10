@@ -2,10 +2,12 @@ import Foundation
 
 public struct API {
   public var baseURL: URL
-  public var adminToken: String? // for admin endpoints; don't ship to prod
+  public var parentSessionToken: String?
+  public var adminToken: String? // dev only; don't ship to prod
 
-  public init(baseURL: URL, adminToken: String? = nil) {
+  public init(baseURL: URL, parentSessionToken: String? = nil, adminToken: String? = nil) {
     self.baseURL = baseURL
+    self.parentSessionToken = parentSessionToken
     self.adminToken = adminToken
   }
 
@@ -46,8 +48,16 @@ public struct HTTP {
   }
 
   public static func postJSON<T: Decodable>(_ url: URL, body: Encodable, headers: [String: String] = [:]) async throws -> T {
+    try await requestJSON(url, method: "POST", body: body, headers: headers)
+  }
+
+  public static func patchJSON<T: Decodable>(_ url: URL, body: Encodable, headers: [String: String] = [:]) async throws -> T {
+    try await requestJSON(url, method: "PATCH", body: body, headers: headers)
+  }
+
+  private static func requestJSON<T: Decodable>(_ url: URL, method: String, body: Encodable, headers: [String: String]) async throws -> T {
     var req = URLRequest(url: url)
-    req.httpMethod = "POST"
+    req.httpMethod = method
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     req.setValue("application/json", forHTTPHeaderField: "Accept")
     for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }

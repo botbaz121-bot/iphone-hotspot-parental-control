@@ -27,69 +27,115 @@ public struct ParentDashboardView: View {
               .foregroundStyle(.secondary)
           }
 
-          Button {
-            showingAddDevice = true
-          } label: {
-            Label("Add device", systemImage: "plus")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
+          ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+              ForEach(model.parentDevices, id: \.id) { d in
+                Button {
+                  model.selectedDeviceId = d.id
+                } label: {
+                  VStack(alignment: .leading, spacing: 6) {
+                    Text(d.name)
+                      .font(.headline)
+                      .lineLimit(1)
+                    Text(d.gap ? "Needs attention" : "OK")
+                      .font(.caption.weight(.semibold))
+                      .foregroundStyle(d.gap ? .orange : .green)
+                    if let last = d.last_event_at {
+                      Text("Last: \(last)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    } else {
+                      Text("No events yet")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    }
+                  }
+                  .padding(12)
+                  .frame(width: 220, alignment: .leading)
+                  .background(model.selectedDeviceId == d.id ? Color.primary.opacity(0.12) : Color.primary.opacity(0.06))
+                  .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+              }
 
-          // Recent activity (based on App Intent telemetry written by the Shortcut)
+              Button {
+                showingAddDevice = true
+              } label: {
+                VStack(spacing: 8) {
+                  Image(systemName: "plus")
+                    .font(.title2)
+                  Text("Enroll")
+                    .font(.headline)
+                }
+                .frame(width: 140, height: 90)
+                .background(Color.primary.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+              }
+              .buttonStyle(.plain)
+            }
+            .padding(.vertical, 2)
+          }
+
+          // Parent backend status
           VStack(alignment: .leading, spacing: 10) {
             HStack {
-              Text("Recent activity")
+              Text("Backend")
                 .font(.headline)
-
               Spacer()
 
-              if shortcutLooksStale {
-                Text("No recent run")
-                  .font(.caption.weight(.semibold))
-                  .padding(.horizontal, 10)
-                  .padding(.vertical, 4)
-                  .background(Color.orange.opacity(0.15))
-                  .clipShape(Capsule())
-              } else {
-                Text("Active")
-                  .font(.caption.weight(.semibold))
-                  .padding(.horizontal, 10)
-                  .padding(.vertical, 4)
-                  .background(Color.green.opacity(0.15))
-                  .clipShape(Capsule())
+              if model.parentLoading {
+                ProgressView().scaleEffect(0.9)
               }
+
+              Button("Refresh") {
+                Task { await model.refreshParentDashboard() }
+              }
+              .buttonStyle(.bordered)
             }
 
-            LabeledContent("Shortcut runs") {
-              Text("\(model.appIntentRunCount)")
-                .font(.system(.footnote, design: .monospaced))
+            if let err = model.parentLastError {
+              Text(err)
+                .font(.footnote)
+                .foregroundStyle(.red)
+            } else if model.parentDevices.isEmpty {
+              Text("No devices yet. Tap Enroll to create one and get a pairing code.")
+                .font(.footnote)
                 .foregroundStyle(.secondary)
-            }
-
-            LabeledContent("Last run") {
-              if let last = model.lastAppIntentRunAt {
-                Text(last.formatted(date: .abbreviated, time: .shortened))
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              } else {
-                Text("—")
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-              HStack(spacing: 10) {
-                recentChip(title: "Hotspot check", subtitle: "from Shortcut")
-                recentChip(title: "Policy fetch", subtitle: "best-effort")
-                recentChip(title: "Enforcement", subtitle: "in Shortcuts")
-              }
-              .padding(.vertical, 2)
+            } else {
+              Text("Devices: \(model.parentDevices.count)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
           }
           .padding()
           .background(.thinMaterial)
           .clipShape(RoundedRectangle(cornerRadius: 16))
+
+          // Policy editor (selected device)
+          if let d = model.selectedParentDevice {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("Device rules")
+                .font(.headline)
+
+              Toggle("Enforce", isOn: Binding(
+                get: { d.enforce },
+                set: { v in Task { try? await model.updateSelectedDevicePolicy(enforce: v) } }
+              ))
+
+              Toggle("Hotspot OFF", isOn: .constant(true))
+                .disabled(true)
+              Toggle("Rotate password", isOn: .constant(true))
+                .disabled(true)
+
+              Text("Quiet hours + gap editing coming next (wired on backend).")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(.thinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+          }
 
           VStack(alignment: .leading, spacing: 10) {
             Text("Troubleshooting")
@@ -179,6 +225,7 @@ public struct ParentDashboardView: View {
         #if DEBUG
         await model.refreshBackendStatus()
         #endif
+        await model.refreshParentDashboard()
       }
     }
   }
