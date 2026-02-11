@@ -10,6 +10,10 @@ import SwiftUI
 public final class AppModel: ObservableObject {
   // MARK: - Mode / Session
 
+  @Published public var onboardingCompleted: Bool {
+    didSet { AppDefaults.onboardingCompleted = onboardingCompleted }
+  }
+
   @Published public var appMode: AppMode? {
     didSet { SharedDefaults.appModeRaw = appMode?.rawValue }
   }
@@ -82,6 +86,8 @@ public final class AppModel: ObservableObject {
   // MARK: - Init
 
   public init() {
+    self.onboardingCompleted = AppDefaults.onboardingCompleted
+
     self.appMode = SharedDefaults.appModeRaw.flatMap { AppMode(rawValue: $0) }
     self.parentSessionToken = AppDefaults.parentSessionToken
     self.appleUserID = AppDefaults.appleUserID
@@ -105,6 +111,10 @@ public final class AppModel: ObservableObject {
   }
 
   // MARK: - Mode switching
+
+  public func completeOnboarding() {
+    onboardingCompleted = true
+  }
 
   public func setAppMode(_ mode: AppMode?) {
     appMode = mode

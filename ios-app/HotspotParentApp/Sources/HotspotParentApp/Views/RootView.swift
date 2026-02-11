@@ -14,18 +14,17 @@ public struct RootView: View {
         OnboardingView()
           .environmentObject(model)
       } else if model.isSignedIn {
-        TabView {
-          DashboardView()
-            .tabItem { Label("Dashboard", systemImage: "house") }
-
-          EnrollmentView()
-            .tabItem { Label("Enroll", systemImage: "qrcode") }
-
-          SettingsView()
-            .tabItem { Label("Settings", systemImage: "gear") }
+        // v1B: Parent/Child modes share the same binary.
+        Group {
+          switch model.appMode {
+            case .child:
+              ChildTabView()
+            case .parent, .none:
+              ParentTabView()
+          }
         }
         .environmentObject(model)
-      } else {
+      } else { 
         NavigationStack {
           SignInView()
             .environmentObject(model)
