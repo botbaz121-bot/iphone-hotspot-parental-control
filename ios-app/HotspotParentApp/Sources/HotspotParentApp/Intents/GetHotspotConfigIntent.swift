@@ -56,7 +56,7 @@ public struct SpotCheckAppShortcuts: AppShortcutsProvider {
   public static var appShortcuts: [AppShortcut] {
     AppShortcut(
       intent: GetHotspotConfigIntent(),
-      phrases: ["Get Hotspot config from \(.applicationName)", "SpotCheck config"],
+      phrases: ["Get Hotspot config from \(.applicationName)", "Get SpotCheck config from \(.applicationName)"],
       shortTitle: "Get Config",
       systemImageName: "key.fill"
     )
