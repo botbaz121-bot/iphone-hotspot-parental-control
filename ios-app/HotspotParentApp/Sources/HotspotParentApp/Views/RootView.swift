@@ -8,16 +8,15 @@ public struct RootView: View {
 
   public init() {}
 
-  @ViewBuilder
   public var body: some View {
     content
+      .environmentObject(model)
   }
 
   @ViewBuilder
   private var content: some View {
     if !model.onboardingCompleted {
       OnboardingView()
-        .environmentObject(model)
     } else if model.isSignedIn {
       // v1B: Parent/Child modes share the same binary.
       switch model.appMode {
@@ -26,11 +25,9 @@ public struct RootView: View {
         case .some(.parent), .none:
           ParentTabView()
       }
-      .environmentObject(model)
     } else {
       NavigationStack {
         SignInView()
-          .environmentObject(model)
       }
     }
   }
