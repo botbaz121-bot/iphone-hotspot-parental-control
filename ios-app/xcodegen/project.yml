@@ -25,6 +25,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         DEVELOPMENT_TEAM: 3SJ44B3Q7Y
         CODE_SIGN_STYLE: Automatic
+      configs:
+        Release:
+          CODE_SIGN_ENTITLEMENTS: HotspotParentiOS/HotspotParent.Release.entitlements
     dependencies:
       - package: HotspotParentApp
         product: HotspotParentApp
