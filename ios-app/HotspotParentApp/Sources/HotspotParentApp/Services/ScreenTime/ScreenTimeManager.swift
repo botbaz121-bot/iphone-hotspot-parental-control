@@ -51,7 +51,8 @@ public final class ScreenTimeManager {
       store.shield.applications = apps.isEmpty ? nil : apps
 
       // Categories (ManagedSettings expects an ActivityCategoryPolicy)
-      if let cats = sel.categoryTokens, !cats.isEmpty {
+      let cats = sel.categoryTokens
+      if !cats.isEmpty {
         store.shield.applicationCategories = .specific(cats)
       } else {
         store.shield.applicationCategories = nil
