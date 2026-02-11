@@ -46,8 +46,16 @@ public final class ScreenTimeManager {
   public func applyShielding(selection: Any? = nil) async throws {
     #if canImport(FamilyControls) && canImport(ManagedSettings)
     if let sel = selection as? FamilyActivitySelection {
-      store.shield.applications = sel.applicationTokens.isEmpty ? nil : sel.applicationTokens
-      store.shield.applicationCategories = sel.categoryTokens.isEmpty ? nil : sel.categoryTokens
+      // Applications
+      let apps = sel.applicationTokens
+      store.shield.applications = apps.isEmpty ? nil : apps
+
+      // Categories (ManagedSettings expects an ActivityCategoryPolicy)
+      if let cats = sel.categoryTokens, !cats.isEmpty {
+        store.shield.applicationCategories = .specific(cats)
+      } else {
+        store.shield.applicationCategories = nil
+      }
     } else {
       // No selection provided: clear any per-app/category shields.
       store.shield.applications = nil

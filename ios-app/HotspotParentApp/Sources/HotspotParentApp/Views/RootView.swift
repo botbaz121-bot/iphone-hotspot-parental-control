@@ -9,26 +9,24 @@ public struct RootView: View {
   public init() {}
 
   public var body: some View {
-    Group {
-      if !model.onboardingCompleted {
-        OnboardingView()
-          .environmentObject(model)
-      } else if model.isSignedIn {
-        // v1B: Parent/Child modes share the same binary.
-        Group {
-          switch model.appMode {
-            case .child:
-              ChildTabView()
-            case .parent, .none:
-              ParentTabView()
-          }
-        }
+    if !model.onboardingCompleted {
+      OnboardingView()
         .environmentObject(model)
-      } else { 
-        NavigationStack {
-          SignInView()
-            .environmentObject(model)
+    } else if model.isSignedIn {
+      // v1B: Parent/Child modes share the same binary.
+      Group {
+        switch model.appMode {
+          case .child:
+            ChildTabView()
+          case .parent, .none:
+            ParentTabView()
         }
+      }
+      .environmentObject(model)
+    } else {
+      NavigationStack {
+        SignInView()
+          .environmentObject(model)
       }
     }
   }
