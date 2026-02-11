@@ -72,7 +72,8 @@ workflows:
 
           # ExportOptions must be explicit in CI; otherwise exportArchive can fail with:
           # "No profiles for 'com.bazapps.hotspotparent' were found".
-          # We already see the profile name during codesign: "hotspotparent-appstore".
+          # Export expects a provisioning profile *display name* installed on the build machine.
+          # Keep this in sync with the Name inside the .mobileprovision.
           cat > "$CM_BUILD_DIR/ExportOptions.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -87,7 +88,7 @@ workflows:
             <key>provisioningProfiles</key>
             <dict>
               <key>${BUNDLE_ID}</key>
-              <string>hotspotparent-appstore</string>
+              <string>hotspotparent-appstore-with-perms</string>
             </dict>
             <key>compileBitcode</key>
             <false/>
