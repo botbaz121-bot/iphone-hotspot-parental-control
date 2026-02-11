@@ -878,6 +878,10 @@ app.post('/pair', (req, res, next) => {
 // These are the endpoints the parent iOS app will call once signed in.
 
 // Parent dashboard summary (scoped to parent).
+app.get('/api/me', requireParent, (req, res) => {
+  return res.json({ ok: true, parent: { id: req.parent.id, email: req.parent.email || null, created_at: req.parent.created_at } });
+});
+
 app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
   const parentId = req.parent?.id || null;
   const where = parentId ? 'WHERE d.parent_id = ?' : '';
