@@ -21,9 +21,9 @@ public struct RootView: View {
     } else if model.isSignedIn {
       // v1B: Parent/Child modes share the same binary.
       switch model.appMode {
-        case .child:
+        case .some(.childSetup):
           ChildTabView()
-        case .parent, .none:
+        case .some(.parent), .none:
           ParentTabView()
       }
       .environmentObject(model)
