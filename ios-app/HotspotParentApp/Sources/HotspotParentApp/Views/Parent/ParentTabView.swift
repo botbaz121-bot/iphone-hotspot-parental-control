@@ -26,7 +26,8 @@ public struct ParentTabView: View {
       }
       .background(.ultraThinMaterial)
     }
-    .onChange(of: model.appMode) { _, newValue in
+    .onChange(of: model.appMode) { newValue in
+      // iOS 16-compatible onChange signature.
       // If switching away, leave tab view promptly.
       if newValue != .parent { }
     }
