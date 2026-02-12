@@ -79,9 +79,7 @@ public struct ParentHomeView: View {
       .navigationTitle("Home")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
-          Text("Signed in as Leon")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(.secondary)
+          AppModeSwitcherView()
         }
       }
     }
