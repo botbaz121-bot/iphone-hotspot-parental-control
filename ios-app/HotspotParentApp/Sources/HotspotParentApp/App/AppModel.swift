@@ -31,6 +31,9 @@ public final class AppModel: ObservableObject {
   @Published public var parentLoading: Bool = false
   @Published public var parentLastError: String?
 
+  // UI helpers
+  @Published public var presentEnrollSheet: Bool = false
+
   @Published public var selectedDeviceId: String? {
     didSet { SharedDefaults.selectedDeviceId = selectedDeviceId }
   }
