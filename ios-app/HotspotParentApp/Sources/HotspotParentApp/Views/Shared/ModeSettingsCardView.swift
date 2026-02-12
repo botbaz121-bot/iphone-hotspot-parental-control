@@ -33,9 +33,9 @@ public struct ModeSettingsCardView: View {
         .labelsHidden()
       }
     }
-    .padding()
-    .background(.thinMaterial)
-    .clipShape(RoundedRectangle(cornerRadius: 18))
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 }
 

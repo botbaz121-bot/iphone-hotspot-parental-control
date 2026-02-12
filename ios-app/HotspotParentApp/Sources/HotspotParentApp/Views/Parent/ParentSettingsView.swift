@@ -6,137 +6,106 @@ import SwiftUI
 public struct ParentSettingsView: View {
   @EnvironmentObject private var model: AppModel
   @StateObject private var iap = IAPManager.shared
-  @State private var showingResetConfirm = false
   @State private var iapStatus: String?
 
   public init() {}
 
   public var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-          ModeSettingsCardView()
-            .environmentObject(model)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 14) {
+        ModeSettingsCardView()
+          .environmentObject(model)
 
-          settingsCard(title: "Account") {
-            VStack(alignment: .leading, spacing: 10) {
-              HStack {
-                Text("Signed in")
-                  .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(model.isSignedIn ? "Yes" : "No")
-                  .foregroundStyle(model.isSignedIn ? .green : .secondary)
-              }
+        accountCard
 
-              if model.isSignedIn {
-                Button(role: .destructive) {
-                  model.signOut()
-                } label: {
-                  Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.bordered)
-              } else {
-                Text("Sign in from Home to manage devices.")
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
+        iapCard
 
-          settingsCard(title: "In-app purchase") {
-            VStack(alignment: .leading, spacing: 10) {
-              Text(iap.adsRemoved ? "Ads removed ✅" : "Remove ads from the parent experience.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-              Button {
-                Task {
-                  iapStatus = nil
-                  await iap.purchaseRemoveAds()
-                  await MainActor.run {
-                    model.adsRemoved = iap.adsRemoved
-                    iapStatus = iap.adsRemoved ? "Purchased" : "Not purchased"
-                  }
-                }
-              } label: {
-                Label(iap.adsRemoved ? "Restore purchase (mock)" : "Remove ads (mock)", systemImage: "checkmark")
-                  .frame(maxWidth: .infinity, alignment: .leading)
-              }
-              .buttonStyle(.bordered)
-              .tint(iap.adsRemoved ? .secondary : .blue)
-
-              if let iapStatus {
-                Text(iapStatus)
-                  .font(.footnote)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-
-          #if DEBUG
-          settingsCard(title: "Debug") {
-            Text("Debug-only settings live here.")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-
-            TextField("Base URL", text: Binding(
-              get: { model.apiBaseURL },
-              set: { model.setAPIBaseURL($0) }
-            ))
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .textFieldStyle(.roundedBorder)
-
-            SecureField("Admin token (dev)", text: Binding(
-              get: { model.adminToken },
-              set: { model.setAdminToken($0) }
-            ))
-            .textFieldStyle(.roundedBorder)
-          }
-          #endif
-
-          settingsCard(title: "Reset") {
-            VStack(alignment: .leading, spacing: 10) {
-              Text("This clears app settings and sign-in state on this phone.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-              Button(role: .destructive) {
-                showingResetConfirm = true
-              } label: {
-                Label("Reset local data", systemImage: "trash")
-                  .frame(maxWidth: .infinity, alignment: .leading)
-              }
-              .buttonStyle(.bordered)
-            }
-          }
-        }
-        .padding()
+        debugCard
       }
-      .navigationTitle("Settings")
-      .confirmationDialog(
-        "Reset local data?",
-        isPresented: $showingResetConfirm,
-        titleVisibility: .visible
-      ) {
-        Button("Reset", role: .destructive) {
-          model.resetLocalData()
-        }
-        Button("Cancel", role: .cancel) {}
-      }
+      .padding(.top, 22)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
     }
   }
 
-  private func settingsCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+  private var accountCard: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text(title)
+      Text("Account")
         .font(.headline)
-      content()
+
+      HStack {
+        Text("Signed in")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+        Spacer()
+        Text(model.isSignedIn ? "Yes" : "No")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(model.isSignedIn ? .green : .secondary)
+      }
+
+      Button(role: .destructive) {
+        model.signOut()
+      } label: {
+        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+      .tint(.red)
+      .disabled(!model.isSignedIn)
     }
-    .padding()
-    .background(.thinMaterial)
-    .clipShape(RoundedRectangle(cornerRadius: 18))
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var iapCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("In-app purchase")
+        .font(.headline)
+
+      Text("Remove ads from the parent experience.")
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+
+      Button {
+        Task {
+          iapStatus = nil
+          await iap.purchaseRemoveAds()
+          await MainActor.run {
+            model.adsRemoved = iap.adsRemoved
+            iapStatus = iap.adsRemoved ? "Purchased" : "Not purchased"
+          }
+        }
+      } label: {
+        Label("Remove ads (mock)", systemImage: "clock")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+      .tint(.blue)
+
+      if let iapStatus {
+        Text(iapStatus)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var debugCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Debug")
+        .font(.headline)
+
+      Text("Static prototype. No server, no push, no background tasks.")
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 }
 
