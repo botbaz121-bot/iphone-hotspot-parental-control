@@ -3,7 +3,7 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
-public struct ChildWelcomeView: View {
+public struct ParentOnboardingView: View {
   @EnvironmentObject private var model: AppModel
 
   public init() {}
@@ -12,8 +12,8 @@ public struct ChildWelcomeView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         headerCard
-        whatYoullDoCard
-        tipCard
+        featureCard
+        constraintsCard
       }
       .padding(.top, 22)
       .padding(.horizontal, 18)
@@ -27,15 +27,14 @@ public struct ChildWelcomeView: View {
         VStack(alignment: .leading, spacing: 6) {
           Text("Welcome")
             .font(.largeTitle.bold())
-
-          Text("Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.")
+          Text("Set rules, guide setup on the child phone, and get a simple tamper warning if it stops running.")
             .font(.footnote)
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
-        Text("Child")
+        Text("Parent")
           .font(.caption.weight(.medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
@@ -44,7 +43,6 @@ public struct ChildWelcomeView: View {
       }
 
       Button {
-        model.startChildFlow()
         model.completeOnboarding()
       } label: {
         Label("Continue", systemImage: "arrow.right")
@@ -57,15 +55,15 @@ public struct ChildWelcomeView: View {
     .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 
-  private var whatYoullDoCard: some View {
+  private var featureCard: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("What you’ll do")
+      Text("What this can do")
         .font(.headline)
 
       LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-        featureTile(icon: "qrcode.viewfinder", title: "Pair", sub: "Scan a QR from the parent app to link this phone.")
-        featureTile(icon: "checklist", title: "Enable\nautomations", sub: "So the Shortcut can enforce Hotspot OFF and Quiet Time.")
-        featureTile(icon: "exclamationmark.triangle", title: "Stay\nprotected", sub: "If this stops running, the parent will see a tamper warning.")
+        featureTile(icon: "slider.horizontal.3", title: "Per-device\nrules", sub: "Hotspot OFF and Quiet Time per child device.")
+        featureTile(icon: "checkmark.circle", title: "Guided\nsetup", sub: "Pair the child phone, install the Shortcut, and apply Screen Time shielding.")
+        featureTile(icon: "exclamationmark.triangle", title: "Tamper\nwarning", sub: "Warn when the phone hasn’t been seen recently (likely disabled).")
       }
     }
     .padding(18)
@@ -73,11 +71,11 @@ public struct ChildWelcomeView: View {
     .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 
-  private var tipCard: some View {
+  private var constraintsCard: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Tip")
+      Text("Constraints")
         .font(.headline)
-      Text("When you’re done, use Exit child setup to hand the phone back to the parent.")
+      Text("iOS apps can’t reliably toggle Personal Hotspot directly; enforcement is performed by the Shortcut on the device.")
         .font(.footnote)
         .foregroundStyle(.secondary)
     }
@@ -107,9 +105,7 @@ public struct ChildWelcomeView: View {
 }
 
 #Preview {
-  NavigationStack {
-    ChildWelcomeView()
-      .environmentObject(AppModel())
-  }
+  ParentOnboardingView()
+    .environmentObject(AppModel())
 }
 #endif

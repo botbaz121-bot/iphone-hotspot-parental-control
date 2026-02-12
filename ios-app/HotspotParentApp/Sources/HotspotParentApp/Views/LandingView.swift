@@ -9,68 +9,123 @@ public struct LandingView: View {
   public init() {}
 
   public var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 18) {
-          VStack(alignment: .leading, spacing: 6) {
-            Text("SpotCheck")
-              .font(.largeTitle.bold())
-            Text("Hotspot enforcement via Shortcuts + setup checks")
-              .font(.headline)
-              .foregroundStyle(.secondary)
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
+    ScrollView {
+      VStack(spacing: 14) {
+        welcomeCard
 
-          VStack(spacing: 12) {
-            Button {
-              model.setAppMode(.parent)
-            } label: {
-              Label("Parent phone", systemImage: "person")
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+        adCard
 
-            Button {
-              model.setAppMode(.childSetup)
-            } label: {
-              Label("Set up child phone", systemImage: "iphone")
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-          }
+        infoCard
 
-          VStack(alignment: .leading, spacing: 8) {
-            Text("What this app can/can’t do")
-              .font(.headline)
-            Text("iOS apps cannot directly toggle Personal Hotspot via public APIs. SpotCheck uses Shortcuts for enforcement, and the app provides configuration + setup signals.")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-          .padding()
-          .background(.thinMaterial)
-          .clipShape(RoundedRectangle(cornerRadius: 16))
-
-          #if DEBUG
-          VStack(alignment: .leading, spacing: 10) {
-            Text("Debug")
-              .font(.headline)
-
-            Button(role: .destructive) {
-              model.resetLocalData()
-            } label: {
-              Text("Reset local data")
-            }
-          }
-          .padding()
-          .background(.thinMaterial)
-          .clipShape(RoundedRectangle(cornerRadius: 16))
-          #endif
-        }
-        .padding()
+        resetCard
       }
-      .navigationTitle(" ")
-      .navigationBarTitleDisplayMode(.inline)
+      .padding(.top, 22)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
     }
+  }
+
+  private var welcomeCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("SpotCheck")
+            .font(.largeTitle.bold())
+          Text("High‑fidelity prototype to design parent +\nchild setup flows (no iOS build).")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Text("Prototype")
+          .font(.caption.weight(.medium))
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background(Color.primary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 999))
+      }
+
+      Button {
+        model.startParentFlow()
+      } label: {
+        Label("Parent phone", systemImage: "person")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+
+      Button {
+        model.startChildFlow()
+      } label: {
+        Label("Set up child phone", systemImage: "clock")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+    }
+    .padding(18)
+    .background(.ultraThinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var adCard: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack(spacing: 8) {
+        Text("Ad")
+          .font(.caption.weight(.medium))
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background(Color.primary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 999))
+        Spacer()
+      }
+
+      Text("SpeedifyPress — Make WordPress Fast")
+        .font(.headline)
+
+      Text("Real‑world performance audits + fixes. (Prototype placeholder)")
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var infoCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("What this models")
+        .font(.headline)
+
+      Text("Shortcuts‑only enforcement (hotspot off + password rotation), device activity signals, and a guided child-phone checklist.")
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var resetCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Reset mockup")
+        .font(.headline)
+
+      Button(role: .destructive) {
+        model.resetLocalData()
+      } label: {
+        Label("Clear local state", systemImage: "trash")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+      .tint(.red)
+
+      Text("Clears localStorage only (no server).")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 }
 

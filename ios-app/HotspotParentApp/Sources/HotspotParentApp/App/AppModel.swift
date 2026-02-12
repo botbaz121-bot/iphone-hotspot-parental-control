@@ -72,6 +72,10 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.shieldingApplied = shieldingApplied }
   }
 
+  @Published public var childUnlockRequested: Bool {
+    didSet { SharedDefaults.childUnlockRequested = childUnlockRequested }
+  }
+
   // MARK: - API Config
 
   /// Base URL for the backend. Needed on child for pairing + shortcut execution.
@@ -115,6 +119,7 @@ public final class AppModel: ObservableObject {
 
     self.screenTimeAuthorized = SharedDefaults.screenTimeAuthorized
     self.shieldingApplied = SharedDefaults.shieldingApplied
+    self.childUnlockRequested = SharedDefaults.childUnlockRequested
 
     self.apiBaseURL = AppDefaults.apiBaseURL
     self.adminToken = AppDefaults.adminToken ?? ""
@@ -126,8 +131,22 @@ public final class AppModel: ObservableObject {
     onboardingCompleted = true
   }
 
+  public func restartOnboarding() {
+    onboardingCompleted = false
+  }
+
   public func setAppMode(_ mode: AppMode?) {
     appMode = mode
+  }
+
+  public func startParentFlow() {
+    setAppMode(.parent)
+    restartOnboarding()
+  }
+
+  public func startChildFlow() {
+    setAppMode(.childSetup)
+    restartOnboarding()
   }
 
   // MARK: - Auth (v1B)
@@ -213,10 +232,20 @@ public final class AppModel: ObservableObject {
 
   public func lockChildSetup() {
     childIsLocked = true
+    childUnlockRequested = false
+  }
+
+  public func requestChildUnlock() {
+    childUnlockRequested = true
+  }
+
+  public func cancelChildUnlock() {
+    childUnlockRequested = false
   }
 
   public func unlockChildSetup() {
     childIsLocked = false
+    childUnlockRequested = false
   }
 
   // MARK: - Intent telemetry
@@ -342,6 +371,9 @@ public final class AppModel: ObservableObject {
 
     // Reset in-memory state
     appMode = nil
+    onboardingCompleted = false
+    childIsLocked = false
+    childUnlockRequested = false
     signOut()
 
     adsRemoved = AppDefaults.adsRemoved

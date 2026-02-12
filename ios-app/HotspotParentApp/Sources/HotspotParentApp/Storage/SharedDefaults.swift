@@ -25,6 +25,8 @@ public enum SharedDefaults {
 
     static let screenTimeAuthorized = "spotcheck.screentime.authorized"
     static let shieldingApplied = "spotcheck.screentime.shieldingApplied"
+
+    static let childUnlockRequested = "spotcheck.child.unlockRequested"
   }
 
   public static func resetAll() {
@@ -39,6 +41,7 @@ public enum SharedDefaults {
       Key.lastAppIntentRunAtEpoch,
       Key.screenTimeAuthorized,
       Key.shieldingApplied,
+      Key.childUnlockRequested,
     ].forEach { d.removeObject(forKey: $0) }
   }
 
@@ -107,5 +110,10 @@ public enum SharedDefaults {
   public static var shieldingApplied: Bool {
     get { suite.object(forKey: Key.shieldingApplied) as? Bool ?? false }
     set { suite.set(newValue, forKey: Key.shieldingApplied) }
+  }
+
+  public static var childUnlockRequested: Bool {
+    get { suite.object(forKey: Key.childUnlockRequested) as? Bool ?? false }
+    set { suite.set(newValue, forKey: Key.childUnlockRequested) }
   }
 }
