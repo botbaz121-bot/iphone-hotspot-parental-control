@@ -17,7 +17,7 @@ public struct ChildWelcomeView: View {
           .font(.largeTitle.bold())
 
         Text("Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.")
-          .font(.headline)
+          .font(.footnote)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
       }
@@ -28,8 +28,8 @@ public struct ChildWelcomeView: View {
 
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
           featureTile(icon: "qrcode.viewfinder", title: "Pair", sub: "Scan a QR from the parent app to link this phone.")
-          featureTile(icon: "clock", title: "Enable automations", sub: "So the Shortcut can enforce Hotspot OFF and Quiet Time.")
-          featureTile(icon: "exclamationmark.shield", title: "Stay protected", sub: "If this stops running, the parent will see a tamper warning.")
+          featureTile(icon: "checklist", title: "Enable automations", sub: "So the Shortcut can enforce Hotspot OFF and Quiet Time.")
+          featureTile(icon: "exclamationmark.triangle", title: "Stay protected", sub: "If this stops running, the parent will see a tamper warning.")
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -47,6 +47,8 @@ public struct ChildWelcomeView: View {
         .padding(.horizontal)
 
       Button("Continue") {
+        // Child phone experience always starts in child flow.
+        model.setAppMode(.childSetup)
         model.completeOnboarding()
       }
       .buttonStyle(.borderedProminent)

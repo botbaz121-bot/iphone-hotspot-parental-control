@@ -12,17 +12,17 @@ public struct ChildTabView: View {
     TabView {
       ChildLockedView()
         .tabItem {
-          Image(systemName: "house")
+          Label("Home", systemImage: "house")
         }
 
       ChildDashboardView()
         .tabItem {
-          Text("Dashboard")
+          Label("Dashboard", systemImage: "rectangle.3.group")
         }
 
       ChildSettingsView()
         .tabItem {
-          Text("Settings")
+          Label("Settings", systemImage: "gear")
         }
     }
     .accentColor(.blue)
