@@ -10,27 +10,22 @@ public struct ParentTabView: View {
 
   public var body: some View {
     TabView {
+      ParentHomeView()
+        .tabItem {
+          Image(systemName: "house")
+        }
+
       ParentDashboardView()
-        .tabItem { Label("Dashboard", systemImage: "rectangle.3.group") }
+        .tabItem {
+          Text("Dashboard")
+        }
 
       ParentSettingsView()
-        .tabItem { Label("Settings", systemImage: "gear") }
+        .tabItem {
+          Text("Settings")
+        }
     }
-    .overlay(alignment: .top) {
-      // Keep mode switch quickly accessible in v1A.
-      VStack(spacing: 0) {
-        AppModeSwitcherView()
-          .padding(.horizontal)
-          .padding(.top, 8)
-        Divider().opacity(0.2)
-      }
-      .background(.ultraThinMaterial)
-    }
-    .onChange(of: model.appMode) { newValue in
-      // iOS 16-compatible onChange signature.
-      // If switching away, leave tab view promptly.
-      if newValue != .parent { }
-    }
+    .accentColor(.blue)
   }
 }
 
