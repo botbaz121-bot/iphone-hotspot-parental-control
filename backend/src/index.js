@@ -182,15 +182,18 @@ if (LOG_REQUEST_BODIES) {
 
 const id = () => crypto.randomUUID();
 
-function randomPairingCode() {
-  // Human-friendly-ish: 10 chars base32-ish, uppercase, no padding.
-  // (Not cryptographically short-code-safe against brute force on a huge scale,
-  // but fine for MVP when combined with short expiry + rate limiting later.)
+function randomPairingCode(len = 4) {
+  // 4-char uppercase alnum (no 0/O/1/I) for easy manual entry.
+  // Entropy: ~32^4 ≈ 1M combos; rely on short TTL + uniqueness enforcement.
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // avoid 0/O/1/I
-  const bytes = crypto.randomBytes(10);
+  const bytes = crypto.randomBytes(len);
   let out = '';
   for (let i = 0; i < bytes.length; i++) out += alphabet[bytes[i] % alphabet.length];
   return out;
+}
+
+function normalizePairingCode(code) {
+  return String(code || '').trim().toUpperCase();
 }
 
 function normalizeHex(input) {
@@ -698,8 +701,8 @@ app.get('/admin', (req, res) => {
           '<td><code>' + escapeHtml(d.device_token) + '</code></td>' +
           '<td><input type="checkbox" class="enforce" ' + (d.enforce ? 'checked' : '') + ' /></td>' +
           '<td><input class="gapMin" size="6" value="' + escapeHtml(String(gapMin)) + '" /></td>' +
-          '<td><input class="quietStart" size="6" placeholder="HH:MM" value="' + escapeHtml(quietStart) + '" /></td>' +
-          '<td><input class="quietEnd" size="6" placeholder="HH:MM" value="' + escapeHtml(quietEnd) + '" /></td>' +
+          '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '12:00') + '" /></td>' +
+          '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '12:00') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
@@ -721,9 +724,10 @@ app.get('/admin', (req, res) => {
 
           const patch = { enforce };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
-          patch.quietStart = quietStartVal ? quietStartVal : null;
-          patch.quietEnd = quietEndVal ? quietEndVal : null;
-          patch.tz = tzVal ? tzVal : null;
+          // Never send null quiet hours (Shortcut-friendly). Use 12:00–12:00 as "disabled".
+          patch.quietStart = quietStartVal ? quietStartVal : '12:00';
+          patch.quietEnd = quietEndVal ? quietEndVal : '12:00';
+          patch.tz = tzVal ? tzVal : 'Europe/Paris';
 
           tr.style.opacity = '0.6';
           try{
@@ -797,16 +801,18 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     )
     .get(deviceId);
 
+  const { qs, qe } = withDefaultQuiet(pol?.quiet_start, pol?.quiet_end);
   const out = {
     enforce: pol ? !!pol.enforce : true,
     actions: {
       setHotspotOff: pol ? !!pol.set_hotspot_off : true,
       rotatePassword: pol ? !!pol.rotate_password : true
     },
-    quietHours:
-      pol && (pol.quiet_start || pol.quiet_end || pol.tz)
-        ? { start: pol.quiet_start || null, end: pol.quiet_end || null, tz: pol.tz || null }
-        : null
+    quietHours: {
+      start: qs,
+      end: qe,
+      tz: pol?.tz || 'Europe/Paris'
+    }
   };
 
   res.json(out);
@@ -860,10 +866,9 @@ app.post('/events', requireShortcutAuth, (req, res, next) => {
 app.post('/pair', (req, res, next) => {
   try {
     const schema = z.object({
-      code: z.string().min(4).max(32),
-      name: z.string().max(200).optional()
+      code: z.string().length(4)
     });
-    const { code, name } = schema.parse(req.body);
+    const { code } = schema.parse(req.body);
 
     const now = Date.now();
     const row = db
@@ -874,7 +879,7 @@ app.post('/pair', (req, res, next) => {
         WHERE code = ?
         `
       )
-      .get(code.trim().toUpperCase());
+      .get(normalizePairingCode(code));
 
     if (!row) return res.status(404).json({ error: 'invalid_code' });
     if (row.redeemed_at != null) return res.status(409).json({ error: 'already_redeemed' });
@@ -892,16 +897,15 @@ app.post('/pair', (req, res, next) => {
         row.code
       );
 
-      if (name && String(name).trim()) {
-        db.prepare('UPDATE devices SET name = ? WHERE id = ?').run(String(name).trim(), device.id);
-      }
+      // No device naming here; avoid prompting twice.
+      // Naming happens on the parent side when the device is created, or later via policy edits.
     });
     tx();
 
     // Return device credentials to the child app ONCE.
     res.json({
       deviceId: device.id,
-      name: name && String(name).trim() ? String(name).trim() : device.name,
+      name: device.name,
       deviceToken: device.device_token,
       deviceSecret: device.device_secret
     });
@@ -975,10 +979,10 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setHotspotOff,
         rotatePassword
       },
-      quietHours:
-        r.quiet_start || r.quiet_end || r.tz
-          ? { start: r.quiet_start || null, end: r.quiet_end || null, tz: r.tz || null }
-          : null,
+      quietHours: (() => {
+        const { qs, qe } = withDefaultQuiet(r.quiet_start, r.quiet_end);
+        return { start: qs, end: qe, tz: r.tz || 'Europe/Paris' };
+      })(),
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
@@ -1048,9 +1052,23 @@ app.post('/api/devices/:deviceId/pairing-code', requireParentOrAdmin, (req, res,
       Date.now()
     );
 
-    const code = randomPairingCode();
     const expiresAt = Date.now() + ttlMinutes * 60_000;
-    db.prepare('INSERT INTO pairing_codes (code, device_id, expires_at) VALUES (?, ?, ?)').run(code, deviceId, expiresAt);
+
+    // Ensure uniqueness (collision is rare but possible with 4 chars).
+    let code = null;
+    for (let i = 0; i < 8; i++) {
+      const candidate = randomPairingCode(4);
+      try {
+        db.prepare('INSERT INTO pairing_codes (code, device_id, expires_at) VALUES (?, ?, ?)').run(candidate, deviceId, expiresAt);
+        code = candidate;
+        break;
+      } catch (e) {
+        // SQLite constraint -> try again.
+        if (String(e?.message || '').toLowerCase().includes('constraint')) continue;
+        throw e;
+      }
+    }
+    if (!code) return res.status(503).json({ error: 'pairing_code_generation_failed' });
 
     res.status(201).json({ code, expiresAt, ttlMinutes });
   } catch (e) {
@@ -1180,13 +1198,25 @@ function getMinutesInTzNow(tz) {
   }
 }
 
+function withDefaultQuiet(quietStart, quietEnd) {
+  // Shortcut-friendly default: never return nulls.
+  // 12:00 → 12:00 is treated as "disabled" (not 24h quiet).
+  const qs = quietStart == null || String(quietStart).trim() === '' ? '12:00' : String(quietStart);
+  const qe = quietEnd == null || String(quietEnd).trim() === '' ? '12:00' : String(quietEnd);
+  return { qs, qe };
+}
+
 function isWithinQuietHours({ quietStart, quietEnd, tz }) {
-  const s = parseHHMM(quietStart);
-  const e = parseHHMM(quietEnd);
+  const { qs, qe } = withDefaultQuiet(quietStart, quietEnd);
+
+  const s = parseHHMM(qs);
+  const e = parseHHMM(qe);
   if (s == null || e == null) return false;
 
+  // Treat equal times as "quiet disabled".
+  if (s === e) return false;
+
   const nowMin = getMinutesInTzNow(tz);
-  if (s === e) return true; // 24h quiet
 
   // Range can cross midnight.
   if (s < e) return nowMin >= s && nowMin < e;

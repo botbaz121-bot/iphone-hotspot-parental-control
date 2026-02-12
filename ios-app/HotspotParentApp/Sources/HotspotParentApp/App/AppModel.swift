@@ -89,7 +89,14 @@ public final class AppModel: ObservableObject {
     self.onboardingCompleted = AppDefaults.onboardingCompleted
 
     self.appMode = SharedDefaults.appModeRaw.flatMap { AppMode(rawValue: $0) }
-    self.parentSessionToken = AppDefaults.parentSessionToken
+
+    // Parent session token: store in Keychain so it survives app restarts reliably.
+    // Fallback to legacy UserDefaults value if present.
+    let keychainToken = (try? KeychainStore.getCodable(String.self, account: KeychainAccounts.parentSessionToken)) ?? nil
+    let token = keychainToken ?? AppDefaults.parentSessionToken
+    self.parentSessionToken = token
+    if let token { try? KeychainStore.setCodable(token, account: KeychainAccounts.parentSessionToken) }
+
     self.appleUserID = AppDefaults.appleUserID
 
     self.selectedDeviceId = SharedDefaults.selectedDeviceId
@@ -141,6 +148,7 @@ public final class AppModel: ObservableObject {
 
     parentSessionToken = resp.sessionToken
     AppDefaults.parentSessionToken = resp.sessionToken
+    try? KeychainStore.setCodable(resp.sessionToken, account: KeychainAccounts.parentSessionToken)
 
     self.appleUserID = appleUserID
     AppDefaults.appleUserID = appleUserID
@@ -149,6 +157,7 @@ public final class AppModel: ObservableObject {
   public func signOut() {
     parentSessionToken = nil
     AppDefaults.parentSessionToken = nil
+    try? KeychainStore.setCodable(Optional<String>.none, account: KeychainAccounts.parentSessionToken)
 
     appleUserID = nil
     AppDefaults.appleUserID = nil
@@ -168,9 +177,9 @@ public final class AppModel: ObservableObject {
     return HotspotAPIClient(api: api)
   }
 
-  public func pairChildDevice(code: String, name: String?) async throws {
+  public func pairChildDevice(code: String) async throws {
     guard let client = apiClient else { throw APIError.invalidResponse }
-    let resp = try await client.pairDevice(code: code, name: name)
+    let resp = try await client.pairDevice(code: code)
 
     childPairedDeviceId = resp.deviceId
     childPairedDeviceName = resp.name
@@ -345,5 +354,6 @@ public final class AppModel: ObservableObject {
 
 public enum KeychainAccounts {
   public static let hotspotConfig = "spotcheck.hotspotConfig"
+  public static let parentSessionToken = "spotcheck.parent.sessionToken"
 }
 #endif

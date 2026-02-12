@@ -36,8 +36,8 @@ public final class HotspotAPIClient {
 
   // MARK: - Public endpoints (v1A)
 
-  public func pairDevice(code: String, name: String?) async throws -> PairDeviceResponse {
-    try await HTTP.postJSON(api.url("/pair"), body: PairDeviceRequest(code: code, name: name))
+  public func pairDevice(code: String) async throws -> PairDeviceResponse {
+    try await HTTP.postJSON(api.url("/pair"), body: PairDeviceRequest(code: code))
   }
 
   // MARK: - Parent API (v1B)

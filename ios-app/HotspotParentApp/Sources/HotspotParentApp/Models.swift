@@ -156,11 +156,9 @@ public struct DevicePolicy: Codable {
 
 public struct PairDeviceRequest: Codable {
   public var code: String
-  public var name: String?
 
-  public init(code: String, name: String? = nil) {
+  public init(code: String) {
     self.code = code
-    self.name = name
   }
 }
 

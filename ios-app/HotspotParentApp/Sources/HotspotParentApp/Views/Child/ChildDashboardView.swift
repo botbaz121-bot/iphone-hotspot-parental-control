@@ -81,10 +81,20 @@ public struct ChildDashboardView: View {
       statusText: hasRun ? "OK" : "WAITING",
       statusColor: hasRun ? .green : .orange
     ) {
+      let shortcutURL = "https://www.icloud.com/shortcuts/1aef99958a6b4e9ea7e41be31192bab1"
+
       Button {
-        openURL("https://www.icloud.com/shortcuts/")
+        openURL(shortcutURL)
       } label: {
-        Text("Open Shortcuts Gallery")
+        Text("Install Shortcut")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+
+      Button {
+        copyToPasteboard(shortcutURL)
+      } label: {
+        Text("Copy Shortcut link")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.bordered)
@@ -157,6 +167,12 @@ public struct ChildDashboardView: View {
     guard let url = URL(string: s) else { return }
     #if canImport(UIKit)
     UIApplication.shared.open(url)
+    #endif
+  }
+
+  private func copyToPasteboard(_ s: String) {
+    #if canImport(UIKit)
+    UIPasteboard.general.string = s
     #endif
   }
 }

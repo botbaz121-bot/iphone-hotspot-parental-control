@@ -7,7 +7,6 @@ public struct PairingEntryView: View {
   @EnvironmentObject private var model: AppModel
 
   @State private var code: String = ""
-  @State private var name: String = "Child iPhone"
   @State private var busy = false
   @State private var errorText: String?
 
@@ -21,16 +20,14 @@ public struct PairingEntryView: View {
           .autocorrectionDisabled()
           .font(.system(.body, design: .monospaced))
 
-        TextField("Device name (optional)", text: $name)
-
         Button {
           busy = true
           errorText = nil
           Task {
             defer { busy = false }
             do {
-              let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-              try await model.pairChildDevice(code: trimmed, name: name.trimmingCharacters(in: .whitespacesAndNewlines))
+              let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+              try await model.pairChildDevice(code: trimmed)
             } catch {
               errorText = "Pairing failed: \(error)"
             }
