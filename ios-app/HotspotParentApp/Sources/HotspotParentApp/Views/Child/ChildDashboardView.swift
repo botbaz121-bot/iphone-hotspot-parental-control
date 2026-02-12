@@ -17,9 +17,9 @@ public struct ChildDashboardView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 16) {
           VStack(alignment: .leading, spacing: 6) {
-            Text("Child setup")
+            Text("Dashboard")
               .font(.title.bold())
-            Text("Complete the checklist, then lock the setup screens.")
+            Text("Pair this phone, install the Shortcut, and then lock setup screens.")
               .font(.footnote)
               .foregroundStyle(.secondary)
           }
@@ -27,28 +27,36 @@ public struct ChildDashboardView: View {
           pairStep
           shortcutStep
           automationsStep
+          #if DEBUG
           screenTimeStep
+          #else
+          screenTimeStepUnavailable
+          #endif
 
           Button {
             model.lockChildSetup()
           } label: {
-            Text("Finish setup")
+            Text("Exit child setup")
               .frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent)
           .padding(.top, 4)
+
+          Text("Tip: After exiting, a parent can unlock these screens if changes are needed.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
         .padding()
       }
-      .navigationTitle("Checklist")
+      .navigationTitle("Dashboard")
     }
   }
 
   private var pairStep: some View {
     let paired = model.loadHotspotConfig() != nil
     return SetupStepCardView(
-      title: "1) Pair device",
-      subtitle: "Enter a pairing code from the backend.",
+      title: "1) Pair",
+      subtitle: "Enter the pairing code shown in the parent app.",
       statusText: paired ? "OK" : "SETUP",
       statusColor: paired ? .green : .orange
     ) {
@@ -76,8 +84,8 @@ public struct ChildDashboardView: View {
   private var shortcutStep: some View {
     let hasRun = model.appIntentRunCount > 0
     return SetupStepCardView(
-      title: "2) Install our Shortcut",
-      subtitle: "Install the Shortcut, then run it once.",
+      title: "2) Install Shortcut",
+      subtitle: "Install it, then run it once to verify.",
       statusText: hasRun ? "OK" : "WAITING",
       statusColor: hasRun ? .green : .orange
     ) {
@@ -115,12 +123,12 @@ public struct ChildDashboardView: View {
   private var automationsStep: some View {
     let ok = model.appIntentRunCount >= 2
     return SetupStepCardView(
-      title: "3) Automations",
-      subtitle: "We can’t detect your automations directly; multiple runs are a confidence signal.",
+      title: "3) Enable automations",
+      subtitle: "So the Shortcut can enforce Hotspot OFF and Quiet Time.",
       statusText: ok ? "OK" : "WAITING",
       statusColor: ok ? .green : .orange
     ) {
-      Text("Tip: Create a Personal Automation that runs the Shortcut frequently, with Ask Before Running disabled.")
+      Text("Tip: in Shortcuts → Automation, run the Shortcut on a schedule and turn off ‘Ask Before Running’.")
         .font(.footnote)
         .foregroundStyle(.secondary)
     }
@@ -140,7 +148,7 @@ public struct ChildDashboardView: View {
 
     return SetupStepCardView(
       title: "4) Screen Time lock",
-      subtitle: "Authorize Family Controls and shield Shortcuts/Settings to reduce tampering.",
+      subtitle: "Reduce tampering (dev builds only).", 
       statusText: status,
       statusColor: color
     ) {
@@ -160,6 +168,19 @@ public struct ChildDashboardView: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
       }
+    }
+  }
+
+  private var screenTimeStepUnavailable: some View {
+    SetupStepCardView(
+      title: "4) Screen Time lock",
+      subtitle: "Not available in TestFlight builds yet.",
+      statusText: "COMING SOON",
+      statusColor: .orange
+    ) {
+      Text("We’ll add this once Apple allows the required entitlement in shipping builds.")
+        .font(.footnote)
+        .foregroundStyle(.secondary)
     }
   }
 
