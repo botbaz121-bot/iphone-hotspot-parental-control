@@ -11,61 +11,105 @@ public struct ChildSettingsView: View {
 
   public var body: some View {
     NavigationStack {
-      Form {
-        Section {
-          AppModeSwitcherView()
-        } header: {
-          Text("Mode")
-        }
-
-        Section("Pairing") {
-          NavigationLink {
-            PairingEntryView()
-          } label: {
-            Text("Enter / change pairing code")
+      ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+          settingsCard(title: "Mode") {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("Show the child setup experience on this device.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+              AppModeSwitcherView()
+            }
           }
 
-          if model.loadHotspotConfig() != nil {
-            Button("Unpair", role: .destructive) {
-              model.unpairChildDevice()
+          settingsCard(title: "Pairing") {
+            VStack(alignment: .leading, spacing: 10) {
+              let paired = model.loadHotspotConfig() != nil
+              Text(paired ? "Paired ✅" : "Not paired yet.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+              NavigationLink {
+                PairingEntryView()
+                  .environmentObject(model)
+              } label: {
+                Label(paired ? "View / change pairing" : "Enter pairing code", systemImage: "qrcode")
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              .buttonStyle(.borderedProminent)
+
+              if paired {
+                Button(role: .destructive) {
+                  model.unpairChildDevice()
+                } label: {
+                  Label("Unpair", systemImage: "link.badge.minus")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+              }
+            }
+          }
+
+          settingsCard(title: "Shortcut status") {
+            VStack(alignment: .leading, spacing: 10) {
+              HStack {
+                Text("Runs observed")
+                  .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("\(model.appIntentRunCount)")
+                  .font(.subheadline)
+              }
+
+              HStack {
+                Text("Last run")
+                  .font(.subheadline.weight(.semibold))
+                Spacer()
+                if let last = model.lastAppIntentRunAt {
+                  Text(last, style: .relative)
+                    .foregroundStyle(.secondary)
+                } else {
+                  Text("—")
+                    .foregroundStyle(.secondary)
+                }
+              }
+            }
+          }
+
+          #if DEBUG
+          settingsCard(title: "Debug") {
+            TextField("Base URL", text: Binding(
+              get: { model.apiBaseURL },
+              set: { model.setAPIBaseURL($0) }
+            ))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textFieldStyle(.roundedBorder)
+
+            SecureField("Admin token (dev)", text: Binding(
+              get: { model.adminToken },
+              set: { model.setAdminToken($0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+          }
+          #endif
+
+          settingsCard(title: "Reset") {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("This clears app settings and pairing on this phone.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+              Button(role: .destructive) {
+                showingResetConfirm = true
+              } label: {
+                Label("Reset local data", systemImage: "trash")
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              .buttonStyle(.bordered)
             }
           }
         }
-
-        Section("Shortcut status") {
-          LabeledContent("Runs observed") {
-            Text("\(model.appIntentRunCount)")
-          }
-          LabeledContent("Last run") {
-            if let last = model.lastAppIntentRunAt {
-              Text(last, style: .relative)
-            } else {
-              Text("—").foregroundStyle(.secondary)
-            }
-          }
-        }
-
-        #if DEBUG
-        Section("Backend (debug)") {
-          TextField("Base URL", text: Binding(
-            get: { model.apiBaseURL },
-            set: { model.setAPIBaseURL($0) }
-          ))
-          .textInputAutocapitalization(.never)
-          .autocorrectionDisabled()
-
-          SecureField("Admin token (dev)", text: Binding(
-            get: { model.adminToken },
-            set: { model.setAdminToken($0) }
-          ))
-        }
-        #endif
-
-        Section("Debug") {
-          Button("Reset local data", role: .destructive) {
-            showingResetConfirm = true
-          }
-        }
+        .padding()
       }
       .navigationTitle("Settings")
       .confirmationDialog(
@@ -79,6 +123,17 @@ public struct ChildSettingsView: View {
         Button("Cancel", role: .cancel) {}
       }
     }
+  }
+
+  private func settingsCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(title)
+        .font(.headline)
+      content()
+    }
+    .padding()
+    .background(.thinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 18))
   }
 }
 
