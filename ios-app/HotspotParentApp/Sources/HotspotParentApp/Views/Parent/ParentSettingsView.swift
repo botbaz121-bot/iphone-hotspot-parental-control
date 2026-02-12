@@ -15,14 +15,8 @@ public struct ParentSettingsView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-          settingsCard(title: "Mode") {
-            VStack(alignment: .leading, spacing: 10) {
-              Text("Switch between parent and child setup.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-              AppModeSwitcherView()
-            }
-          }
+          ModeSettingsCardView()
+            .environmentObject(model)
 
           settingsCard(title: "Account") {
             VStack(alignment: .leading, spacing: 10) {

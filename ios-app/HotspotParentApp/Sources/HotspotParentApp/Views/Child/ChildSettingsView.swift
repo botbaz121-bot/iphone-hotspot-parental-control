@@ -13,14 +13,8 @@ public struct ChildSettingsView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-          settingsCard(title: "Mode") {
-            VStack(alignment: .leading, spacing: 10) {
-              Text("Show the child setup experience on this device.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-              AppModeSwitcherView()
-            }
-          }
+          ModeSettingsCardView()
+            .environmentObject(model)
 
           settingsCard(title: "Pairing") {
             VStack(alignment: .leading, spacing: 10) {
