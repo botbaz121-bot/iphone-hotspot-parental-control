@@ -81,7 +81,7 @@ public struct AddDeviceSheetView: View {
             model.setAppMode(.childSetup)
             dismiss()
           } label: {
-            Label("Set up child phone now", systemImage: "iphone")
+            Label("Set up child phone now", systemImage: "clock")
               .frame(maxWidth: .infinity)
           }
           .buttonStyle(.bordered)
