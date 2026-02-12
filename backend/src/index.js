@@ -510,6 +510,34 @@ function isLocalHostHeader(host) {
   return h.startsWith('127.0.0.1') || h.startsWith('localhost');
 }
 
+const ADMIN_UI_PUBLIC = String(env('ADMIN_UI_PUBLIC', 'false')).toLowerCase() === 'true';
+
+function parseBasicAuth(header) {
+  const h = String(header || '');
+  if (!h.toLowerCase().startsWith('basic ')) return null;
+  try {
+    const raw = Buffer.from(h.slice(6), 'base64').toString('utf8');
+    const idx = raw.indexOf(':');
+    if (idx === -1) return { user: raw, pass: '' };
+    return { user: raw.slice(0, idx), pass: raw.slice(idx + 1) };
+  } catch {
+    return null;
+  }
+}
+
+function isAdminAuth(req) {
+  // Accept Bearer ADMIN_TOKEN (used by API calls)
+  const bearer = String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (bearer && bearer === ADMIN_TOKEN) return true;
+
+  // Also accept Basic auth for /admin page load.
+  // Use username: admin, password: ADMIN_TOKEN.
+  const basic = parseBasicAuth(req.header('Authorization'));
+  if (basic && basic.user === 'admin' && basic.pass === ADMIN_TOKEN) return true;
+
+  return false;
+}
+
 app.use((req, res, next) => {
   const host = req.headers.host;
   const localHost = isLocalHostHeader(host);
@@ -526,10 +554,18 @@ app.use((req, res, next) => {
   )
     return next();
 
-  // Block /admin when accessed via a non-local Host (e.g., ngrok public URL).
-  // Note: /api is now used by the iOS app and is auth-gated instead.
-  if (!localHost && req.path === '/admin') {
-    return res.status(404).type('text').send('not found');
+  // /admin is a temporary debug UI. By default it's localhost-only.
+  // If ADMIN_UI_PUBLIC=true (e.g. on Render), require Basic/Bearer admin auth.
+  if (req.path === '/admin') {
+    if (localHost) return next();
+    if (!ADMIN_UI_PUBLIC) return res.status(404).type('text').send('not found');
+
+    if (!isAdminAuth(req)) {
+      res.set('WWW-Authenticate', 'Basic realm="Hotspot Admin"');
+      return res.status(401).type('text').send('unauthorized');
+    }
+
+    return next();
   }
 
   return next();
