@@ -63,7 +63,8 @@ public struct ParentSettingsView: View {
                 Label(iap.adsRemoved ? "Restore purchase (mock)" : "Remove ads (mock)", systemImage: "checkmark")
                   .frame(maxWidth: .infinity, alignment: .leading)
               }
-              .buttonStyle(iap.adsRemoved ? .bordered : .borderedProminent)
+              .buttonStyle(.bordered)
+              .tint(iap.adsRemoved ? .secondary : .blue)
 
               if let iapStatus {
                 Text(iapStatus)
