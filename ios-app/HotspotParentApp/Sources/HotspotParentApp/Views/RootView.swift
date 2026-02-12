@@ -33,6 +33,8 @@ public struct RootView: View {
               case .some(.parent):
                 if !model.onboardingCompleted {
                   ParentOnboardingView()
+                } else if !model.isSignedIn {
+                  ParentSignInView()
                 } else {
                   ParentTabView()
                 }
