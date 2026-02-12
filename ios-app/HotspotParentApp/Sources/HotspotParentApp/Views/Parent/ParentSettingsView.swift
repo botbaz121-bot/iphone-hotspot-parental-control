@@ -22,20 +22,29 @@ public struct ParentSettingsView: View {
           Text("Switch between the parent and child setup experience.")
         }
 
-        Section("Account (v1A stub)") {
-          LabeledContent("Apple user") {
-            Text(model.appleUserID ?? "—")
-              .font(.system(.footnote, design: .monospaced))
+        Section("Account") {
+          if model.isSignedIn {
+            LabeledContent("Status") {
+              Text("Signed in")
+                .foregroundStyle(.green)
+            }
+            LabeledContent("Apple user") {
+              Text(model.appleUserID ?? "—")
+                .font(.system(.footnote, design: .monospaced))
+                .foregroundStyle(.secondary)
+            }
+
+            Button("Sign out", role: .destructive) {
+              model.signOut()
+            }
+          } else {
+            LabeledContent("Status") {
+              Text("Not signed in")
+                .foregroundStyle(.secondary)
+            }
+            Text("Sign in from Home to manage devices.")
+              .font(.footnote)
               .foregroundStyle(.secondary)
-          }
-
-          Button("Sign in (stub)") {
-            let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
-            model.signInStub(userID: userID)
-          }
-
-          Button("Sign out", role: .destructive) {
-            model.signOut()
           }
         }
 
@@ -102,10 +111,13 @@ public struct ParentSettingsView: View {
         }
         #endif
 
-        Section("Debug") {
+        Section("Reset") {
           Button("Reset local data", role: .destructive) {
             showingResetConfirm = true
           }
+          Text("This clears app settings and sign-in state on this phone.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
       }
       .navigationTitle("Settings")
