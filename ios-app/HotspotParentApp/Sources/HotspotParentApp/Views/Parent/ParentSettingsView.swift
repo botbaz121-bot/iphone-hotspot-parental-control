@@ -13,112 +13,111 @@ public struct ParentSettingsView: View {
 
   public var body: some View {
     NavigationStack {
-      Form {
-        Section {
-          AppModeSwitcherView()
-        } header: {
-          Text("Mode")
-        } footer: {
-          Text("Switch between the parent and child setup experience.")
-        }
-
-        Section("Account") {
-          if model.isSignedIn {
-            LabeledContent("Status") {
-              Text("Signed in")
-                .foregroundStyle(.green)
-            }
-            LabeledContent("Apple user") {
-              Text(model.appleUserID ?? "—")
-                .font(.system(.footnote, design: .monospaced))
+      ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+          settingsCard(title: "Mode") {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("Switch between parent and child setup.")
+                .font(.footnote)
                 .foregroundStyle(.secondary)
+              AppModeSwitcherView()
             }
-
-            Button("Sign out", role: .destructive) {
-              model.signOut()
-            }
-          } else {
-            LabeledContent("Status") {
-              Text("Not signed in")
-                .foregroundStyle(.secondary)
-            }
-            Text("Sign in from Home to manage devices.")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-        }
-
-        Section("In‑app purchases") {
-          LabeledContent("Remove ads") {
-            Text(iap.adsRemoved ? "Purchased" : "Not purchased")
-              .foregroundStyle(iap.adsRemoved ? .green : .secondary)
           }
 
-          Button("Buy: Remove ads") {
-            Task {
-              iapStatus = nil
-              await iap.purchaseRemoveAds()
-              await MainActor.run {
-                model.adsRemoved = iap.adsRemoved
-                iapStatus = "(Stub) Marked as purchased on this device"
+          settingsCard(title: "Account") {
+            VStack(alignment: .leading, spacing: 10) {
+              HStack {
+                Text("Signed in")
+                  .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(model.isSignedIn ? "Yes" : "No")
+                  .foregroundStyle(model.isSignedIn ? .green : .secondary)
+              }
+
+              if model.isSignedIn {
+                Button(role: .destructive) {
+                  model.signOut()
+                } label: {
+                  Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+              } else {
+                Text("Sign in from Home to manage devices.")
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
               }
             }
           }
-          .disabled(iap.adsRemoved)
 
-          Button("Restore purchases") {
-            Task {
-              iapStatus = nil
-              await iap.restorePurchases()
-              await MainActor.run {
-                model.adsRemoved = iap.adsRemoved
-                iapStatus = "Restore not implemented yet"
+          settingsCard(title: "In-app purchase") {
+            VStack(alignment: .leading, spacing: 10) {
+              Text(iap.adsRemoved ? "Ads removed ✅" : "Remove ads from the parent experience.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+              Button {
+                Task {
+                  iapStatus = nil
+                  await iap.purchaseRemoveAds()
+                  await MainActor.run {
+                    model.adsRemoved = iap.adsRemoved
+                    iapStatus = iap.adsRemoved ? "Purchased" : "Not purchased"
+                  }
+                }
+              } label: {
+                Label(iap.adsRemoved ? "Restore purchase (mock)" : "Remove ads (mock)", systemImage: "checkmark")
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              .buttonStyle(iap.adsRemoved ? .bordered : .borderedProminent)
+
+              if let iapStatus {
+                Text(iapStatus)
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
               }
             }
           }
 
           #if DEBUG
-          Toggle("Debug: ads removed", isOn: Binding(
-            get: { iap.adsRemoved },
-            set: { iap.setAdsRemovedForDebug($0); model.adsRemoved = iap.adsRemoved }
-          ))
-          #endif
-
-          if let iapStatus {
-            Text(iapStatus)
+          settingsCard(title: "Debug") {
+            Text("Debug-only settings live here.")
               .font(.footnote)
               .foregroundStyle(.secondary)
+
+            TextField("Base URL", text: Binding(
+              get: { model.apiBaseURL },
+              set: { model.setAPIBaseURL($0) }
+            ))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .textFieldStyle(.roundedBorder)
+
+            SecureField("Admin token (dev)", text: Binding(
+              get: { model.adminToken },
+              set: { model.setAdminToken($0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+          }
+          #endif
+
+          settingsCard(title: "Reset") {
+            VStack(alignment: .leading, spacing: 10) {
+              Text("This clears app settings and sign-in state on this phone.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+              Button(role: .destructive) {
+                showingResetConfirm = true
+              } label: {
+                Label("Reset local data", systemImage: "trash")
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              .buttonStyle(.bordered)
+            }
           }
         }
-
-        #if DEBUG
-        Section("Backend (debug)") {
-          TextField("Base URL", text: Binding(
-            get: { model.apiBaseURL },
-            set: { model.setAPIBaseURL($0) }
-          ))
-          .textInputAutocapitalization(.never)
-          .autocorrectionDisabled()
-
-          SecureField("Admin token (dev)", text: Binding(
-            get: { model.adminToken },
-            set: { model.setAdminToken($0) }
-          ))
-
-          Text("Admin token is for dev/admin endpoints and should not be shipped to production.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-        #endif
-
-        Section("Reset") {
-          Button("Reset local data", role: .destructive) {
-            showingResetConfirm = true
-          }
-          Text("This clears app settings and sign-in state on this phone.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
+        .padding()
       }
       .navigationTitle("Settings")
       .confirmationDialog(
@@ -132,6 +131,17 @@ public struct ParentSettingsView: View {
         Button("Cancel", role: .cancel) {}
       }
     }
+  }
+
+  private func settingsCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(title)
+        .font(.headline)
+      content()
+    }
+    .padding()
+    .background(.thinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 18))
   }
 }
 
