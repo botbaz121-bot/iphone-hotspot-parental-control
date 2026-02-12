@@ -9,36 +9,49 @@ public struct ChildLockedView: View {
   public init() {}
 
   public var body: some View {
-    NavigationStack {
-      VStack(spacing: 16) {
-        Spacer()
-
-        Image(systemName: "lock.fill")
-          .font(.system(size: 56))
-          .foregroundStyle(.secondary)
-
-        Text("Setup complete")
-          .font(.title.bold())
-
-        Text("Setup screens are locked on this phone. A parent can unlock to make changes.")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .multilineTextAlignment(.center)
-          .padding(.horizontal)
-
-        NavigationLink {
-          ChildUnlockView()
-        } label: {
-          Text("Unlock")
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .padding(.horizontal)
-
-        Spacer()
+    ScrollView {
+      VStack(alignment: .leading, spacing: 14) {
+        headerCard
       }
-      .navigationTitle("Locked")
+      .padding(.top, 22)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
     }
+  }
+
+  private var headerCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Setup complete")
+            .font(.largeTitle.bold())
+          Text("This screen stays on. To change anything, the parent must unlock.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Text("Ready")
+          .font(.caption.weight(.medium))
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background(Color.green.opacity(0.18))
+          .foregroundStyle(.green)
+          .clipShape(RoundedRectangle(cornerRadius: 999))
+      }
+
+      Button {
+        model.requestChildUnlock()
+      } label: {
+        Label("Unlock (parent)", systemImage: "arrow.right")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+    }
+    .padding(18)
+    .background(.ultraThinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 }
 

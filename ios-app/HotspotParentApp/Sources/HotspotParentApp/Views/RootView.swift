@@ -40,8 +40,12 @@ public struct RootView: View {
               case .some(.childSetup):
                 if !model.onboardingCompleted {
                   ChildWelcomeView()
-                } else if model.childIsLocked && !model.childUnlockRequested {
-                  ChildLockedView()
+                } else if model.childIsLocked {
+                  if model.childUnlockRequested {
+                    ChildUnlockView()
+                  } else {
+                    ChildLockedView()
+                  }
                 } else {
                   ChildTabView()
                 }
