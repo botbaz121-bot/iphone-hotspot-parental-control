@@ -13,175 +13,176 @@ public struct ChildDashboardView: View {
   public init() {}
 
   public var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
-          VStack(alignment: .leading, spacing: 6) {
-            Text("Dashboard")
-              .font(.title.bold())
-            Text("Pair this phone, install the Shortcut, and then lock setup screens.")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
+    ScrollView {
+      VStack(alignment: .leading, spacing: 14) {
+        pairDeviceCard
+        shortcutCard
+        automationsCard
+        screenTimeCard
 
-          pairStep
-          shortcutStep
-          automationsStep
-          #if DEBUG
-          screenTimeStep
-          #else
-          screenTimeStepUnavailable
-          #endif
-
-          Button {
-            model.lockChildSetup()
-          } label: {
-            Text("Exit child setup")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
-          .padding(.top, 4)
-
-          Text("Tip: After exiting, a parent can unlock these screens if changes are needed.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+        Button {
+          model.lockChildSetup()
+        } label: {
+          Label("Finish setup", systemImage: "checkmark")
+            .frame(maxWidth: .infinity)
         }
-        .padding()
+        .buttonStyle(.bordered)
+        .tint(.secondary)
+        .padding(.top, 4)
       }
-      .navigationTitle("Dashboard")
+      .padding(.top, 22)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
     }
   }
 
-  private var pairStep: some View {
+  private var pairDeviceCard: some View {
     let paired = model.loadHotspotConfig() != nil
     return SetupStepCardView(
-      title: "1) Pair",
-      subtitle: "Enter the pairing code shown in the parent app.",
-      statusText: paired ? "OK" : "SETUP",
+      title: "1) Pair device",
+      subtitle: paired ? "Paired." : "Not paired yet.",
+      statusText: paired ? "OK" : "Awaiting",
       statusColor: paired ? .green : .orange
     ) {
       NavigationLink {
         PairingEntryView()
       } label: {
-        Text(paired ? "View / change pairing" : "Enter pairing code")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-
-      if paired {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Paired as: \(model.childPairedDeviceName ?? "Device")")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-          Text("Device id: \(model.childPairedDeviceId ?? "—")")
-            .font(.system(.footnote, design: .monospaced))
-            .foregroundStyle(.secondary)
-        }
-      }
-    }
-  }
-
-  private var shortcutStep: some View {
-    let hasRun = model.appIntentRunCount > 0
-    return SetupStepCardView(
-      title: "2) Install Shortcut",
-      subtitle: "Install it, then run it once to verify.",
-      statusText: hasRun ? "OK" : "WAITING",
-      statusColor: hasRun ? .green : .orange
-    ) {
-      let shortcutURL = "https://www.icloud.com/shortcuts/1aef99958a6b4e9ea7e41be31192bab1"
-
-      Button {
-        openURL(shortcutURL)
-      } label: {
-        Text("Install Shortcut")
+        Label(paired ? "View pairing" : "Start pairing", systemImage: "qrcode")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)
+      .tint(.blue)
+    }
+  }
 
-      Button {
-        copyToPasteboard(shortcutURL)
-      } label: {
-        Text("Copy Shortcut link")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
+  private var shortcutCard: some View {
+    let shortcutURL = "https://www.icloud.com/shortcuts/1aef99958a6b4e9ea7e41be31192bab1"
+    let hasRun = model.appIntentRunCount > 0
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text("Runs observed: \(model.appIntentRunCount)")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-        if let last = model.lastAppIntentRunAt {
-          Text("Last run: \(last.formatted(date: .abbreviated, time: .shortened))")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+    return VStack(alignment: .leading, spacing: 10) {
+      SetupStepCardView(
+        title: "2) Install our Shortcut",
+        subtitle: "",
+        statusText: "",
+        statusColor: .secondary
+      ) {
+        Button {
+          openURL(shortcutURL)
+        } label: {
+          Label("Open Shortcut link", systemImage: "link")
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.bordered)
+      }
+
+      SetupStepCardView(
+        title: "Initial run",
+        subtitle: "Open the Shortcut and tap ▶ to run once. If iOS prompts, choose “Always Allow” where possible.",
+        statusText: "",
+        statusColor: .secondary
+      ) {
+        EmptyView()
+      }
+
+      SetupStepCardView(
+        title: "Shortcut runs",
+        subtitle: hasRun ? "Detected" : "Awaiting first run",
+        statusText: hasRun ? "OK" : "Awaiting",
+        statusColor: hasRun ? .green : .orange
+      ) {
+        EmptyView()
       }
     }
   }
 
-  private var automationsStep: some View {
+  private var automationsCard: some View {
     let ok = model.appIntentRunCount >= 2
     return SetupStepCardView(
-      title: "3) Enable automations",
-      subtitle: "So the Shortcut can enforce Hotspot OFF and Quiet Time.",
-      statusText: ok ? "OK" : "WAITING",
+      title: "3) Automations",
+      subtitle: "",
+      statusText: ok ? "OK" : "Awaiting",
       statusColor: ok ? .green : .orange
     ) {
-      Text("Tip: in Shortcuts → Automation, run the Shortcut on a schedule and turn off ‘Ask Before Running’.")
+      Text("Automation runs")
+        .font(.subheadline.weight(.semibold))
+      Text(ok ? "Detected multiple runs" : "Awaiting multiple runs")
         .font(.footnote)
         .foregroundStyle(.secondary)
     }
   }
 
-  private var screenTimeStep: some View {
+  private var screenTimeCard: some View {
+    #if DEBUG
     let ok = model.screenTimeAuthorized && model.shieldingApplied
-    let status: String
-    let color: Color
-    if ok {
-      status = "OK"; color = .green
-    } else if model.screenTimeAuthorized {
-      status = "INCOMPLETE"; color = .orange
-    } else {
-      status = "SETUP"; color = .orange
-    }
+    let statusText = ok ? "OK" : "Awaiting"
+    let statusColor: Color = ok ? .green : .orange
 
     return SetupStepCardView(
       title: "4) Screen Time lock",
-      subtitle: "Reduce tampering (dev builds only).", 
-      statusText: status,
-      statusColor: color
+      subtitle: "",
+      statusText: statusText,
+      statusColor: statusColor
     ) {
-      NavigationLink {
-        ScreenTimeSetupView()
-      } label: {
-        Text("Open Screen Time setup")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
+      VStack(alignment: .leading, spacing: 10) {
+        HStack {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Screen Time authorization")
+              .font(.subheadline.weight(.semibold))
+            Text(model.screenTimeAuthorized ? "FamilyControls permission granted" : "Not granted")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Text(model.screenTimeAuthorized ? "OK" : "Awaiting")
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background((model.screenTimeAuthorized ? Color.green : Color.orange).opacity(0.15))
+            .foregroundStyle(model.screenTimeAuthorized ? .green : .orange)
+            .clipShape(Capsule())
+        }
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text("Authorized: \(model.screenTimeAuthorized ? "Yes" : "No")")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-        Text("Shielding applied: \(model.shieldingApplied ? "Yes" : "No")")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
+        HStack {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Shielding applied")
+              .font(.subheadline.weight(.semibold))
+            Text(model.shieldingApplied ? "Shortcuts/Settings selected for shielding" : "Not applied")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Text(model.shieldingApplied ? "OK" : "Awaiting")
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background((model.shieldingApplied ? Color.green : Color.orange).opacity(0.15))
+            .foregroundStyle(model.shieldingApplied ? .green : .orange)
+            .clipShape(Capsule())
+        }
+
+        NavigationLink {
+          ScreenTimeSetupView()
+        } label: {
+          Label("Select apps to shield", systemImage: "app")
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
       }
     }
-  }
-
-  private var screenTimeStepUnavailable: some View {
-    SetupStepCardView(
+    #else
+    return SetupStepCardView(
       title: "4) Screen Time lock",
-      subtitle: "Not available in TestFlight builds yet.",
-      statusText: "COMING SOON",
+      subtitle: "",
+      statusText: "Awaiting",
       statusColor: .orange
     ) {
-      Text("We’ll add this once Apple allows the required entitlement in shipping builds.")
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Not available in TestFlight builds yet.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
     }
+    #endif
   }
 
   private func openURL(_ s: String) {

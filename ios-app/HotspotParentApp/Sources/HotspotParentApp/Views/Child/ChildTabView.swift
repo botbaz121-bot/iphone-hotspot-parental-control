@@ -5,27 +5,37 @@ import SwiftUI
 
 public struct ChildTabView: View {
   @EnvironmentObject private var model: AppModel
+  @State private var tab: Tab = .dashboard
 
   public init() {}
 
   public var body: some View {
-    TabView {
+    TabView(selection: $tab) {
       ChildLockedView()
+        .tag(Tab.home)
         .tabItem {
-          Label("Home", systemImage: "house")
+          Image(systemName: "house")
         }
 
       ChildDashboardView()
+        .tag(Tab.dashboard)
         .tabItem {
-          Label("Dashboard", systemImage: "rectangle.3.group")
+          Text("Dashboard")
         }
 
       ChildSettingsView()
+        .tag(Tab.settings)
         .tabItem {
-          Label("Settings", systemImage: "gear")
+          Text("Settings")
         }
     }
     .accentColor(.blue)
+  }
+
+  private enum Tab {
+    case home
+    case dashboard
+    case settings
   }
 }
 

@@ -19,16 +19,27 @@ public struct ChildSettingsView: View {
           settingsCard(title: "Pairing") {
             VStack(alignment: .leading, spacing: 10) {
               let paired = model.loadHotspotConfig() != nil
-              Text(paired ? "Paired ✅" : "Not paired yet.")
+              Text(paired ? "Paired." : "Not paired yet.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+
+              Button {
+                // Mock QR scan. Route to manual pairing entry for now.
+              } label: {
+                Label("Scan QR (mock)", systemImage: "qrcode.viewfinder")
+                  .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.bordered)
+
+              Text("Or enter pairing code")
+                .font(.subheadline.weight(.semibold))
 
               NavigationLink {
                 PairingEntryView()
                   .environmentObject(model)
               } label: {
-                Label(paired ? "View / change pairing" : "Enter pairing code", systemImage: "qrcode")
-                  .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Enter pairing code")
+                  .frame(maxWidth: .infinity)
               }
               .buttonStyle(.borderedProminent)
 
@@ -37,35 +48,50 @@ public struct ChildSettingsView: View {
                   model.unpairChildDevice()
                 } label: {
                   Label("Unpair", systemImage: "link.badge.minus")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
               }
+
+              Text("Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
           }
 
-          settingsCard(title: "Shortcut status") {
+          settingsCard(title: "Debug (prototype helpers)") {
             VStack(alignment: .leading, spacing: 10) {
-              HStack {
-                Text("Runs observed")
-                  .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("\(model.appIntentRunCount)")
-                  .font(.subheadline)
+              Text("These simulate signals the real app would infer from App Intent runs + permissions.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+              HStack(spacing: 12) {
+                Button {
+                  model.recordIntentRun()
+                } label: {
+                  Label("Simulate\nShortcut run", systemImage: "link")
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                  model.screenTimeAuthorized = true
+                } label: {
+                  Label("Set Screen Time\nauth", systemImage: "shield")
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
               }
 
-              HStack {
-                Text("Last run")
-                  .font(.subheadline.weight(.semibold))
-                Spacer()
-                if let last = model.lastAppIntentRunAt {
-                  Text(last, style: .relative)
-                    .foregroundStyle(.secondary)
-                } else {
-                  Text("—")
-                    .foregroundStyle(.secondary)
-                }
+              Button(role: .destructive) {
+                model.unlockChildSetup()
+                model.restartOnboarding()
+              } label: {
+                Label("Reset child setup state", systemImage: "trash")
+                  .frame(maxWidth: .infinity)
               }
+              .buttonStyle(.bordered)
+              .tint(.red)
             }
           }
 
