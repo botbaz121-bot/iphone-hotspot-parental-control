@@ -16,7 +16,11 @@ public struct RootView: View {
   @ViewBuilder
   private var content: some View {
     if !model.onboardingCompleted {
-      OnboardingView()
+      if model.appMode == .childSetup {
+        ChildWelcomeView()
+      } else {
+        OnboardingView()
+      }
     } else if model.isSignedIn {
       // v1B: Parent/Child modes share the same binary.
       switch model.appMode {

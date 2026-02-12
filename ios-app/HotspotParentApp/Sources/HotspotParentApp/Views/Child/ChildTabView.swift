@@ -4,16 +4,28 @@ import Foundation
 import SwiftUI
 
 public struct ChildTabView: View {
+  @EnvironmentObject private var model: AppModel
+
   public init() {}
 
   public var body: some View {
     TabView {
+      ChildLockedView()
+        .tabItem {
+          Image(systemName: "house")
+        }
+
       ChildDashboardView()
-        .tabItem { Label("Checklist", systemImage: "checklist") }
+        .tabItem {
+          Text("Dashboard")
+        }
 
       ChildSettingsView()
-        .tabItem { Label("Settings", systemImage: "gear") }
+        .tabItem {
+          Text("Settings")
+        }
     }
+    .accentColor(.blue)
   }
 }
 
