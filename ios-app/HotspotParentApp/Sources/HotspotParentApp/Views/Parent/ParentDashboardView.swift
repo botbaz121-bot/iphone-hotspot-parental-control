@@ -304,9 +304,12 @@ private struct PolicyEditorCard: View {
               Text("Start")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
               DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .datePickerStyle(.wheel)
+                .environment(\.locale, Locale(identifier: "en_GB"))
+                .frame(height: 120)
                 .frame(maxWidth: .infinity)
                 .clipped()
             }
@@ -315,13 +318,23 @@ private struct PolicyEditorCard: View {
               Text("End")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
               DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .datePickerStyle(.wheel)
+                .environment(\.locale, Locale(identifier: "en_GB"))
+                .frame(height: 120)
                 .frame(maxWidth: .infinity)
                 .clipped()
             }
           }
+          .padding(10)
+          .background(Color.white.opacity(0.04))
+          .clipShape(RoundedRectangle(cornerRadius: 16))
+          .overlay(
+            RoundedRectangle(cornerRadius: 16)
+              .stroke(Color.white.opacity(0.08), lineWidth: 1)
+          )
         }
         .padding(.top, 2)
       }
