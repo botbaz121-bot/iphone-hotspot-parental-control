@@ -568,6 +568,24 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 .sc-pink{ background: linear-gradient(135deg, #ff4bb8, #9b5cff); }
 .sc-purple{ background: linear-gradient(135deg, #8b5cff, #5b7cff); }
 .sc-green{ background: linear-gradient(135deg, #00c2a8, #2dd36f); }
+.sc-gray{ background: linear-gradient(135deg, #3a3a45, #23242a); }
+
+.sc-tile-dots{
+  position:absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display:grid;
+  place-items:center;
+  border: none;
+  background: rgba(255,255,255,.16);
+  color: rgba(0,0,0,.55);
+  font-weight: 900;
+  cursor:pointer;
+}
+.sc-tile-dots:active{ transform: translateY(1px) scale(.99); }
 
 /* --- Shortcuts-like automation card --- */
 .sc-automation{
