@@ -252,15 +252,21 @@ private struct PolicyEditorCard: View {
 
   @State private var hotspotOff: Bool
   @State private var quiet: Bool
-  @State private var start: String
-  @State private var end: String
+
+  @State private var startDate: Date
+  @State private var endDate: Date
 
   init(device: DashboardDevice) {
     self.device = device
+
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
     _quiet = State(initialValue: device.quietHours != nil)
-    _start = State(initialValue: device.quietHours?.start ?? "22:00")
-    _end = State(initialValue: device.quietHours?.end ?? "07:00")
+
+    // Use wheel time pickers like iOS Settings.
+    let start = device.quietHours?.start ?? "22:00"
+    let end = device.quietHours?.end ?? "07:00"
+    _startDate = State(initialValue: Self.parseTime(start) ?? Date())
+    _endDate = State(initialValue: Self.parseTime(end) ?? Date())
   }
 
   var body: some View {
@@ -289,37 +295,75 @@ private struct PolicyEditorCard: View {
       }
 
       if quiet {
-        HStack(spacing: 12) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Start")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-            TextField("22:00", text: $start)
-              .textFieldStyle(.roundedBorder)
-          }
+        VStack(alignment: .leading, spacing: 8) {
+          Text("Quiet hours")
+            .font(.subheadline.weight(.semibold))
 
-          VStack(alignment: .leading, spacing: 4) {
-            Text("End")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-            TextField("07:00", text: $end)
-              .textFieldStyle(.roundedBorder)
+          HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+              Text("Start")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
+                .labelsHidden()
+                .datePickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+              Text("End")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
+                .labelsHidden()
+                .datePickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
+            }
           }
         }
+        .padding(.top, 2)
       }
 
       Button {
         // TODO: wire to backend
+        let start = Self.formatTime(startDate)
+        let end = Self.formatTime(endDate)
+        _ = start
+        _ = end
       } label: {
         Label("Save rules", systemImage: "slider.horizontal.3")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)
       .tint(.blue)
+      .padding(.top, 6)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private static func parseTime(_ s: String) -> Date? {
+    let df = DateFormatter()
+    df.locale = Locale(identifier: "en_US_POSIX")
+    df.timeZone = .current
+    df.dateFormat = "HH:mm"
+
+    guard let t = df.date(from: s.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
+
+    let cal = Calendar.current
+    let comps = cal.dateComponents([.hour, .minute], from: t)
+    return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: Date())
+  }
+
+  private static func formatTime(_ d: Date) -> String {
+    let df = DateFormatter()
+    df.locale = Locale(identifier: "en_US_POSIX")
+    df.timeZone = .current
+    df.dateFormat = "HH:mm"
+    return df.string(from: d)
   }
 }
 
