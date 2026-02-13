@@ -18,26 +18,22 @@ public struct ChildPairView: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
 
-        Text("Enter pairing code")
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.secondary)
-          .textCase(.uppercase)
-          .padding(.horizontal, 4)
-          .padding(.top, 8)
-
-        Text(model.loadHotspotConfig() != nil ? "Paired ✅" : "Not paired yet")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-
-        NavigationLink {
-          PairingEntryView()
-            .environmentObject(model)
-        } label: {
-          Text("Enter pairing code")
-            .frame(maxWidth: .infinity)
+        SettingsGroup("Enter pairing code") {
+          NavigationLink {
+            PairingEntryView()
+              .environmentObject(model)
+          } label: {
+            SettingsRow(
+              systemIcon: "number",
+              title: "Enter pairing code",
+              subtitle: model.loadHotspotConfig() != nil ? "Paired ✅" : "Not paired yet",
+              rightText: nil,
+              showsChevron: true,
+              action: nil
+            )
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.blue)
 
         if model.loadHotspotConfig() != nil {
           Button(role: .destructive) {
