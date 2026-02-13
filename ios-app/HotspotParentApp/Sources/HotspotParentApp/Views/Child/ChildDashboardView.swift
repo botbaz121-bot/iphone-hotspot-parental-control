@@ -10,6 +10,7 @@ import UIKit
 public struct ChildDashboardView: View {
   @EnvironmentObject private var model: AppModel
   @State private var showAutomationsInfo = false
+  @State private var showFinishConfirm = false
 
   public init() {}
 
@@ -61,6 +62,20 @@ public struct ChildDashboardView: View {
           }
         }
       }
+    }
+    .confirmationDialog(
+      "Logout and lock this phone?",
+      isPresented: $showFinishConfirm,
+      titleVisibility: .visible
+    ) {
+      Button("Logout and lock", role: .destructive) {
+        // Lock the child setup screen and remove parent session from this device.
+        model.signOut()
+        model.lockChildSetup()
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text("This will sign the parent out on this phone and show the locked screen.")
     }
   }
 
@@ -128,7 +143,7 @@ public struct ChildDashboardView: View {
       title: "Finish setup",
       subtitle: "Lock phone into child mode"
     ) {
-      model.lockChildSetup()
+      showFinishConfirm = true
     }
   }
 
