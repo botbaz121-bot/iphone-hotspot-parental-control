@@ -3,6 +3,10 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if canImport(AuthenticationServices)
+import AuthenticationServices
+#endif
+
 public struct ChildUnlockView: View {
   @EnvironmentObject private var model: AppModel
 
@@ -49,17 +53,42 @@ public struct ChildUnlockView: View {
           .clipShape(RoundedRectangle(cornerRadius: 999))
       }
 
+      #if canImport(AuthenticationServices)
       Button {
         status = nil
-        // TODO: require real Apple sign-in session; for now keep as mock.
-        let userID = "apple-stub-\(UUID().uuidString.prefix(8))"
-        model.signInStub(userID: userID)
-        model.unlockChildSetup()
+        Task {
+          do {
+            let coord = AppleSignInCoordinator()
+            let creds = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<AppleSignInCoordinator.AppleCredentials, Error>) in
+              coord.start { result in cont.resume(with: result) }
+            }
+
+            try await model.signInWithApple(
+              identityToken: creds.identityToken,
+              appleUserID: creds.userID,
+              email: creds.email,
+              fullName: creds.fullName
+            )
+
+            model.unlockChildSetup()
+          } catch {
+            status = "Apple sign-in failed: \(error)"
+          }
+        }
       } label: {
-        Label("Sign in with Apple (mock)", systemImage: "arrow.right")
+        Label("Sign in with Apple", systemImage: "arrow.right")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)
+      #else
+      Button {
+        status = "Apple sign-in unavailable on this build target."
+      } label: {
+        Label("Sign in with Apple", systemImage: "arrow.right")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+      #endif
 
       Button {
         model.cancelChildUnlock()
