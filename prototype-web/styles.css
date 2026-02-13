@@ -155,6 +155,7 @@ button,input,select{ font:inherit; }
 
 .h1{ font-size: 26px; font-weight: 820; margin: 4px 0 0 0; letter-spacing: -0.4px; }
 .h2{ font-size: 16px; font-weight: 760; margin:0; letter-spacing: -0.2px; }
+.hsec{ font-size: 14px; font-weight: 820; color: rgba(244,246,251,.78); letter-spacing: .2px; }
 .p{ margin:0; color: var(--muted); line-height: 1.5; }
 .small{ font-size: 12px; color: var(--muted); }
 
@@ -175,7 +176,7 @@ button,input,select{ font:inherit; }
 .badge.bad{ border-color: rgba(255,77,77,.35); color:#ffd2d2; background: rgba(255,77,77,.10); }
 .badge.muted{ color: var(--muted); }
 
-/* Buttons */
+/* Buttons (3 consistent types: primary / secondary / ghost) */
 .btn{
   display:inline-flex;
   align-items:center;
@@ -183,21 +184,38 @@ button,input,select{ font:inherit; }
   gap: 9px;
   padding: 12px 14px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.07);
-  color: var(--text);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
   text-decoration:none;
   cursor:pointer;
   box-shadow: none;
   transition: transform .12s var(--ease), background .12s var(--ease), border-color .12s var(--ease);
 }
 .btn:active{ transform: translateY(1px) scale(.99); }
+
+/* light blue with white text */
 .btn.primary{
-  background: rgba(79,140,255,.30);
+  background: rgba(79,140,255,.55);
   border-color: rgba(79,140,255,.45);
+  color: #fff;
 }
-.btn.ghost{ background: rgba(255,255,255,.05); }
-.btn.danger{ background: rgba(255,77,77,.14); border-color: rgba(255,77,77,.38); }
+
+/* grey with white text */
+.btn.secondary{
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.16);
+  color: #fff;
+}
+
+/* transparent with white text */
+.btn.ghost{
+  background: transparent;
+  border-color: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+.btn.danger{ background: rgba(255,77,77,.18); border-color: rgba(255,77,77,.38); color:#fff; }
 .btn.full{ width:100%; }
 .btn .ic{ width: 18px; height: 18px; display:inline-block; }
 
