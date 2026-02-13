@@ -14,19 +14,19 @@ public struct ChildTabView: View {
       ChildLockedView()
         .tag(Tab.home)
         .tabItem {
-          Image(systemName: "house")
+          Label("Home", systemImage: "house")
         }
 
       ChildDashboardView()
         .tag(Tab.dashboard)
         .tabItem {
-          Text("Dashboard")
+          Label("Dashboard", systemImage: "house")
         }
 
       ChildSettingsView()
         .tag(Tab.settings)
         .tabItem {
-          Text("Settings")
+          Label("Settings", systemImage: "gearshape")
         }
     }
     .accentColor(.blue)

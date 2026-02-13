@@ -24,13 +24,14 @@ public struct ChildDashboardView: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
 
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
           pairingTile
           shortcutTile
           automationsTile
           screenTimeTile
           finishTile
         }
+        .padding(.top, 6)
       }
       .padding(.top, 18)
       .padding(.horizontal, 18)
@@ -64,12 +65,12 @@ public struct ChildDashboardView: View {
       ChildPairView()
         .environmentObject(model)
     } label: {
-      ShortcutTile(
+      ShortcutTileCard(
         color: paired ? .blue : .gray,
         systemIcon: "qrcode",
         title: paired ? "Edit pairing" : "Start pairing",
         subtitle: paired ? "Paired ✅" : "Not paired yet"
-      ) {}
+      )
     }
     .buttonStyle(.plain)
   }
@@ -102,12 +103,12 @@ public struct ChildDashboardView: View {
       ScreenTimeSetupView()
         .environmentObject(model)
     } label: {
-      ShortcutTile(
+      ShortcutTileCard(
         color: .blue,
         systemIcon: "shield",
         title: "Screen Time lock",
         subtitle: "Select apps to shield"
-      ) {}
+      )
     }
     .buttonStyle(.plain)
   }

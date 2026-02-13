@@ -48,6 +48,69 @@ public enum ShortcutTileColor {
   }
 }
 
+public struct ShortcutTileCard: View {
+  public let color: ShortcutTileColor
+  public let systemIcon: String
+  public let title: String
+  public let subtitle: String?
+
+  public init(
+    color: ShortcutTileColor,
+    systemIcon: String,
+    title: String,
+    subtitle: String? = nil
+  ) {
+    self.color = color
+    self.systemIcon = systemIcon
+    self.title = title
+    self.subtitle = subtitle
+  }
+
+  public var body: some View {
+    ZStack {
+      RoundedRectangle(cornerRadius: 22)
+        .fill(color.gradient)
+
+      VStack(alignment: .leading, spacing: 10) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 10)
+            .fill(Color.black.opacity(0.22))
+            .overlay(
+              RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+          Image(systemName: systemIcon)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.95))
+        }
+        .frame(width: 28, height: 28)
+
+        Spacer(minLength: 0)
+
+        Text(title)
+          .font(.system(size: 18, weight: .bold))
+          .foregroundStyle(.white.opacity(0.95))
+          .multilineTextAlignment(.leading)
+          .lineLimit(2)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity, alignment: .leading)
+
+        if let subtitle, !subtitle.isEmpty {
+          Text(subtitle)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white.opacity(0.70))
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      .padding(14)
+    }
+    .frame(height: 110)
+  }
+}
+
 public struct ShortcutTile: View {
   public let color: ShortcutTileColor
   public let systemIcon: String
@@ -73,43 +136,7 @@ public struct ShortcutTile: View {
     Button {
       action()
     } label: {
-      ZStack {
-        RoundedRectangle(cornerRadius: 22)
-          .fill(color.gradient)
-
-        VStack(alignment: .leading, spacing: 10) {
-          ZStack {
-            RoundedRectangle(cornerRadius: 10)
-              .fill(Color.black.opacity(0.22))
-              .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                  .stroke(Color.white.opacity(0.18), lineWidth: 1)
-              )
-            Image(systemName: systemIcon)
-              .font(.system(size: 14, weight: .semibold))
-              .foregroundStyle(.white.opacity(0.95))
-          }
-          .frame(width: 28, height: 28)
-
-          Spacer(minLength: 0)
-
-          Text(title)
-            .font(.system(size: 18, weight: .bold))
-            .foregroundStyle(.white.opacity(0.95))
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-          if let subtitle, !subtitle.isEmpty {
-            Text(subtitle)
-              .font(.system(size: 12, weight: .medium))
-              .foregroundStyle(.white.opacity(0.70))
-              .lineLimit(2)
-              .frame(maxWidth: .infinity, alignment: .leading)
-          }
-        }
-        .padding(14)
-      }
-      .frame(height: 110)
+      ShortcutTileCard(color: color, systemIcon: systemIcon, title: title, subtitle: subtitle)
     }
     .buttonStyle(.plain)
   }

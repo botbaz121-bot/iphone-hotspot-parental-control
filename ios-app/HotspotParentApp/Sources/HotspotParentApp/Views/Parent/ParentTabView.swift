@@ -14,20 +14,19 @@ public struct ParentTabView: View {
       LandingView()
         .tag(Tab.home)
         .tabItem {
-          // Match mock: icon-only "home"
-          Image(systemName: "house")
+          Label("Home", systemImage: "house")
         }
 
       ParentDashboardView()
         .tag(Tab.dashboard)
         .tabItem {
-          Text("Dashboard")
+          Label("Dashboard", systemImage: "house")
         }
 
       ParentSettingsView()
         .tag(Tab.settings)
         .tabItem {
-          Text("Settings")
+          Label("Settings", systemImage: "gearshape")
         }
     }
     .accentColor(.blue)
