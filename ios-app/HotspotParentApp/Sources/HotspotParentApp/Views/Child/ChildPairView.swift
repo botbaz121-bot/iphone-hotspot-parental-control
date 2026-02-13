@@ -18,25 +18,16 @@ public struct ChildPairView: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
 
-        SettingsGroup("Scan QR (mock)") {
-          SettingsRow(
-            systemIcon: "qrcode.viewfinder",
-            title: model.loadHotspotConfig() != nil ? "Paired" : "Not paired yet",
-            subtitle: "Scan a QR from the parent app to link this phone.",
-            showsChevron: false,
-            action: {
-              // Mock pairing.
-              // For now, the real pairing experience is manual entry.
-            }
-          )
-        }
-
-        Text("Or enter pairing code")
+        Text("Enter pairing code")
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
           .textCase(.uppercase)
           .padding(.horizontal, 4)
           .padding(.top, 8)
+
+        Text(model.loadHotspotConfig() != nil ? "Paired ✅" : "Not paired yet")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
 
         NavigationLink {
           PairingEntryView()
