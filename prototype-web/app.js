@@ -506,32 +506,73 @@ function shortcutNotRunningSheet({ device }) {
 
 /* ---------- Screens ---------- */
 
+function shortcutTile({ title, color = 'blue', icon, onClick }) {
+  return el('button', { class: `sc-tile sc-${color}`, onClick }, [
+    el('div', { class: 'sc-tile-ic' }, iconSquare(icon)),
+    el('div', { class: 'sc-tile-title' }, title),
+    el('div', { class: 'sc-tile-dots' }, '⋯'),
+  ]);
+}
+
 function screenLanding() {
+  const goParent = () => {
+    navReset();
+    state.mode = 'parent';
+    persist();
+    route.go('/parent/onboarding');
+  };
+
+  const goChild = () => {
+    navReset();
+    state.mode = 'childsetup';
+    persist();
+    route.go('/child/onboarding');
+  };
+
   return {
-    nav: navbar({ title: 'SpotCheck' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero' }, [
-        el('div', { class: 'hero-top' }, [
-          el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'SpotCheck'),
-            el('p', { class: 'hero-sub' }, 'High‑fidelity prototype to design parent + child setup flows (no iOS build).'),
-          ]),
-          el('span', { class: 'badge muted' }, 'Prototype'),
-        ]),
-        el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => { navReset(); state.mode = 'parent'; persist(); route.go('/parent/onboarding'); } }, [iconSquare('parent'), 'Parent phone']),
-          el('button', { class: 'btn', onClick: () => { navReset(); state.mode = 'childsetup'; persist(); route.go('/child/onboarding'); } }, [iconSquare('child'), 'Set up child phone']),
-        ]),
+    nav: navbar({ title: 'All Shortcuts' }),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'All Shortcuts'),
+
+      el('div', { class: 'sc-search' }, [
+        el('div', { class: 'sc-search-ic', html: ICON_SVGS.search || '' }),
+        el('input', { class: 'sc-search-input', placeholder: 'Search', value: '', onInput: () => {} }),
+        el('div', { class: 'sc-search-mic', html: ICON_SVGS.mic || '' }),
       ]),
 
-      adsCard(),
+      el('div', { class: 'sc-grid' }, [
+        shortcutTile({
+          title: 'Parent phone',
+          color: 'blue',
+          icon: 'parent',
+          onClick: goParent,
+        }),
+        shortcutTile({
+          title: 'Set up child\nphone',
+          color: 'pink',
+          icon: 'child',
+          onClick: goChild,
+        }),
+        shortcutTile({
+          title: 'Pair Device',
+          color: 'purple',
+          icon: 'qr',
+          onClick: () => { goChild(); setTimeout(() => route.go('/child/settings'), 50); },
+        }),
+        shortcutTile({
+          title: 'Enforce Hotspot\nPolicy',
+          color: 'green',
+          icon: 'shortcut',
+          onClick: () => alert('Opens the Shortcuts app (mock).'),
+        }),
+      ]),
 
-      el('div', { class: 'card vstack' }, [
+      el('div', { class: 'card soft vstack', style: 'margin-top:14px' }, [
         el('div', { class: 'h2' }, 'What this models'),
         el('p', { class: 'p' }, 'Shortcuts-only enforcement (hotspot off + password rotation), device activity signals, and a guided child-phone checklist.'),
       ]),
 
-      el('div', { class: 'card vstack' }, [
+      el('div', { class: 'card soft vstack' }, [
         el('div', { class: 'h2' }, 'Reset mockup'),
         el('button', {
           class: 'btn danger',
@@ -1127,24 +1168,16 @@ function screenChildLocked() {
 function screenChildDashboard() {
   const c = state.childSetup;
 
-  const infoRow = ({ title, sub, badgeText, badgeClass = 'muted' }) =>
-    el('div', { class: 'row' }, [
-      el('div', {}, [
-        el('div', { class: 'title' }, title),
-        sub ? el('div', { class: 'sub' }, sub) : null,
-      ].filter(Boolean)),
-      el('span', { class: `badge ${badgeClass}` }, badgeText),
-    ]);
-
   const initialRunDone = c.appIntentRunCount >= 1;
   const automationConfidenceDone = c.appIntentRunCount >= 2;
 
   return {
     nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
     body: el('div', { class: 'content' }, [
+      // Keep the checklist steps, but style the Automations section like the Shortcuts app.
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '1) Pair device'),
-        el('p', { class: 'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
+        el('p', { class: 'p' }, c.paired ? 'Paired.' : 'Not paired yet.'),
         el('div', { class: 'hstack' }, [
           el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), c.paired ? 'View pairing' : 'Start pairing']),
           c.paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
@@ -1158,38 +1191,60 @@ function screenChildDashboard() {
           el('div', { class: 'shot-title' }, 'Initial run'),
           el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If iOS prompts, choose “Always Allow” where possible.'),
         ]),
-        infoRow({
-          title: 'Shortcut runs',
-          sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run',
-          badgeText: initialRunDone ? 'Done' : 'Awaiting',
-          badgeClass: initialRunDone ? 'good' : 'warn'
-        }),
+        el('div', { class: 'row' }, [
+          el('div', {}, [
+            el('div', { class: 'title' }, 'Shortcut runs'),
+            el('div', { class: 'sub' }, initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run'),
+          ]),
+          el('span', { class: `badge ${initialRunDone ? 'good' : 'warn'}` }, initialRunDone ? 'Done' : 'Awaiting'),
+        ]),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '3) Automations'),
-        infoRow({
-          title: 'Automation runs',
-          sub: automationConfidenceDone ? 'Multiple runs observed' : 'Awaiting multiple runs',
-          badgeText: automationConfidenceDone ? 'Done' : 'Awaiting',
-          badgeClass: automationConfidenceDone ? 'good' : 'warn'
-        }),
+      el('div', { class: 'sc-automation' }, [
+        el('div', { class: 'sc-automation-top' }, [
+          el('div', { class: 'sc-automation-title' }, 'Automation'),
+          el('div', { class: 'sc-automation-run' }, ['Run Immediately', el('span', { class: 'sc-caret' }, '▾')]),
+        ]),
+        el('div', { class: 'sc-toggle-row' }, [
+          el('div', { class: 'sc-toggle-label' }, 'Notify When Run'),
+          el('div', { class: `sc-switch ${automationConfidenceDone ? 'on' : ''}` }, [el('div', { class: 'sc-knob' })]),
+        ]),
+
+        el('div', { class: 'sc-section' }, [
+          el('div', { class: 'sc-section-h' }, 'When'),
+          el('div', { class: 'sc-pillrow' }, [
+            el('div', { class: 'sc-pill-ic' }, iconSquare('clock')),
+            el('div', { class: 'sc-pill-text' }, 'At 15:44, daily'),
+            el('div', { class: 'sc-chevron' }, '›'),
+          ]),
+        ]),
+
+        el('div', { class: 'sc-section' }, [
+          el('div', { class: 'sc-section-h' }, 'Do'),
+          el('div', { class: 'sc-do-card' }, [
+            el('div', { class: 'sc-do-ic' }, iconSquare('globe')),
+            el('div', { class: 'sc-do-name' }, 'Enforce Hotspot Policy'),
+            el('div', { class: 'sc-chevron' }, '›'),
+          ]),
+        ]),
       ]),
 
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h2' }, '4) Screen Time lock'),
-        infoRow({
-          title: 'Screen Time authorization',
-          sub: 'FamilyControls permission granted',
-          badgeText: c.screenTimeAuthorized ? 'Done' : 'Awaiting',
-          badgeClass: c.screenTimeAuthorized ? 'good' : 'warn'
-        }),
-        infoRow({
-          title: 'Shielding applied',
-          sub: 'Shortcuts/Settings selected for shielding',
-          badgeText: c.shieldingApplied ? 'Done' : 'Awaiting',
-          badgeClass: c.shieldingApplied ? 'good' : 'warn'
-        }),
+        el('div', { class: 'row' }, [
+          el('div', {}, [
+            el('div', { class: 'title' }, 'Screen Time authorization'),
+            el('div', { class: 'sub' }, 'FamilyControls permission granted'),
+          ]),
+          el('span', { class: `badge ${c.screenTimeAuthorized ? 'good' : 'warn'}` }, c.screenTimeAuthorized ? 'Done' : 'Awaiting'),
+        ]),
+        el('div', { class: 'row' }, [
+          el('div', {}, [
+            el('div', { class: 'title' }, 'Shielding applied'),
+            el('div', { class: 'sub' }, 'Shortcuts/Settings selected for shielding'),
+          ]),
+          el('span', { class: `badge ${c.shieldingApplied ? 'good' : 'warn'}` }, c.shieldingApplied ? 'Done' : 'Awaiting'),
+        ]),
         el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
       ]),
 
