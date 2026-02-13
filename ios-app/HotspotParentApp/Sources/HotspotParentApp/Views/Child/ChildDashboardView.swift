@@ -67,7 +67,7 @@ public struct ChildDashboardView: View {
         .environmentObject(model)
     } label: {
       ShortcutTileCard(
-        color: paired ? .blue : .gray,
+        color: paired ? .pink : .gray,
         systemIcon: "qrcode",
         title: paired ? "Edit pairing" : "Start pairing",
         subtitle: paired ? "Paired ✅" : "Not paired yet"
@@ -78,22 +78,24 @@ public struct ChildDashboardView: View {
 
   private var shortcutTile: some View {
     let shortcutURL = "https://www.icloud.com/shortcuts/1aef99958a6b4e9ea7e41be31192bab1"
+    let hasRun = model.appIntentRunCount > 0
     return ShortcutTile(
-      color: .gray,
+      color: hasRun ? .pink : .gray,
       systemIcon: "link",
       title: "Install our Shortcut",
-      subtitle: "Open link, add Shortcut, run once"
+      subtitle: hasRun ? "Done" : "Open link, add Shortcut, run once"
     ) {
       openURL(shortcutURL)
     }
   }
 
   private var automationsTile: some View {
-    ShortcutTile(
-      color: .gray,
+    let ok = model.appIntentRunCount >= 2
+    return ShortcutTile(
+      color: ok ? .pink : .gray,
       systemIcon: "wrench.and.screwdriver",
       title: "Automations",
-      subtitle: "Tap to view instructions"
+      subtitle: ok ? "Done" : "Tap to view instructions"
     ) {
       showAutomationsInfo = true
     }
@@ -106,7 +108,7 @@ public struct ChildDashboardView: View {
         .environmentObject(model)
     } label: {
       ShortcutTileCard(
-        color: ok ? .blue : .gray,
+        color: ok ? .pink : .gray,
         systemIcon: "shield",
         title: "Screen Time lock",
         subtitle: ok ? "Done" : "Not set up yet"
