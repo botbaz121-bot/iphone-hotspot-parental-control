@@ -121,7 +121,7 @@ public struct LandingView: View {
   }
 
   private func signInMessage(for raw: String?) -> String {
-    let base = "To use Parent phone, you need to sign in so only you can enroll devices, change rules, and view activity."
+    let base = "To use Parent phone, you need to sign in so we can create a unique parent ID. This links your devices, protects activity/rules, and enables parent-only controls (including Screen Time / Family controls)."
 
     let detail: String = {
       guard let raw, !raw.isEmpty else { return "" }
