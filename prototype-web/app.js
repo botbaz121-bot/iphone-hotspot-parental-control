@@ -733,36 +733,52 @@ function screenParentDeviceDetails(deviceId) {
   const d = state.devices.find(x => x.id === deviceId) || getDevice();
   const stale = d.lastCheckInMinutes >= 120;
 
+  const toggleRow = ({ title, sub, on, onFlip }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      toggleSwitch(on, onFlip),
+    ]);
+
+  const infoRow = ({ title, value }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-title' }, title),
+      el('div', { class: 'sc-row-sub', style: 'margin-top:0; text-align:right' }, value),
+    ]);
+
   return {
-    // Prefer returning to the actual previous screen; fall back to Dashboard.
     nav: navbar({ title: d.name, backTo: '/parent/dashboard' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'hstack', style: 'justify-content:space-between' }, [
-          el('div', { class: 'h2' }, 'Overview'),
-          badgeFor(d.status),
-        ]),
-        el('p', { class: 'p' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
-        stale ? el('div', { class: 'badge warn' }, '⚠️ Stale activity') : el('div', { class: 'badge good' }, 'Recent activity'),
+    body: el('div', { class: 'content sc-home' }, [
+      // In-content back (since navbar is hidden)
+      el('button', { class: 'btn ghost', onClick: () => route.go('/parent/dashboard') }, 'Back'),
+
+      el('div', { class: 'sc-title', style: 'margin-top:10px' }, d.name),
+      el('div', { class: 'sc-subtitle' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
+
+      stale ? el('div', { class: 'badge warn', style: 'display:inline-flex; margin-bottom:10px' }, '⚠️ Check-in stale')
+            : el('div', { class: 'badge good', style: 'display:inline-flex; margin-bottom:10px' }, 'Active'),
+
+      el('div', { class: 'hsec', style: 'margin-top:10px' }, 'Rules'),
+      el('div', { class: 'sc-list' }, [
+        toggleRow({
+          title: 'Hotspot OFF',
+          sub: 'Shortcut turns off hotspot + rotates password',
+          on: d.hotspotOff,
+          onFlip: () => { d.hotspotOff = !d.hotspotOff; render(); }
+        }),
+        toggleRow({
+          title: 'Set schedule',
+          sub: 'Quiet hours for this device',
+          on: d.quietTimeEnabled,
+          onFlip: () => { d.quietTimeEnabled = !d.quietTimeEnabled; render(); }
+        }),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Policy'),
-        el('div', { class: 'toggle' }, [
-          el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'Hotspot OFF'),
-            el('div', { class: 'small' }, 'Shortcut turns off hotspot + rotates password')
-          ]),
-          toggleSwitch(d.hotspotOff, () => { d.hotspotOff = !d.hotspotOff; render(); }),
-        ]),
-        el('div', { class: 'toggle' }, [
-          el('div', {}, [
-            el('div', { style: 'font-weight:720' }, 'Set schedule'),
-            el('div', { class: 'small' }, 'Quiet hours for this device')
-          ]),
-          toggleSwitch(d.quietTimeEnabled, () => { d.quietTimeEnabled = !d.quietTimeEnabled; render(); }),
-        ]),
-        d.quietTimeEnabled ? el('div', { class: 'hstack' }, [
+      d.quietTimeEnabled ? el('div', { class: 'card soft vstack', style: 'margin-top:12px' }, [
+        el('div', { class: 'hsec' }, 'Quiet hours'),
+        el('div', { class: 'hstack' }, [
           el('div', { style: 'flex:1' }, [
             el('div', { class: 'small' }, 'Start'),
             el('input', { class: 'field', value: d.quietStart, onInput: (e) => { d.quietStart = e.target.value; } })
@@ -771,12 +787,13 @@ function screenParentDeviceDetails(deviceId) {
             el('div', { class: 'small' }, 'End'),
             el('input', { class: 'field', value: d.quietEnd, onInput: (e) => { d.quietEnd = e.target.value; } })
           ]),
-        ]) : null,
-        el('button', { class: 'btn primary full', onClick: () => alert('Saved (mock)') }, [iconSquare('rules'), 'Save policy']),
-      ].filter(Boolean)),
+        ]),
+      ]) : null,
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Recent activity'),
+      el('button', { class: 'btn primary full', style: 'margin-top:12px', onClick: () => alert('Saved (mock)') }, [iconSquare('rules'), 'Save rules']),
+
+      el('div', { class: 'hsec', style: 'margin-top:18px' }, 'Recent activity'),
+      el('div', { class: 'card soft vstack' }, [
         el('div', { class: 'activity-box' }, (d.activity || []).map(a =>
           el('div', { class: 'activity-line' }, [
             el('div', { class: 'title' }, `${a.t} — ${a.msg}`),
@@ -784,12 +801,10 @@ function screenParentDeviceDetails(deviceId) {
         )),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Troubleshooting'),
-        el('button', { class: 'btn secondary full', onClick: () => shortcutNotRunningSheet({ device: d }) }, [iconSquare('tool'), 'Shortcut not running']),
-        el('button', { class: 'btn danger full', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
-      ]),
-    ]),
+      el('div', { class: 'hsec', style: 'margin-top:18px' }, 'Troubleshooting'),
+      el('button', { class: 'btn secondary full', onClick: () => shortcutNotRunningSheet({ device: d }) }, [iconSquare('tool'), 'Shortcut not running']),
+      el('button', { class: 'btn danger full', style: 'margin-top:10px', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
+    ].filter(Boolean)),
     tabs: bottomTabs('dashboard'),
   };
 }
