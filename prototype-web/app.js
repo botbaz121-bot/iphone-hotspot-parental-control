@@ -794,16 +794,14 @@ function screenParentDeviceDetails(deviceId) {
 
       el('button', { class: 'btn primary full', style: 'margin-top:12px', onClick: () => alert('Saved (mock)') }, [iconSquare('rules'), 'Save rules']),
 
-      el('div', { class: 'hsec', style: 'margin-top:18px' }, 'Recent activity'),
-      el('div', { class: 'card soft vstack' }, [
-        el('div', { class: 'activity-box' }, (d.activity || []).map(a =>
-          el('div', { class: 'activity-line' }, [
-            el('div', { class: 'title' }, `${a.t} — ${a.msg}`),
-          ])
-        )),
-      ]),
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Recent activity'),
+      el('div', { class: 'sc-list' }, (d.activity || []).map(a =>
+        el('div', { class: 'sc-row' }, [
+          el('div', { class: 'sc-row-title' }, `${a.t} — ${a.msg}`),
+        ])
+      )),
 
-      el('div', { class: 'hsec', style: 'margin-top:18px' }, 'Troubleshooting'),
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Troubleshooting'),
       el('button', { class: 'btn secondary full', onClick: () => shortcutNotRunningSheet({ device: d }) }, [iconSquare('tool'), 'Shortcut not running']),
       el('button', { class: 'btn danger full', style: 'margin-top:10px', onClick: () => alert('Remove device (mock)') }, [iconSquare('trash'), 'Remove device']),
     ].filter(Boolean)),
