@@ -32,26 +32,21 @@ public struct ChildSettingsView: View {
           }
 
           SettingsGroup("Setup") {
-            SettingsRow(
-              systemIcon: "qrcode",
-              title: "Pair device",
-              subtitle: "Scan a QR code or enter a pairing code",
-              rightText: (model.loadHotspotConfig() != nil) ? "Paired" : "Not paired",
-              action: {
-                // navigation handled by NavigationLink below
-              }
-            )
+            NavigationLink {
+              ChildPairView()
+                .environmentObject(model)
+            } label: {
+              SettingsRow(
+                systemIcon: "qrcode",
+                title: model.loadHotspotConfig() != nil ? "Edit pairing" : "Pair device",
+                subtitle: "Scan a QR code or enter a pairing code",
+                rightText: (model.loadHotspotConfig() != nil) ? "Paired" : "Not paired",
+                showsChevron: true,
+                action: nil
+              )
+            }
+            .buttonStyle(.plain)
           }
-
-          NavigationLink {
-            ChildPairView()
-              .environmentObject(model)
-          } label: {
-            Text("Open pairing")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
-          .tint(.blue)
 
           SettingsGroup("Debug (prototype helpers)") {
             SettingsRow(
