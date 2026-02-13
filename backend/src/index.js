@@ -298,7 +298,7 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
 const APPLE_TEAM_ID = env('APPLE_TEAM_ID');
 const APPLE_KEY_ID = env('APPLE_KEY_ID');
 const APPLE_SERVICE_ID = env('APPLE_SERVICE_ID');
-const APPLE_REDIRECT_URI = env('APPLE_REDIRECT_URI', `https://hotspot-api-ux32.onrender.com/auth/apple/callback`);
+const APPLE_REDIRECT_URI = env('APPLE_REDIRECT_URI', `https://hotspot.abomb.co.uk/auth/apple/callback`);
 const APPLE_PRIVATE_KEY = env('APPLE_PRIVATE_KEY');
 const APPLE_PRIVATE_KEY_PATH = env('APPLE_PRIVATE_KEY_PATH');
 

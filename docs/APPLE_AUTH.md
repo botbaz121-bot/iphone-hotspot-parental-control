@@ -9,7 +9,7 @@
 ### Web Authentication
 Configure **Service ID** → *Sign in with Apple* → **Web Authentication**:
 - **Domain:** `hubz.com`
-- **Return URL:** `https://hotspot-api-ux32.onrender.com/auth/apple/callback`
+- **Return URL:** `https://hotspot.abomb.co.uk/auth/apple/callback`
 
 ### Keys
 - Create a **Sign in with Apple** key and associate it with the *primary App ID*.
@@ -21,7 +21,7 @@ Required:
 - `APPLE_TEAM_ID=3SJ44B3Q7Y`
 - `APPLE_KEY_ID=<Key ID>`
 - `APPLE_SERVICE_ID=com.bazapps.hotspotparent.web`
-- `APPLE_REDIRECT_URI=https://hotspot-api-ux32.onrender.com/auth/apple/callback`
+- `APPLE_REDIRECT_URI=https://hotspot.abomb.co.uk/auth/apple/callback`
 - `APPLE_PRIVATE_KEY_PATH=/etc/secrets/AuthKey_<KeyID>.p8`
 
 Secret file:

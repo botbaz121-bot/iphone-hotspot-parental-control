@@ -63,7 +63,7 @@ public enum AppDefaults {
   }
 
   public static var apiBaseURL: String {
-    get { defaults.string(forKey: Key.apiBaseURL) ?? "https://hotspot-api-ux32.onrender.com" }
+    get { defaults.string(forKey: Key.apiBaseURL) ?? "https://hotspot.abomb.co.uk" }
     set { defaults.set(newValue, forKey: Key.apiBaseURL) }
   }
 
