@@ -3,8 +3,15 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if canImport(AuthenticationServices)
+import AuthenticationServices
+#endif
+
 public struct LandingView: View {
   @EnvironmentObject private var model: AppModel
+
+  @State private var status: String?
+  @State private var showError = false
 
   public init() {}
 
@@ -26,7 +33,7 @@ public struct LandingView: View {
             title: "Parent phone",
             subtitle: nil
           ) {
-            model.startParentFlow()
+            Task { await startParent() }
           }
 
           ShortcutTile(
@@ -71,6 +78,46 @@ public struct LandingView: View {
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
     }
+    .alert("Sign in failed", isPresented: $showError) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(status ?? "Unknown error")
+    }
+  }
+
+  @MainActor
+  private func startParent() async {
+    status = nil
+
+    // If already signed in, just enter parent mode.
+    if model.isSignedIn {
+      model.setAppMode(.parent)
+      return
+    }
+
+    #if canImport(AuthenticationServices)
+    do {
+      let coord = AppleSignInCoordinator()
+      let creds = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<AppleSignInCoordinator.AppleCredentials, Error>) in
+        coord.start { result in cont.resume(with: result) }
+      }
+
+      try await model.signInWithApple(
+        identityToken: creds.identityToken,
+        appleUserID: creds.userID,
+        email: creds.email,
+        fullName: creds.fullName
+      )
+
+      model.setAppMode(.parent)
+    } catch {
+      status = String(describing: error)
+      showError = true
+    }
+    #else
+    status = "Sign in with Apple is unavailable on this build target."
+    showError = true
+    #endif
   }
 }
 
