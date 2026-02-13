@@ -810,56 +810,84 @@ function screenParentDeviceDetails(deviceId) {
 }
 
 function screenParentSettings() {
+  const navRow = ({ icon, title, sub, onClick, right }) =>
+    el('div', { class: 'sc-row', role: 'button', onClick }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      right ? el('div', { class: 'sc-row-sub', style: 'margin-top:0' }, right) : el('div', { class: 'sc-chevron' }, '›'),
+    ]);
+
+  const toggleRow = ({ icon, title, sub, on, onFlip }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      toggleSwitch(on, onFlip),
+    ]);
+
+  const flipMode = () => {
+    state.isChildPhone = !state.isChildPhone;
+    persist();
+    route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
+  };
+
   return {
     nav: navbar({ title: 'Settings' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Mode'),
-        (() => {
-          const flip = () => {
-            state.isChildPhone = !state.isChildPhone;
-            persist();
-            // Always flip between the two Settings screens.
-            route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
-          };
-          return el('div', { class: 'toggle', onClick: flip }, [
-            el('div', {}, [
-              el('div', { style: 'font-weight:720' }, 'This is a child phone'),
-              el('div', { class: 'small' }, 'Show the child setup experience on this device')
-            ]),
-            toggleSwitch(state.isChildPhone, flip),
-          ]);
-        })(),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'Settings'),
+
+      el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, 'Mode'),
+      el('div', { class: 'sc-list' }, [
+        toggleRow({
+          icon: 'settings',
+          title: 'This is a child phone',
+          sub: 'Show the child setup experience on this device',
+          on: state.isChildPhone,
+          onFlip: flipMode,
+        }),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Account'),
-        el('div', { class: 'kv' }, [ el('div', { class: 'k' }, 'Signed in'), el('div', { class: 'v' }, state.signedIn ? 'Yes' : 'No') ]),
-        el('button', {
-          class: 'btn danger full',
-          onClick: () => {
-            state.signedIn = false;
-            persist();
-            route.go('/');
-          }
-        }, [iconSquare('logout'), 'Sign out']),
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Account'),
+      el('div', { class: 'sc-list' }, [
+        navRow({
+          icon: 'user',
+          title: 'Signed in',
+          sub: state.parentName ? `as ${state.parentName}` : null,
+          right: state.signedIn ? 'Yes' : 'No',
+          onClick: () => {},
+        }),
       ]),
+      el('button', {
+        class: 'btn danger full',
+        style: 'margin-top:10px',
+        onClick: () => {
+          state.signedIn = false;
+          persist();
+          route.go('/');
+        }
+      }, [iconSquare('logout'), 'Sign out']),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'In-app purchase'),
-        el('p', { class: 'p' }, state.adsRemoved ? 'Ads removed ✅' : 'Remove ads from the parent experience.'),
-        el('button', {
-          class: `btn ${state.adsRemoved ? '' : 'primary'} full`,
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'In-app purchase'),
+      el('div', { class: 'sc-list' }, [
+        navRow({
+          icon: 'check',
+          title: state.adsRemoved ? 'Ads removed' : 'Remove ads',
+          sub: state.adsRemoved ? 'Purchase restored ✅' : 'Remove ads from the parent experience',
           onClick: () => {
             state.adsRemoved = !state.adsRemoved;
             persist();
             render();
-          }
-        }, [iconSquare('check'), state.adsRemoved ? 'Restore purchase (mock)' : 'Remove ads (mock)']),
+          },
+        }),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Debug'),
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Debug'),
+      el('div', { class: 'card soft vstack' }, [
         el('p', { class: 'p' }, 'Static prototype. No server, no push, no background tasks.'),
       ]),
     ]),
@@ -960,100 +988,103 @@ function screenChildPair() {
 
 function screenChildSettings() {
   const c = state.childSetup;
-  const paired = c.paired;
+
+  const navRow = ({ icon, title, sub, onClick, right }) =>
+    el('div', { class: 'sc-row', role: 'button', onClick }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      right ? el('div', { class: 'sc-row-sub', style: 'margin-top:0' }, right) : el('div', { class: 'sc-chevron' }, '›'),
+    ]);
+
+  const toggleRow = ({ icon, title, sub, on, onFlip }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      toggleSwitch(on, onFlip),
+    ]);
+
+  const flipMode = () => {
+    state.isChildPhone = !state.isChildPhone;
+    persist();
+    route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
+  };
 
   return {
     nav: navbar({ title: 'Settings', backTo: '/child/dashboard' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Mode'),
-        (() => {
-          const flip = () => {
-            state.isChildPhone = !state.isChildPhone;
-            persist();
-            // Always flip between the two Settings screens.
-            route.go(state.isChildPhone ? '/child/settings' : '/parent/settings');
-          };
-          return el('div', { class: 'toggle', onClick: flip }, [
-            el('div', {}, [
-              el('div', { style: 'font-weight:720' }, 'This is a child phone'),
-              el('div', { class: 'small' }, 'Show the child setup experience on this device')
-            ]),
-            toggleSwitch(state.isChildPhone, flip),
-          ]);
-        })(),
-      ]),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'Settings'),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Pairing'),
-        el('p', { class: 'p' }, paired ? 'Paired ✅' : 'Not paired yet.'),
-        el('div', { class: 'hstack' }, [
-          el('button', {
-            class: 'btn primary',
-            onClick: () => { c.paired = true; alert('Paired (mock)'); route.go('/child/dashboard'); }
-          }, [iconSquare('qr'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
-          paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
-        ].filter(Boolean)),
-
-        el('div', { class: 'h2', style: 'margin-top:6px' }, 'Or enter pairing code'),
-        el('input', {
-          class: 'field',
-          placeholder: 'e.g. ABCD-1234',
-          value: c._pairCode || '',
-          onInput: (e) => { c._pairCode = e.target.value; }
+      el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, 'Mode'),
+      el('div', { class: 'sc-list' }, [
+        toggleRow({
+          icon: 'settings',
+          title: 'This is a child phone',
+          sub: 'Show the child setup experience on this device',
+          on: state.isChildPhone,
+          onFlip: flipMode,
         }),
-        el('button', {
-          class: 'btn secondary full',
-          onClick: () => {
-            if ((c._pairCode || '').trim().length < 4) return alert('Enter a code');
-            c.paired = true;
-            alert('Paired (mock)');
-            route.go('/child/dashboard');
-          }
-        }, [iconSquare('shortcut'), 'Pair']),
-        el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, 'Debug (prototype helpers)'),
-        el('p', { class: 'p' }, 'These simulate signals the real app would infer from App Intent runs + permissions.'),
-        el('div', { class: 'hstack' }, [
-          el('button', {
-            class: 'btn secondary full',
-            onClick: () => {
-              c.shortcutInstalled = true;
-              c.appIntentAdded = true;
-              c.appIntentRunCount = (c.appIntentRunCount || 0) + 1;
-              c.lastAppIntentRunAt = new Date().toISOString();
-              alert(`Simulated Shortcut run (${c.appIntentRunCount})`);
-              render();
-            }
-          }, [iconSquare('shortcut'), 'Simulate Shortcut run']),
-          el('button', {
-            class: 'btn secondary full',
-            onClick: () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }
-          }, [iconSquare('shield'), c.screenTimeAuthorized ? 'Unset Screen Time auth' : 'Set Screen Time auth']),
-        ]),
-        el('button', {
-          class: 'btn danger full',
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Setup'),
+      el('div', { class: 'sc-list' }, [
+        navRow({
+          icon: 'qr',
+          title: 'Pair device',
+          sub: 'Scan a QR code or enter a pairing code',
+          right: c.paired ? 'Paired' : 'Not paired',
+          onClick: () => route.go('/child/pair'),
+        }),
+      ]),
+
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Debug (prototype helpers)'),
+      el('div', { class: 'sc-list' }, [
+        navRow({
+          icon: 'shortcut',
+          title: 'Simulate Shortcut run',
+          sub: 'Increments the run count (mock)',
           onClick: () => {
-            Object.assign(c, {
-              paired: false,
-              shortcutInstalled: false,
-              appIntentAdded: false,
-              appIntentRunCount: 0,
-              lastAppIntentRunAt: null,
-              automationsEnabled: false,
-              screenTimeAuthorized: false,
-              screenTimePasscodeSet: false,
-              shieldingApplied: false,
-            });
+            c.shortcutInstalled = true;
+            c.appIntentAdded = true;
+            c.appIntentRunCount = (c.appIntentRunCount || 0) + 1;
+            c.lastAppIntentRunAt = new Date().toISOString();
+            alert(`Simulated Shortcut run (${c.appIntentRunCount})`);
             render();
           }
-        }, [iconSquare('trash'), 'Reset child setup state']),
+        }),
+        navRow({
+          icon: 'shield',
+          title: c.screenTimeAuthorized ? 'Unset Screen Time auth' : 'Set Screen Time auth',
+          sub: 'Toggle FamilyControls permission (mock)',
+          onClick: () => { c.screenTimeAuthorized = !c.screenTimeAuthorized; render(); }
+        }),
       ]),
+      el('button', {
+        class: 'btn danger full',
+        style: 'margin-top:10px',
+        onClick: () => {
+          Object.assign(c, {
+            paired: false,
+            shortcutInstalled: false,
+            appIntentAdded: false,
+            appIntentRunCount: 0,
+            lastAppIntentRunAt: null,
+            automationsEnabled: false,
+            screenTimeAuthorized: false,
+            screenTimePasscodeSet: false,
+            shieldingApplied: false,
+          });
+          render();
+        }
+      }, [iconSquare('trash'), 'Reset child setup state']),
 
     ]),
+    tabs: bottomTabs('settings'),
   };
 }
 
