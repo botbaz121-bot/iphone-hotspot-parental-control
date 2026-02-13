@@ -1134,8 +1134,8 @@ function screenChildDashboard() {
     body: el('div', { class: 'content sc-home' }, [
       el('div', { class: 'sc-headrow' }, [
         el('div', {}, [
-          el('div', { class: 'sc-title' }, 'All Shortcuts'),
-          el('div', { class: 'sc-subtitle' }, 'Setup checklist'),
+          el('div', { class: 'sc-title' }, 'Setup checklist'),
+          el('div', { class: 'sc-subtitle' }, 'Complete these steps so rules can be enforced.'),
         ]),
       ]),
 
