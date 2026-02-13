@@ -1104,17 +1104,29 @@ function screenChildLocked() {
 function screenChildDashboard() {
   const c = state.childSetup;
 
-  const statusRow = ({ title, sub, badgeText, badgeClass = 'muted' }) =>
-    el('div', { class: 'sc-row' }, [
-      el('div', { class: 'sc-row-txt' }, [
-        el('div', { class: 'sc-row-title' }, title),
-        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
-      ].filter(Boolean)),
-      el('span', { class: `badge ${badgeClass}` }, badgeText),
-    ]);
+  const openModal = ({ title, body }) =>
+    openSheet({
+      title,
+      body: el('div', { class: 'vstack' }, [
+        el('p', { class: 'p' }, body),
+        el('button', { class: 'btn secondary full', onClick: closeSheet }, 'Close'),
+      ]),
+    });
 
-  const initialRunDone = c.appIntentRunCount >= 1;
-  const automationConfidenceDone = c.appIntentRunCount >= 2;
+  const threeDotsBtn = (onClick) =>
+    el('button', { class: 'iconbtn', onClick, 'aria-label': 'More' }, '⋯');
+
+  const actionTile = ({ title, sub, icon, btnText, btnClass = 'secondary', onMain, onMore }) =>
+    el('div', { class: 'card soft vstack' }, [
+      el('div', { class: 'hstack', style: 'justify-content:space-between; align-items:flex-start' }, [
+        el('div', {}, [
+          el('div', { class: 'shot-title' }, title),
+          sub ? el('div', { class: 'shot-sub' }, sub) : null,
+        ].filter(Boolean)),
+        onMore ? threeDotsBtn(onMore) : null,
+      ].filter(Boolean)),
+      el('button', { class: `btn ${btnClass} full`, onClick: onMain, style: 'margin-top:10px' }, [iconSquare(icon), btnText]),
+    ]);
 
   return {
     nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
@@ -1122,60 +1134,64 @@ function screenChildDashboard() {
       el('div', { class: 'sc-title' }, 'Setup checklist'),
       el('div', { class: 'sc-subtitle' }, 'Complete these steps so rules can be enforced.'),
 
+      // 1) Pair device
       el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, '1) Pair device'),
-      el('div', { class: 'card soft vstack' }, [
-        el('p', { class: 'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
-        el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary full', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), c.paired ? 'View pairing' : 'Start pairing']),
-          c.paired ? el('button', { class: 'btn secondary', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
-        ].filter(Boolean)),
-      ]),
+      actionTile({
+        title: 'Pair device',
+        sub: c.paired ? 'Paired ✅' : 'Not paired yet.',
+        icon: 'qr',
+        btnText: c.paired ? 'Open pairing' : 'Start pairing',
+        btnClass: 'primary',
+        onMain: () => route.go('/child/pair'),
+        onMore: c.paired ? (() => route.go('/child/pair')) : null,
+      }),
 
+      // 2) Install our Shortcut
       el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '2) Install our Shortcut'),
-      el('div', { class: 'card soft vstack' }, [
-        el('button', { class: 'btn secondary full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare('shortcut'), 'Open Shortcut link']),
-        el('div', { class: 'shot' }, [
-          el('div', { class: 'shot-title' }, 'Initial run'),
-          el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If iOS prompts, choose “Always Allow” where possible.'),
-        ]),
-        el('div', { class: 'sc-list' }, [
-          statusRow({
-            title: 'Shortcut runs',
-            sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run',
-            badgeText: initialRunDone ? 'Done' : 'Awaiting',
-            badgeClass: initialRunDone ? 'good' : 'warn'
-          }),
-        ]),
-      ]),
+      actionTile({
+        title: 'Install our Shortcut',
+        sub: 'Open the link, add the Shortcut, then run it once.',
+        icon: 'shortcut',
+        btnText: 'Open Shortcut link',
+        btnClass: 'secondary',
+        onMain: () => alert('Open Shortcut link (mock)'),
+      }),
 
+      // 3) Automations
       el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '3) Automations'),
-      el('div', { class: 'sc-list' }, [
-        statusRow({
-          title: 'Automation runs',
-          sub: automationConfidenceDone ? 'Multiple runs observed' : 'Awaiting multiple runs',
-          badgeText: automationConfidenceDone ? 'Done' : 'Awaiting',
-          badgeClass: automationConfidenceDone ? 'good' : 'warn'
+      actionTile({
+        title: 'Automations',
+        sub: 'Enable automations so enforcement can run quietly.',
+        icon: 'tool',
+        btnText: 'View instructions',
+        btnClass: 'secondary',
+        onMain: () => openModal({
+          title: 'Automations',
+          body: 'Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible. (Mock instructions)'
         }),
-      ]),
+      }),
 
+      // 4) Screen Time lock
       el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '4) Screen Time lock'),
-      el('div', { class: 'sc-list' }, [
-        statusRow({
-          title: 'Screen Time authorization',
-          sub: 'FamilyControls permission granted',
-          badgeText: c.screenTimeAuthorized ? 'Done' : 'Awaiting',
-          badgeClass: c.screenTimeAuthorized ? 'good' : 'warn'
-        }),
-        statusRow({
-          title: 'Shielding applied',
-          sub: 'Shortcuts/Settings selected for shielding',
-          badgeText: c.shieldingApplied ? 'Done' : 'Awaiting',
-          badgeClass: c.shieldingApplied ? 'good' : 'warn'
-        }),
-      ]),
-      el('button', { class: 'btn primary full', style: 'margin-top:10px', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
+      actionTile({
+        title: 'Screen Time lock',
+        sub: 'Select apps to shield (Shortcuts + Settings).',
+        icon: 'shield',
+        btnText: 'Select apps to shield',
+        btnClass: 'primary',
+        onMain: () => route.go('/child/screentime'),
+      }),
 
-      el('button', { class: 'btn secondary full', style: 'margin-top:16px', onClick: () => route.go('/child/locked') }, [iconSquare('check'), 'Finish setup']),
+      // 5) Finish setup
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '5) Finish setup'),
+      actionTile({
+        title: 'Finish setup',
+        sub: 'Lock this phone into child mode once everything is enabled.',
+        icon: 'check',
+        btnText: 'Finish setup',
+        btnClass: 'secondary',
+        onMain: () => route.go('/child/locked'),
+      }),
     ]),
   };
 }
