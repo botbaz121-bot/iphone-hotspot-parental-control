@@ -68,14 +68,30 @@ public struct ParentDashboardView: View {
   }
 
   private var header: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text("Devices")
-        .font(.system(size: 34, weight: .bold))
-        .padding(.top, 2)
+    HStack(alignment: .top) {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("All Child Devices")
+          .font(.system(size: 34, weight: .bold))
+          .padding(.top, 2)
 
-      Text("Tap a device to view rules and recent activity.")
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+        Text("Tap a device to view rules and recent activity.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+
+      Spacer()
+
+      Button {
+        model.presentEnrollSheet = true
+      } label: {
+        Image(systemName: "plus")
+          .font(.title3.weight(.semibold))
+          .frame(width: 44, height: 44)
+          .background(Color.white.opacity(0.08))
+          .clipShape(Circle())
+      }
+      .accessibilityLabel("Add device")
+      .padding(.top, 4)
     }
   }
 }

@@ -140,13 +140,13 @@ public final class AppModel: ObservableObject {
   }
 
   public func startParentFlow() {
+    // Onboarding screens removed; this now simply selects the parent mode.
     setAppMode(.parent)
-    restartOnboarding()
   }
 
   public func startChildFlow() {
+    // Onboarding screens removed; this now simply selects the child-setup mode.
     setAppMode(.childSetup)
-    restartOnboarding()
   }
 
   // MARK: - Auth (v1B)

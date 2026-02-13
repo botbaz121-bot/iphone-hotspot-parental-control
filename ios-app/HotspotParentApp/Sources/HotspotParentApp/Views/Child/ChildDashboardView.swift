@@ -99,15 +99,16 @@ public struct ChildDashboardView: View {
   }
 
   private var screenTimeTile: some View {
-    NavigationLink {
+    let ok = model.screenTimeAuthorized && model.shieldingApplied
+    return NavigationLink {
       ScreenTimeSetupView()
         .environmentObject(model)
     } label: {
       ShortcutTileCard(
-        color: .blue,
+        color: ok ? .blue : .gray,
         systemIcon: "shield",
         title: "Screen Time lock",
-        subtitle: "Select apps to shield"
+        subtitle: ok ? "Done" : "Not set up yet"
       )
     }
     .buttonStyle(.plain)
