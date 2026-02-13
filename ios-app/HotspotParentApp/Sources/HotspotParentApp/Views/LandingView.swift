@@ -39,7 +39,7 @@ public struct LandingView: View {
           ShortcutTile(
             color: .pink,
             systemIcon: "iphone",
-            title: "Set up child\nphone",
+            title: "Child\nphone",
             subtitle: nil
           ) {
             model.startChildFlow()
