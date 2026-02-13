@@ -430,7 +430,7 @@ function enrollmentSheet({ backTo }) {
         }
       }, [iconSquare('qr'), 'Add device']),
 
-      el('button', { class: 'btn secondary full', onClick: () => { closeSheet(); route.go('/child/onboarding'); } }, 'Set up child phone'),
+      el('button', { class: 'btn secondary full', onClick: () => { closeSheet(); route.go('/child/dashboard'); } }, 'Set up child phone'),
       backTo ? el('button', { class: 'btn secondary full', onClick: () => { closeSheet(); route.go(backTo); } }, 'Close') : null,
     ].filter(Boolean),
   });
@@ -521,7 +521,7 @@ function screenLanding() {
     navReset();
     state.mode = 'childsetup';
     persist();
-    route.go('/child/onboarding');
+    route.go('/child/dashboard');
   };
 
   return {
@@ -908,6 +908,56 @@ function screenChildOnboarding() {
   };
 }
 
+function screenChildPair() {
+  const c = state.childSetup;
+  const paired = c.paired;
+
+  return {
+    nav: navbar({ title: 'Pair', backTo: '/child/dashboard' }),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-topcontrols' }, [
+        el('button', { class: 'iconbtn', onClick: () => route.go('/child/dashboard'), 'aria-label': 'Back' }, '‹'),
+      ]),
+
+      el('div', { class: 'sc-title' }, 'Pair device'),
+      el('div', { class: 'sc-subtitle' }, 'Link this phone so the Shortcut can fetch policy and report activity.'),
+
+      el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, 'Scan QR (mock)'),
+      el('div', { class: 'card soft vstack' }, [
+        el('p', { class: 'p' }, paired ? 'Paired ✅' : 'Not paired yet.'),
+        el('div', { class: 'hstack' }, [
+          el('button', {
+            class: 'btn primary full',
+            onClick: () => { c.paired = true; alert('Paired (mock)'); route.go('/child/dashboard'); }
+          }, [iconSquare('qr'), paired ? 'Re-scan (mock)' : 'Scan QR (mock)']),
+          paired ? el('button', { class: 'btn secondary', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
+        ].filter(Boolean)),
+      ]),
+
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, 'Or enter pairing code'),
+      el('div', { class: 'card soft vstack' }, [
+        el('input', {
+          class: 'field',
+          placeholder: 'e.g. ABCD-1234',
+          value: c._pairCode || '',
+          onInput: (e) => { c._pairCode = e.target.value; }
+        }),
+        el('button', {
+          class: 'btn secondary full',
+          onClick: () => {
+            if ((c._pairCode || '').trim().length < 4) return alert('Enter a code');
+            c.paired = true;
+            alert('Paired (mock)');
+            route.go('/child/dashboard');
+          }
+        }, [iconSquare('shortcut'), 'Pair']),
+        el('p', { class: 'small' }, 'Pairing enables the Shortcut to fetch policy (hotspot off + quiet time).'),
+      ]),
+    ]),
+    tabs: bottomTabs('dashboard'),
+  };
+}
+
 function screenChildSettings() {
   const c = state.childSetup;
   const paired = c.paired;
@@ -1202,12 +1252,14 @@ function resolveScreen() {
   if (p === '/parent/settings') return screenParentSettings();
 
   // Child setup flow
-  if (p === '/child/onboarding') return screenChildOnboarding();
+  // Child setup flow
+  // Onboarding screen removed: go straight to dashboard.
+  if (p === '/child/onboarding') return screenChildDashboard();
   if (p === '/child/dashboard') return screenChildDashboard();
   if (p === '/child/settings') return screenChildSettings();
+  if (p === '/child/pair') return screenChildPair();
   // Legacy child routes redirect into the new structure
   if (p === '/child/checklist') return screenChildDashboard();
-  if (p === '/child/pair') return screenChildSettings();
   if (p === '/child/screentime') return screenChildScreenTime();
   if (p === '/child/unlock') return screenChildUnlock();
   if (p === '/child/locked') return screenChildLocked();
@@ -1233,12 +1285,14 @@ function activeTabForPath(p) {
 
   if (p.startsWith('/child/')) {
     if (p === '/child/locked') return null;
-    if (p === '/child/onboarding') return null;
+    // Onboarding removed; treat as dashboard.
+    if (p === '/child/onboarding') return 'dashboard';
     if (p === '/child/dashboard') return 'dashboard';
     if (p === '/child/settings') return 'settings';
+    if (p === '/child/pair') return 'dashboard';
     if (p === '/child/screentime') return 'dashboard';
     // Legacy routes → dashboard
-    if (p === '/child/checklist' || p === '/child/pair') return 'dashboard';
+    if (p === '/child/checklist') return 'dashboard';
     return 'dashboard';
   }
 
