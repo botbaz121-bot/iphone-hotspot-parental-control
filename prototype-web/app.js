@@ -381,7 +381,7 @@ function enrollmentSheet({ backTo }) {
               iconSquare('link'),
               el('div', {}, [
                 el('div', { class: 'title' }, 'Install the Shortcut'),
-                el('div', { class: 'sub' }, 'Add “Get Hotspot Config” at the start')
+                el('div', { class: 'sub' }, 'Add “Fetch Hotspot Policy” at the start')
               ])
             ]),
             el('span', { class: 'badge muted' }, '2')
@@ -487,7 +487,7 @@ function shortcutNotRunningSheet({ device }) {
       el('div', { class: 'card soft vstack', style: 'padding:12px' }, [
         el('div', { class: 'h2' }, 'What to look for (common issues)'),
         el('div', { class: 'list' }, [
-          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Missing step: “Get Hotspot Config”'), el('div', { class: 'sub' }, 'It should be the first step so the Shortcut can authenticate.')])]),
+          el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Missing step: “Fetch Hotspot Policy”'), el('div', { class: 'sub' }, 'It should be the first step so the Shortcut can fetch policy without sending data to Chrome.')])]),
           el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Permissions prompts'), el('div', { class: 'sub' }, 'If iOS asks, choose “Always Allow” where possible.')])]),
           el('div', { class: 'row' }, [el('div', {}, [el('div', { class: 'title' }, 'Automation disabled'), el('div', { class: 'sub' }, 'Toggling Screen Time / Shortcuts restrictions can disable automations.')])]),
         ]),
