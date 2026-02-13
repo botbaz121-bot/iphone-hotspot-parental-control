@@ -115,7 +115,16 @@ private struct DeviceTileView: View {
 
   private var gradient: LinearGradient {
     // Roughly Shortcuts-style colored tiles.
-    switch device.status {
+    // Backend model doesn't have a single "status" string; derive one.
+    // - gap == true → stale
+    // - enforce == false → setup/disabled
+    let status: String = {
+      if device.gap { return "STALE" }
+      if device.enforce == false { return "SETUP" }
+      return "OK"
+    }()
+
+    switch status {
       case "OK":
         return LinearGradient(colors: [Color(red: 0.20, green: 0.45, blue: 1.0), Color(red: 0.31, green: 0.55, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing)
       case "STALE":
