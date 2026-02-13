@@ -43,6 +43,7 @@ public struct ParentSettingsView: View {
 
         Button(role: .destructive) {
           model.signOut()
+          model.setAppMode(nil)
         } label: {
           Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
             .frame(maxWidth: .infinity)
