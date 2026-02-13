@@ -22,9 +22,6 @@ public struct ParentDashboardView: View {
                 // Open device details
                 model.selectedDeviceId = d.id
                 detailsDeviceId = d.id
-              } onMore: {
-                model.selectedDeviceId = d.id
-                detailsDeviceId = d.id
               }
             }
           }
@@ -115,7 +112,6 @@ public struct ParentDashboardView: View {
 private struct DeviceTileView: View {
   let device: DashboardDevice
   var onTap: () -> Void
-  var onMore: () -> Void
 
   private var gradient: LinearGradient {
     // Roughly Shortcuts-style colored tiles.
@@ -138,33 +134,18 @@ private struct DeviceTileView: View {
           .fill(gradient)
 
         VStack(alignment: .leading, spacing: 10) {
-          HStack {
-            ZStack {
-              RoundedRectangle(cornerRadius: 10)
-                .fill(Color.black.opacity(0.22))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                )
-              Text(String(device.name.prefix(1)).uppercased())
-                .font(.headline.weight(.bold))
-                .foregroundStyle(.white.opacity(0.95))
-            }
-            .frame(width: 28, height: 28)
-
-            Spacer()
-
-            Button {
-              onMore()
-            } label: {
-              Image(systemName: "ellipsis")
-                .foregroundStyle(Color.white.opacity(0.9))
-                .frame(width: 28, height: 28)
-                .background(Color.white.opacity(0.16))
-                .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+          ZStack {
+            RoundedRectangle(cornerRadius: 10)
+              .fill(Color.black.opacity(0.22))
+              .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                  .stroke(Color.white.opacity(0.18), lineWidth: 1)
+              )
+            Text(String(device.name.prefix(1)).uppercased())
+              .font(.headline.weight(.bold))
+              .foregroundStyle(.white.opacity(0.95))
           }
+          .frame(width: 28, height: 28)
 
           Spacer(minLength: 0)
 

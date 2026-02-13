@@ -6,106 +6,79 @@ import SwiftUI
 public struct ParentSettingsView: View {
   @EnvironmentObject private var model: AppModel
   @StateObject private var iap = IAPManager.shared
-  @State private var iapStatus: String?
 
   public init() {}
 
   public var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 14) {
-        ModeSettingsCardView()
-          .environmentObject(model)
+      VStack(alignment: .leading, spacing: 18) {
+        Text("Settings")
+          .font(.system(size: 34, weight: .bold))
+          .padding(.top, 2)
 
-        accountCard
+        SettingsGroup("Mode") {
+          SettingsToggleRow(
+            systemIcon: "gearshape",
+            title: "This is a child phone",
+            subtitle: "Show the child setup experience on this device",
+            isOn: Binding(
+              get: { model.appMode == .childSetup },
+              set: { isOn in
+                model.setAppMode(isOn ? .childSetup : .parent)
+              }
+            )
+          )
+        }
 
-        iapCard
+        SettingsGroup("Account") {
+          SettingsRow(
+            systemIcon: "person",
+            title: "Signed in",
+            subtitle: nil,
+            rightText: model.isSignedIn ? "Yes" : "No",
+            showsChevron: false,
+            action: nil
+          )
+        }
 
-        debugCard
+        Button(role: .destructive) {
+          model.signOut()
+        } label: {
+          Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(.red)
+        .disabled(!model.isSignedIn)
+
+        SettingsGroup("In-app purchase") {
+          SettingsRow(
+            systemIcon: "checkmark",
+            title: model.adsRemoved ? "Ads removed" : "Remove ads",
+            subtitle: model.adsRemoved ? "Purchased ✅" : "Remove ads from the parent experience",
+            showsChevron: true,
+            action: {
+              Task {
+                await iap.purchaseRemoveAds()
+                await MainActor.run { model.adsRemoved = iap.adsRemoved }
+              }
+            }
+          )
+        }
+
+        SettingsGroup("Debug") {
+          SettingsRow(
+            systemIcon: "ladybug",
+            title: "Static prototype",
+            subtitle: "No server, no push, no background tasks",
+            showsChevron: false,
+            action: nil
+          )
+        }
       }
-      .padding(.top, 22)
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
     }
-  }
-
-  private var accountCard: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Account")
-        .font(.headline)
-
-      HStack {
-        Text("Signed in")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-        Spacer()
-        Text(model.isSignedIn ? "Yes" : "No")
-          .font(.footnote.weight(.semibold))
-          .foregroundStyle(model.isSignedIn ? .green : .secondary)
-      }
-
-      Button(role: .destructive) {
-        model.signOut()
-      } label: {
-        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-      .tint(.red)
-      .disabled(!model.isSignedIn)
-    }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var iapCard: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("In-app purchase")
-        .font(.headline)
-
-      Text("Remove ads from the parent experience.")
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-
-      Button {
-        Task {
-          iapStatus = nil
-          await iap.purchaseRemoveAds()
-          await MainActor.run {
-            model.adsRemoved = iap.adsRemoved
-            iapStatus = iap.adsRemoved ? "Purchased" : "Not purchased"
-          }
-        }
-      } label: {
-        Label("Remove ads (mock)", systemImage: "clock")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-      .tint(.blue)
-
-      if let iapStatus {
-        Text(iapStatus)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-      }
-    }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var debugCard: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Debug")
-        .font(.headline)
-
-      Text("Static prototype. No server, no push, no background tasks.")
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-    }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 }
 

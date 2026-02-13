@@ -31,18 +31,16 @@ public struct RootView: View {
           } else {
             switch model.appMode {
               case .some(.parent):
-                if !model.onboardingCompleted {
-                  ParentOnboardingView()
-                } else if !model.isSignedIn {
+                // Onboarding screens removed in the latest mock: go straight to sign-in/dashboard.
+                if !model.isSignedIn {
                   ParentSignInView()
                 } else {
                   ParentTabView()
                 }
 
               case .some(.childSetup):
-                if !model.onboardingCompleted {
-                  ChildWelcomeView()
-                } else if model.childIsLocked {
+                // Onboarding screens removed in the latest mock: go straight to setup dashboard.
+                if model.childIsLocked {
                   if model.childUnlockRequested {
                     ChildUnlockView()
                   } else {
