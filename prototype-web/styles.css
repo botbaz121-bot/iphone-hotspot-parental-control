@@ -536,6 +536,34 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
   background: rgba(255,255,255,.08);
 }
 
+.sc-list{
+  border-radius: 18px;
+  overflow:hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+}
+.sc-row{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.sc-row:first-child{ border-top: none; }
+.sc-row-ic{
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+.sc-row-ic .ic{ width: 18px; height: 18px; }
+.sc-row-title{ font-weight: 820; }
+.sc-row-sub{ color: rgba(244,246,251,.65); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+.sc-row-txt{ flex:1; }
+
 .sc-grid{
   display:grid;
   grid-template-columns: 1fr 1fr;

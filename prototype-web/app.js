@@ -577,32 +577,34 @@ function featureTile({ icon, title, sub }) {
 }
 
 function screenParentOnboarding() {
+  const row = ({ icon, title, sub }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      el('div', { class: 'sc-chevron' }, '›'),
+    ]);
+
   return {
     nav: navbar({ title: 'Welcome', backTo: '/' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero' }, [
-        el('div', { class: 'hero-top' }, [
-          el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Welcome'),
-            el('p', { class: 'hero-sub' }, 'Set rules, guide setup on the child phone, and get a simple tamper warning if it stops running.'),
-          ]),
-          el('span', { class: 'badge muted' }, 'Parent'),
-        ]),
-        el('div', { class: 'hero-actions' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/parent/signin') }, [iconSquare('next'), 'Continue']),
-        ]),
-      ]),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'Welcome'),
+      el('div', { class: 'sc-subtitle' }, 'Set rules, guide setup on the child phone, and get a simple tamper warning if it stops running.'),
 
-      el('div', { class: 'card vstack' }, [
+      el('button', { class: 'btn primary full', onClick: () => route.go('/parent/signin') }, [iconSquare('next'), 'Continue']),
+
+      el('div', { class: 'card soft vstack', style: 'margin-top:14px' }, [
         el('div', { class: 'h2' }, 'What this can do'),
-        el('div', { class: 'feature-grid' }, [
-          featureTile({ icon: 'rules', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
-          featureTile({ icon: 'checklist', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
-          featureTile({ icon: 'alert', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).'}),
+        el('div', { class: 'sc-list' }, [
+          row({ icon: 'rules', title: 'Per-device rules', sub: 'Hotspot OFF and Quiet Time per child device.' }),
+          row({ icon: 'checklist', title: 'Guided setup', sub: 'Pair the child phone, install the Shortcut, and apply Screen Time shielding.' }),
+          row({ icon: 'alert', title: 'Tamper warning', sub: 'Warn when the phone hasn’t been seen recently (likely disabled).' }),
         ]),
       ]),
 
-      el('div', { class: 'card vstack' }, [
+      el('div', { class: 'card soft vstack' }, [
         el('div', { class: 'h2' }, 'Constraints'),
         el('p', { class: 'p' }, 'iOS apps can’t reliably toggle Personal Hotspot directly; enforcement is performed by the Shortcut on the device.'),
       ]),
@@ -853,40 +855,41 @@ function screenParentSettings() {
 }
 
 function screenChildOnboarding() {
+  const row = ({ icon, title, sub }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
+      ].filter(Boolean)),
+      el('div', { class: 'sc-chevron' }, '›'),
+    ]);
+
   return {
     nav: navbar({ title: 'Welcome', backTo: '/' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'hero' }, [
-        el('div', { class: 'hero-top' }, [
-          el('div', {}, [
-            el('h1', { class: 'hero-title' }, 'Welcome'),
-            el('p', { class: 'hero-sub' }, 'Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.'),
-          ]),
-          el('span', { class: 'badge muted' }, 'Child')
-        ]),
-        el('div', { class: 'hero-actions' }, [
-          el('button', {
-            class: 'btn primary',
-            onClick: () => {
-              // Child phone experience always starts in child flow.
-              state.isChildPhone = true;
-              persist();
-              route.go('/child/dashboard');
-            }
-          }, [iconSquare('next'), 'Continue']),
-        ]),
-      ]),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'Welcome'),
+      el('div', { class: 'sc-subtitle' }, 'Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.'),
 
-      el('div', { class: 'card vstack' }, [
+      el('button', {
+        class: 'btn primary full',
+        onClick: () => {
+          state.isChildPhone = true;
+          persist();
+          route.go('/child/dashboard');
+        }
+      }, [iconSquare('next'), 'Continue']),
+
+      el('div', { class: 'card soft vstack', style: 'margin-top:14px' }, [
         el('div', { class: 'h2' }, 'What you’ll do'),
-        el('div', { class: 'feature-grid' }, [
-          featureTile({ icon: 'qr', title: 'Pair', sub: 'Scan a QR from the parent app to link this phone.' }),
-          featureTile({ icon: 'checklist', title: 'Enable automations', sub: 'So the Shortcut can enforce Hotspot OFF and Quiet Time.' }),
-          featureTile({ icon: 'alert', title: 'Stay protected', sub: 'If this stops running, the parent will see a tamper warning.' }),
+        el('div', { class: 'sc-list' }, [
+          row({ icon: 'qr', title: 'Pair', sub: 'Scan a QR from the parent app to link this phone.' }),
+          row({ icon: 'checklist', title: 'Enable automations', sub: 'So the Shortcut can enforce Hotspot OFF and Quiet Time.' }),
+          row({ icon: 'alert', title: 'Stay protected', sub: 'If this stops running, the parent will see a tamper warning.' }),
         ]),
       ]),
 
-      el('div', { class: 'card vstack' }, [
+      el('div', { class: 'card soft vstack' }, [
         el('div', { class: 'h2' }, 'Tip'),
         el('p', { class: 'p' }, 'When you’re done, use Exit child setup to hand the phone back to the parent.'),
       ]),
