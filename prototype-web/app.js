@@ -709,8 +709,8 @@ function screenParentDashboard() {
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}`, rightButton: plusBtn }),
     body: el('div', { class: 'content sc-home' }, [
-      el('div', { class: 'sc-title' }, 'All Shortcuts'),
-      el('div', { class: 'sc-subtitle' }, 'Your child devices'),
+      el('div', { class: 'sc-title' }, 'All Child Devices'),
+      el('div', { class: 'sc-subtitle' }, 'Tap a device to adjust rules and view activity'),
 
       el('div', { class: 'sc-grid' }, state.devices.map(tileForDevice)),
 
