@@ -17,58 +17,78 @@ public struct AddDeviceSheetView: View {
   public var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
-          Text("Enroll a child device")
-            .font(.title.bold())
+        VStack(alignment: .leading, spacing: 18) {
+          SettingsGroup("Enroll") {
+            SettingsRow(
+              systemIcon: "qrcode",
+              title: "Generate a pairing code",
+              subtitle: "On the child phone: open the app → Child phone → Settings → enter the code",
+              rightText: nil,
+              showsChevron: false,
+              action: nil
+            )
+          }
 
-          Text("This generates a short-lived pairing code. On the child phone: open the app → Child mode → Settings → enter the code.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+          SettingsGroup("Device name") {
+            VStack(alignment: .leading, spacing: 10) {
+              TextField("Optional", text: $deviceName)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(Color.white.opacity(0.04))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-          TextField("Device name (optional)", text: $deviceName)
-            .textFieldStyle(.roundedBorder)
+              Button {
+                status = nil
+                pairingCode = nil
+                loading = true
+                Task {
+                  defer { loading = false }
+                  do {
+                    let out = try await model.createDeviceAndPairingCode(name: deviceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : deviceName)
+                    pairingCode = out.code
+                  } catch {
+                    status = String(describing: error)
+                  }
+                }
+              } label: {
+                if loading {
+                  HStack { Spacer(); ProgressView(); Spacer() }
+                } else {
+                  Label("Generate pairing code", systemImage: "qrcode")
+                    .frame(maxWidth: .infinity)
+                }
+              }
+              .buttonStyle(.borderedProminent)
+              .tint(.blue)
+              .disabled(!model.isSignedIn || loading)
 
-          Button {
-            status = nil
-            pairingCode = nil
-            loading = true
-            Task {
-              defer { loading = false }
-              do {
-                let out = try await model.createDeviceAndPairingCode(name: deviceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : deviceName)
-                pairingCode = out.code
-              } catch {
-                status = String(describing: error)
+              if !model.isSignedIn {
+                Text("Sign in first to enroll devices.")
+                  .font(.footnote)
+                  .foregroundStyle(.secondary)
               }
             }
-          } label: {
-            if loading {
-              HStack { Spacer(); ProgressView(); Spacer() }
-            } else {
-              Label("Generate pairing code", systemImage: "qrcode")
-                .frame(maxWidth: .infinity)
-            }
-          }
-          .buttonStyle(.borderedProminent)
-          .disabled(!model.isSignedIn || loading)
-
-          if !model.isSignedIn {
-            Text("Sign in first to enroll devices.")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
           }
 
           if let code = pairingCode {
-            VStack(alignment: .leading, spacing: 8) {
-              Text("Pairing code")
-                .font(.headline)
-              Text(code)
-                .font(.system(.title2, design: .monospaced).weight(.bold))
-                .textSelection(.enabled)
+            SettingsGroup("Pairing code") {
+              SettingsRow(
+                systemIcon: "number",
+                title: code,
+                subtitle: "Tap and hold to copy",
+                rightText: nil,
+                showsChevron: false,
+                action: nil
+              )
             }
-            .padding()
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
           }
 
           if let status {
@@ -81,14 +101,17 @@ public struct AddDeviceSheetView: View {
             model.setAppMode(.childSetup)
             dismiss()
           } label: {
-            Label("Set up child phone now", systemImage: "clock")
+            Label("Child phone", systemImage: "iphone")
               .frame(maxWidth: .infinity)
           }
           .buttonStyle(.bordered)
+          .tint(.secondary)
         }
-        .padding()
+        .padding(.horizontal, 18)
+        .padding(.bottom, 32)
       }
       .navigationTitle("Enroll")
+      .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button("Done") { dismiss() }
