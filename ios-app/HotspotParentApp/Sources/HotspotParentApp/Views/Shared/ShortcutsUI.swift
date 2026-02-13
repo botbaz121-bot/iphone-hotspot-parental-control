@@ -92,7 +92,7 @@ public struct ShortcutTileCard: View {
           .foregroundStyle(.white.opacity(0.95))
           .multilineTextAlignment(.leading)
           .lineLimit(2)
-          .fixedSize(horizontal: false, vertical: true)
+          .truncationMode(.tail)
           .frame(maxWidth: .infinity, alignment: .leading)
 
         if let subtitle, !subtitle.isEmpty {
@@ -101,13 +101,14 @@ public struct ShortcutTileCard: View {
             .foregroundStyle(.white.opacity(0.70))
             .multilineTextAlignment(.leading)
             .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
+            .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
       }
       .padding(14)
     }
-    .frame(height: 110)
+    // Allow the card to grow with text to avoid overlap in grids.
+    .frame(minHeight: 118)
   }
 }
 
