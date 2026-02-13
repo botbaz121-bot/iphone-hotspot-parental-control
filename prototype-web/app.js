@@ -198,35 +198,39 @@ function navbar({ title, backTo, rightText, rightButton }) {
 
 function parentTabs(active) {
   const items = [
-    { key: 'home', icon: 'home', to: '/', aria: 'Home' },
-    { key: 'dashboard', label: 'Dashboard', to: '/parent/dashboard' },
-    { key: 'settings', label: 'Settings', to: '/parent/settings' },
+    { key: 'dashboard', icon: 'home', label: 'Dashboard', to: '/parent/dashboard' },
+    { key: 'settings', icon: 'settings', label: 'Settings', to: '/parent/settings' },
   ];
   return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Parent tabs' }, items.map(it =>
     el('button', {
-      class: `btab ${it.icon ? 'icon' : ''} ${active === it.key ? 'active' : ''}`,
+      class: `btab ${active === it.key ? 'active' : ''}`,
       onClick: () => navTabGo(it.to),
       role: 'tab',
-      'aria-label': it.aria || it.label,
+      'aria-label': it.label,
       'aria-selected': active === it.key ? 'true' : 'false'
-    }, it.icon ? iconSquare(it.icon) : it.label)
+    }, [
+      iconSquare(it.icon),
+      el('div', { class: 'btab-label' }, it.label)
+    ])
   ));
 }
 
 function childTabs(active) {
   const items = [
-    { key: 'home', icon: 'home', to: '/', aria: 'Home' },
-    { key: 'dashboard', label: 'Dashboard', to: '/child/dashboard' },
-    { key: 'settings', label: 'Settings', to: '/child/settings' },
+    { key: 'dashboard', icon: 'home', label: 'Dashboard', to: '/child/dashboard' },
+    { key: 'settings', icon: 'settings', label: 'Settings', to: '/child/settings' },
   ];
   return el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Child tabs' }, items.map(it =>
     el('button', {
-      class: `btab ${it.icon ? 'icon' : ''} ${active === it.key ? 'active' : ''}`,
+      class: `btab ${active === it.key ? 'active' : ''}`,
       onClick: () => navTabGo(it.to),
       role: 'tab',
-      'aria-label': it.aria || it.label,
+      'aria-label': it.label,
       'aria-selected': active === it.key ? 'true' : 'false'
-    }, it.icon ? iconSquare(it.icon) : it.label)
+    }, [
+      iconSquare(it.icon),
+      el('div', { class: 'btab-label' }, it.label)
+    ])
   ));
 }
 
@@ -691,15 +695,6 @@ function screenParentDashboard() {
     return el('div', { class: `sc-tile sc-${color}`, role: 'button', onClick: () => route.go(`/parent/device/${d.id}`) }, [
       el('div', { class: 'sc-tile-ic' }, el('span', { class: 'ic', style: 'background:transparent' }, d.name.slice(0, 1).toUpperCase())),
       el('div', { class: 'sc-tile-title' }, d.name),
-      el('button', {
-        class: 'sc-tile-dots',
-        onClick: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          route.go(`/parent/device/${d.id}`);
-        },
-        'aria-label': `More for ${d.name}`
-      }, '⋯'),
     ]);
   };
 
@@ -1225,10 +1220,10 @@ function screenChildDashboard() {
         tile({
           color: c.paired ? 'blue' : 'gray',
           icon: 'qr',
-          title: 'Start pairing',
+          title: c.paired ? 'Edit pairing' : 'Start pairing',
           sub: c.paired ? 'Paired ✅' : 'Not paired yet',
           onClick: () => route.go('/child/pair'),
-          dots: c.paired ? (() => route.go('/child/pair')) : null,
+          dots: null,
         }),
 
         tile({
