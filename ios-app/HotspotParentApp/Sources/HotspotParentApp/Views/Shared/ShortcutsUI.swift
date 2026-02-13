@@ -199,50 +199,55 @@ public struct SettingsRow: View {
     self.action = action
   }
 
+  @ViewBuilder
   public var body: some View {
-    Button {
-      action?()
-    } label: {
-      HStack(spacing: 12) {
-        ZStack {
-          RoundedRectangle(cornerRadius: 8)
-            .fill(Color.white.opacity(0.08))
-          Image(systemName: systemIcon)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.90))
-        }
-        .frame(width: 28, height: 28)
+    if let action {
+      Button { action() } label: { rowContent }
+        .buttonStyle(.plain)
+    } else {
+      rowContent
+    }
+  }
 
-        VStack(alignment: .leading, spacing: 2) {
-          Text(title)
-            .font(.body.weight(.semibold))
-            .foregroundStyle(.primary)
+  private var rowContent: some View {
+    HStack(spacing: 12) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 8)
+          .fill(Color.white.opacity(0.08))
+        Image(systemName: systemIcon)
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundStyle(.white.opacity(0.90))
+      }
+      .frame(width: 28, height: 28)
 
-          if let subtitle, !subtitle.isEmpty {
-            Text(subtitle)
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-        }
+      VStack(alignment: .leading, spacing: 2) {
+        Text(title)
+          .font(.body.weight(.semibold))
+          .foregroundStyle(.primary)
 
-        Spacer(minLength: 8)
-
-        if let rightText {
-          Text(rightText)
+        if let subtitle, !subtitle.isEmpty {
+          Text(subtitle)
             .font(.footnote)
             .foregroundStyle(.secondary)
         }
-
-        if showsChevron {
-          Image(systemName: "chevron.right")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary.opacity(0.8))
-        }
       }
-      .padding(.vertical, 10)
-      .padding(.horizontal, 12)
+
+      Spacer(minLength: 8)
+
+      if let rightText {
+        Text(rightText)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+
+      if showsChevron {
+        Image(systemName: "chevron.right")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.secondary.opacity(0.8))
+      }
     }
-    .buttonStyle(.plain)
+    .padding(.vertical, 10)
+    .padding(.horizontal, 12)
   }
 }
 

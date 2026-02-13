@@ -44,6 +44,8 @@ public struct ChildSettingsView: View {
                 showsChevron: true,
                 action: nil
               )
+              // Make the whole row tappable (since SettingsRow is a Button internally)
+              .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
           }
