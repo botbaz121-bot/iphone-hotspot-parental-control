@@ -44,17 +44,18 @@ public struct ChildDashboardView: View {
             Text("Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible.")
               .font(.footnote)
               .foregroundStyle(.secondary)
-
-            Button("Close") {
-              showAutomationsInfo = false
-            }
-            .buttonStyle(.bordered)
-            .tint(.secondary)
           }
           .padding(18)
         }
         .navigationTitle("Automations")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+          ToolbarItem(placement: .topBarTrailing) {
+            Button("Done") {
+              showAutomationsInfo = false
+            }
+          }
+        }
       }
     }
   }
