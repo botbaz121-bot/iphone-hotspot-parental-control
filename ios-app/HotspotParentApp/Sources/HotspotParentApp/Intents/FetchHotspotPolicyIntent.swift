@@ -78,14 +78,7 @@ public struct FetchHotspotPolicyIntent: AppIntent {
   }
 }
 
-public struct SpotCheckPolicyAppShortcuts: AppShortcutsProvider {
-  public static var appShortcuts: [AppShortcut] {
-    AppShortcut(
-      intent: FetchHotspotPolicyIntent(),
-      phrases: ["Fetch policy from \(.applicationName)", "Get hotspot policy from \(.applicationName)"],
-      shortTitle: "Fetch Policy",
-      systemImageName: "arrow.down.doc"
-    )
-  }
-}
+// Note: We intentionally do NOT provide App Shortcuts suggestions here.
+// The intents remain callable from Shortcuts without this, and it avoids
+// AppIntents metadata export errors on some toolchains.
 #endif

@@ -51,15 +51,8 @@ public struct GetHotspotConfigIntent: AppIntent {
   }
 }
 
-/// Optional App Shortcuts suggestions (surface in Shortcuts app).
-public struct SpotCheckAppShortcuts: AppShortcutsProvider {
-  public static var appShortcuts: [AppShortcut] {
-    AppShortcut(
-      intent: GetHotspotConfigIntent(),
-      phrases: ["Get Hotspot config from \(.applicationName)", "Get SpotCheck config from \(.applicationName)"],
-      shortTitle: "Get Config",
-      systemImageName: "key.fill"
-    )
-  }
-}
+// Note: We intentionally do NOT provide App Shortcuts suggestions here.
+// The build toolchain used by Codemagic/Xcode can error if multiple AppShortcutsProvider
+// conformances exist, and suggestions are not required for the intents to be callable
+// from Shortcuts.
 #endif
