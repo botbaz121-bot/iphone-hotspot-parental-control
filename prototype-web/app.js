@@ -1104,11 +1104,11 @@ function screenChildLocked() {
 function screenChildDashboard() {
   const c = state.childSetup;
 
-  const infoRow = ({ title, sub, badgeText, badgeClass = 'muted' }) =>
-    el('div', { class: 'row' }, [
-      el('div', {}, [
-        el('div', { class: 'title' }, title),
-        sub ? el('div', { class: 'sub' }, sub) : null,
+  const statusRow = ({ title, sub, badgeText, badgeClass = 'muted' }) =>
+    el('div', { class: 'sc-row' }, [
+      el('div', { class: 'sc-row-txt' }, [
+        el('div', { class: 'sc-row-title' }, title),
+        sub ? el('div', { class: 'sc-row-sub' }, sub) : null,
       ].filter(Boolean)),
       el('span', { class: `badge ${badgeClass}` }, badgeText),
     ]);
@@ -1118,34 +1118,39 @@ function screenChildDashboard() {
 
   return {
     nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
-    body: el('div', { class: 'content' }, [
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '1) Pair device'),
+    body: el('div', { class: 'content sc-home' }, [
+      el('div', { class: 'sc-title' }, 'Setup checklist'),
+      el('div', { class: 'sc-subtitle' }, 'Complete these steps so rules can be enforced.'),
+
+      el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, '1) Pair device'),
+      el('div', { class: 'card soft vstack' }, [
         el('p', { class: 'p' }, c.paired ? 'Paired ✅' : 'Not paired yet.'),
         el('div', { class: 'hstack' }, [
-          el('button', { class: 'btn primary', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), c.paired ? 'View pairing' : 'Start pairing']),
-          c.paired ? el('button', { class: 'btn', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
+          el('button', { class: 'btn primary full', onClick: () => route.go('/child/pair') }, [iconSquare('qr'), c.paired ? 'View pairing' : 'Start pairing']),
+          c.paired ? el('button', { class: 'btn secondary', onClick: () => { c.paired = false; render(); } }, [iconSquare('unlink'), 'Unpair']) : null,
         ].filter(Boolean)),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '2) Install our Shortcut'),
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '2) Install our Shortcut'),
+      el('div', { class: 'card soft vstack' }, [
         el('button', { class: 'btn secondary full', onClick: () => alert('Open Shortcut link (mock)') }, [iconSquare('shortcut'), 'Open Shortcut link']),
         el('div', { class: 'shot' }, [
           el('div', { class: 'shot-title' }, 'Initial run'),
           el('div', { class: 'shot-sub' }, 'Open the Shortcut and tap ▶︎ to run once. If iOS prompts, choose “Always Allow” where possible.'),
         ]),
-        infoRow({
-          title: 'Shortcut runs',
-          sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run',
-          badgeText: initialRunDone ? 'Done' : 'Awaiting',
-          badgeClass: initialRunDone ? 'good' : 'warn'
-        }),
+        el('div', { class: 'sc-list' }, [
+          statusRow({
+            title: 'Shortcut runs',
+            sub: initialRunDone ? `Seen ${c.appIntentRunCount} run(s)` : 'Awaiting first run',
+            badgeText: initialRunDone ? 'Done' : 'Awaiting',
+            badgeClass: initialRunDone ? 'good' : 'warn'
+          }),
+        ]),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '3) Automations'),
-        infoRow({
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '3) Automations'),
+      el('div', { class: 'sc-list' }, [
+        statusRow({
           title: 'Automation runs',
           sub: automationConfidenceDone ? 'Multiple runs observed' : 'Awaiting multiple runs',
           badgeText: automationConfidenceDone ? 'Done' : 'Awaiting',
@@ -1153,26 +1158,24 @@ function screenChildDashboard() {
         }),
       ]),
 
-      el('div', { class: 'card vstack' }, [
-        el('div', { class: 'h2' }, '4) Screen Time lock'),
-        infoRow({
+      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '4) Screen Time lock'),
+      el('div', { class: 'sc-list' }, [
+        statusRow({
           title: 'Screen Time authorization',
           sub: 'FamilyControls permission granted',
           badgeText: c.screenTimeAuthorized ? 'Done' : 'Awaiting',
           badgeClass: c.screenTimeAuthorized ? 'good' : 'warn'
         }),
-        infoRow({
+        statusRow({
           title: 'Shielding applied',
           sub: 'Shortcuts/Settings selected for shielding',
           badgeText: c.shieldingApplied ? 'Done' : 'Awaiting',
           badgeClass: c.shieldingApplied ? 'good' : 'warn'
         }),
-        el('button', { class: 'btn primary full', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
       ]),
+      el('button', { class: 'btn primary full', style: 'margin-top:10px', onClick: () => route.go('/child/screentime') }, [iconSquare('shield'), 'Select apps to shield']),
 
-      el('div', { class: 'card vstack' }, [
-        el('button', { class: 'btn secondary full', onClick: () => route.go('/child/locked') }, [iconSquare('check'), 'Finish setup']),
-      ]),
+      el('button', { class: 'btn secondary full', style: 'margin-top:16px', onClick: () => route.go('/child/locked') }, [iconSquare('check'), 'Finish setup']),
     ]),
   };
 }
