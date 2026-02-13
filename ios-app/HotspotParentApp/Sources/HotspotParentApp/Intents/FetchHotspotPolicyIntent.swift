@@ -80,14 +80,12 @@ public struct FetchHotspotPolicyIntent: AppIntent {
 
 public struct SpotCheckPolicyAppShortcuts: AppShortcutsProvider {
   public static var appShortcuts: [AppShortcut] {
-    [
-      AppShortcut(
-        intent: FetchHotspotPolicyIntent(),
-        phrases: ["Fetch policy from \(.applicationName)", "Get hotspot policy from \(.applicationName)"],
-        shortTitle: "Fetch Policy",
-        systemImageName: "arrow.down.doc"
-      )
-    ]
+    AppShortcut(
+      intent: FetchHotspotPolicyIntent(),
+      phrases: ["Fetch policy from \(.applicationName)", "Get hotspot policy from \(.applicationName)"],
+      shortTitle: "Fetch Policy",
+      systemImageName: "arrow.down.doc"
+    )
   }
 }
 #endif
