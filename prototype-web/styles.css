@@ -523,28 +523,14 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
   font-size: 36px;
   font-weight: 860;
   letter-spacing: -0.6px;
-  margin: 8px 2px 12px 2px;
+  margin: 8px 2px 6px 2px;
 }
-.sc-search{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.10);
+.sc-subtitle{
+  margin: 0 2px 10px 2px;
+  color: rgba(244,246,251,.65);
+  font-size: 14px;
+  font-weight: 650;
 }
-.sc-search-ic, .sc-search-mic{ width: 18px; height: 18px; color: rgba(244,246,251,.65); display:grid; place-items:center; }
-.sc-search-ic svg, .sc-search-mic svg{ width: 18px; height: 18px; }
-.sc-search-input{
-  flex:1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text);
-  font-size: 16px;
-}
-.sc-search-input::placeholder{ color: rgba(244,246,251,.55); }
 
 .sc-grid{
   display:grid;
@@ -576,19 +562,7 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
 }
 .sc-tile-ic svg{ width: 18px; height: 18px; }
 .sc-tile-title{ margin-top: 14px; font-size: 18px; font-weight: 820; line-height: 1.12; white-space:pre-line; }
-.sc-tile-dots{
-  position:absolute;
-  top: 10px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  display:grid;
-  place-items:center;
-  background: rgba(255,255,255,.16);
-  color: rgba(0,0,0,.55);
-  font-weight: 900;
-}
+/* sc-tile-dots removed */
 
 .sc-blue{ background: linear-gradient(135deg, #2b63ff, #4f8cff); }
 .sc-pink{ background: linear-gradient(135deg, #ff4bb8, #9b5cff); }
