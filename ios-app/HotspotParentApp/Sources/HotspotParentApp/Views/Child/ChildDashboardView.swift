@@ -15,46 +15,45 @@ public struct ChildDashboardView: View {
 
   public var body: some View {
     ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-          Text("Setup checklist")
-            .font(.system(size: 34, weight: .bold))
-            .padding(.top, 2)
+      VStack(alignment: .leading, spacing: 14) {
+        Text("Setup checklist")
+          .font(.system(size: 34, weight: .bold))
+          .padding(.top, 2)
 
-          Text("Complete these steps so rules can be enforced.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+        Text("Complete these steps so rules can be enforced.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
 
-          LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            pairingTile
-            shortcutTile
-            automationsTile
-            screenTimeTile
-            finishTile
-          }
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+          pairingTile
+          shortcutTile
+          automationsTile
+          screenTimeTile
+          finishTile
         }
-        .padding(.top, 18)
-        .padding(.horizontal, 18)
-        .padding(.bottom, 32)
       }
-      .sheet(isPresented: $showAutomationsInfo) {
-        NavigationStack {
-          ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-              Text("Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+      .padding(.top, 18)
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
+    }
+    .sheet(isPresented: $showAutomationsInfo) {
+      NavigationStack {
+        ScrollView {
+          VStack(alignment: .leading, spacing: 12) {
+            Text("Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible.")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
 
-              Button("Close") {
-                showAutomationsInfo = false
-              }
-              .buttonStyle(.bordered)
-              .tint(.secondary)
+            Button("Close") {
+              showAutomationsInfo = false
             }
-            .padding(18)
+            .buttonStyle(.bordered)
+            .tint(.secondary)
           }
-          .navigationTitle("Automations")
-          .navigationBarTitleDisplayMode(.inline)
+          .padding(18)
         }
+        .navigationTitle("Automations")
+        .navigationBarTitleDisplayMode(.inline)
       }
     }
   }
@@ -96,6 +95,21 @@ public struct ChildDashboardView: View {
     ) {
       showAutomationsInfo = true
     }
+  }
+
+  private var screenTimeTile: some View {
+    NavigationLink {
+      ScreenTimeSetupView()
+        .environmentObject(model)
+    } label: {
+      ShortcutTile(
+        color: .blue,
+        systemIcon: "shield",
+        title: "Screen Time lock",
+        subtitle: "Select apps to shield"
+      ) {}
+    }
+    .buttonStyle(.plain)
   }
 
   private var finishTile: some View {
