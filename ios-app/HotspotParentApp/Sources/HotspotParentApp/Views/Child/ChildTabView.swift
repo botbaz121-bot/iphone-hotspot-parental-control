@@ -11,12 +11,6 @@ public struct ChildTabView: View {
 
   public var body: some View {
     TabView(selection: $tab) {
-      ChildLockedView()
-        .tag(Tab.home)
-        .tabItem {
-          Label("Home", systemImage: "house")
-        }
-
       ChildDashboardView()
         .tag(Tab.dashboard)
         .tabItem {
@@ -33,7 +27,6 @@ public struct ChildTabView: View {
   }
 
   private enum Tab {
-    case home
     case dashboard
     case settings
   }
