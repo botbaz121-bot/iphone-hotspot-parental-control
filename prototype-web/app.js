@@ -1139,7 +1139,7 @@ function screenChildDashboard() {
         ]),
       ]),
 
-      el('div', { class: 'sc-grid one' }, [
+      el('div', { class: 'sc-grid' }, [
         tile({
           color: c.paired ? 'blue' : 'gray',
           icon: 'qr',
