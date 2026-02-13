@@ -1113,85 +1113,77 @@ function screenChildDashboard() {
       ]),
     });
 
-  const threeDotsBtn = (onClick) =>
-    el('button', { class: 'iconbtn', onClick, 'aria-label': 'More' }, '⋯');
-
-  const actionTile = ({ title, sub, icon, btnText, btnClass = 'secondary', onMain, onMore }) =>
-    el('div', { class: 'card soft vstack' }, [
-      el('div', { class: 'hstack', style: 'justify-content:space-between; align-items:flex-start' }, [
-        el('div', {}, [
-          el('div', { class: 'shot-title' }, title),
-          sub ? el('div', { class: 'shot-sub' }, sub) : null,
-        ].filter(Boolean)),
-        onMore ? threeDotsBtn(onMore) : null,
-      ].filter(Boolean)),
-      el('button', { class: `btn ${btnClass} full`, onClick: onMain, style: 'margin-top:10px' }, [iconSquare(icon), btnText]),
-    ]);
+  const tile = ({ color = 'gray', icon, title, sub, onClick, dots }) =>
+    el('div', { class: `sc-tile sc-${color}`, role: 'button', onClick }, [
+      el('div', { class: 'sc-tile-ic' }, iconSquare(icon)),
+      el('div', { class: 'sc-tile-title' }, title),
+      sub ? el('div', { class: 'sc-tile-sub' }, sub) : null,
+      dots ? el('button', {
+        class: 'sc-tile-dots',
+        onClick: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dots();
+        },
+        'aria-label': `More for ${title}`
+      }, '⋯') : null,
+    ].filter(Boolean));
 
   return {
     nav: navbar({ title: 'Dashboard', backTo: '/child/settings' }),
     body: el('div', { class: 'content sc-home' }, [
-      el('div', { class: 'sc-title' }, 'Setup checklist'),
-      el('div', { class: 'sc-subtitle' }, 'Complete these steps so rules can be enforced.'),
+      el('div', { class: 'sc-headrow' }, [
+        el('div', {}, [
+          el('div', { class: 'sc-title' }, 'All Shortcuts'),
+          el('div', { class: 'sc-subtitle' }, 'Setup checklist'),
+        ]),
+      ]),
 
-      // 1) Pair device
-      el('div', { class: 'hsec', style: 'margin-top:14px; margin-bottom:10px' }, '1) Pair device'),
-      actionTile({
-        title: 'Pair device',
-        sub: c.paired ? 'Paired ✅' : 'Not paired yet.',
-        icon: 'qr',
-        btnText: c.paired ? 'Open pairing' : 'Start pairing',
-        btnClass: 'primary',
-        onMain: () => route.go('/child/pair'),
-        onMore: c.paired ? (() => route.go('/child/pair')) : null,
-      }),
-
-      // 2) Install our Shortcut
-      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '2) Install our Shortcut'),
-      actionTile({
-        title: 'Install our Shortcut',
-        sub: 'Open the link, add the Shortcut, then run it once.',
-        icon: 'shortcut',
-        btnText: 'Open Shortcut link',
-        btnClass: 'secondary',
-        onMain: () => alert('Open Shortcut link (mock)'),
-      }),
-
-      // 3) Automations
-      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '3) Automations'),
-      actionTile({
-        title: 'Automations',
-        sub: 'Enable automations so enforcement can run quietly.',
-        icon: 'tool',
-        btnText: 'View instructions',
-        btnClass: 'secondary',
-        onMain: () => openModal({
-          title: 'Automations',
-          body: 'Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible. (Mock instructions)'
+      el('div', { class: 'sc-grid one' }, [
+        tile({
+          color: c.paired ? 'blue' : 'gray',
+          icon: 'qr',
+          title: 'Start pairing',
+          sub: c.paired ? 'Paired ✅' : 'Not paired yet',
+          onClick: () => route.go('/child/pair'),
+          dots: c.paired ? (() => route.go('/child/pair')) : null,
         }),
-      }),
 
-      // 4) Screen Time lock
-      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '4) Screen Time lock'),
-      actionTile({
-        title: 'Screen Time lock',
-        sub: 'Select apps to shield (Shortcuts + Settings).',
-        icon: 'shield',
-        btnText: 'Select apps to shield',
-        btnClass: 'primary',
-        onMain: () => route.go('/child/screentime'),
-      }),
+        tile({
+          color: 'gray',
+          icon: 'shortcut',
+          title: 'Install our Shortcut',
+          sub: 'Open link, add Shortcut, run once',
+          onClick: () => alert('Open Shortcut link (mock)'),
+        }),
 
-      // 5) Finish setup
-      el('div', { class: 'hsec', style: 'margin-top:18px; margin-bottom:10px' }, '5) Finish setup'),
-      actionTile({
-        title: 'Finish setup',
-        sub: 'Lock this phone into child mode once everything is enabled.',
-        icon: 'check',
-        btnText: 'Finish setup',
-        btnClass: 'secondary',
-        onMain: () => route.go('/child/locked'),
-      }),
+        tile({
+          color: 'gray',
+          icon: 'tool',
+          title: 'Automations',
+          sub: 'Tap to view instructions',
+          onClick: () => openModal({
+            title: 'Automations',
+            body: 'Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible. (Mock instructions)'
+          }),
+        }),
+
+        tile({
+          color: 'blue',
+          icon: 'shield',
+          title: 'Screen Time lock',
+          sub: 'Select apps to shield (Shortcuts + Settings)',
+          onClick: () => route.go('/child/screentime'),
+        }),
+
+        tile({
+          color: 'gray',
+          icon: 'check',
+          title: 'Finish setup',
+          sub: 'Lock phone into child mode',
+          onClick: () => route.go('/child/locked'),
+        }),
+      ]),
     ]),
   };
 }
