@@ -78,10 +78,10 @@ public struct LandingView: View {
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
     }
-    .alert("Sign in failed", isPresented: $showError) {
+    .alert("Sign in required", isPresented: $showError) {
       Button("OK", role: .cancel) {}
     } message: {
-      Text(status ?? "Unknown error")
+      Text(signInMessage(for: status))
     }
   }
 
@@ -118,6 +118,21 @@ public struct LandingView: View {
     status = "Sign in with Apple is unavailable on this build target."
     showError = true
     #endif
+  }
+
+  private func signInMessage(for raw: String?) -> String {
+    let base = "To use Parent phone, you need to sign in so only you can enroll devices, change rules, and view activity."
+
+    let detail: String = {
+      guard let raw, !raw.isEmpty else { return "" }
+      // Common case: user cancelled.
+      if raw.contains("AuthorizationError") && raw.contains("Code=1001") {
+        return "\n\nIt looks like you cancelled the Sign in with Apple prompt."
+      }
+      return "\n\nTechnical details: \(raw)"
+    }()
+
+    return base + detail
   }
 }
 
