@@ -752,7 +752,9 @@ function screenParentDeviceDetails(deviceId) {
     nav: navbar({ title: d.name, backTo: '/parent/dashboard' }),
     body: el('div', { class: 'content sc-home' }, [
       // In-content back (since navbar is hidden)
-      el('button', { class: 'btn ghost', onClick: () => route.go('/parent/dashboard') }, 'Back'),
+      el('div', { class: 'sc-topcontrols' }, [
+        el('button', { class: 'iconbtn', onClick: () => route.go('/parent/dashboard'), 'aria-label': 'Back' }, '‹'),
+      ]),
 
       el('div', { class: 'sc-title', style: 'margin-top:10px' }, d.name),
       el('div', { class: 'sc-subtitle' }, `Last seen: ${d.lastCheckInMinutes}m ago`),
