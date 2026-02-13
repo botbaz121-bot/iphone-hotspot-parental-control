@@ -101,24 +101,23 @@ private struct DeviceTileView: View {
   var onTap: () -> Void
 
   private var gradient: LinearGradient {
-    // Roughly Shortcuts-style colored tiles.
-    // Backend model doesn't have a single "status" string; derive one.
-    // - gap == true → stale
-    // - enforce == false → setup/disabled
-    let status: String = {
-      if device.gap { return "STALE" }
-      if device.enforce == false { return "SETUP" }
-      return "OK"
-    }()
+    // Shortcuts-like colored tiles, but avoid the app's blue/pink.
+    // Use a stable per-device palette selection.
+    let gradients: [LinearGradient] = [
+      LinearGradient(colors: [Color(red: 0.00, green: 0.76, blue: 0.66), Color(red: 0.18, green: 0.83, blue: 0.44)], startPoint: .topLeading, endPoint: .bottomTrailing), // teal→green
+      LinearGradient(colors: [Color(red: 0.54, green: 0.36, blue: 1.0), Color(red: 0.35, green: 0.49, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing), // purple
+      LinearGradient(colors: [Color(red: 0.93, green: 0.58, blue: 0.12), Color(red: 0.93, green: 0.40, blue: 0.16)], startPoint: .topLeading, endPoint: .bottomTrailing), // orange
+      LinearGradient(colors: [Color(red: 0.20, green: 0.70, blue: 0.30), Color(red: 0.10, green: 0.50, blue: 0.20)], startPoint: .topLeading, endPoint: .bottomTrailing), // green
+    ]
 
-    switch status {
-      case "OK":
-        return LinearGradient(colors: [Color(red: 0.20, green: 0.45, blue: 1.0), Color(red: 0.31, green: 0.55, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing)
-      case "STALE":
-        return LinearGradient(colors: [Color(red: 0.35, green: 0.35, blue: 0.40), Color(red: 0.20, green: 0.20, blue: 0.24)], startPoint: .topLeading, endPoint: .bottomTrailing)
-      default:
-        return LinearGradient(colors: [Color(red: 0.54, green: 0.36, blue: 1.0), Color(red: 0.35, green: 0.49, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
+    let idx = Self.stableColorIndex(device.id.isEmpty ? device.name : device.id, mod: gradients.count)
+    return gradients[idx]
+  }
+
+  private static func stableColorIndex(_ s: String, mod: Int) -> Int {
+    // deterministic hash (don’t use Swift's Hashable which can vary between runs)
+    let v = s.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
+    return abs(v) % max(mod, 1)
   }
 
   var body: some View {
