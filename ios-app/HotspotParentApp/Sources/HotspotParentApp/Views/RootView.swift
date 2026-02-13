@@ -5,12 +5,18 @@ import SwiftUI
 
 public struct RootView: View {
   @StateObject private var model = AppModel()
+  @Environment(\.scenePhase) private var scenePhase
 
   public init() {}
 
   public var body: some View {
     content
       .environmentObject(model)
+      .onChange(of: scenePhase) { phase in
+        if phase == .active {
+          model.syncFromSharedDefaults()
+        }
+      }
   }
 
   @ViewBuilder

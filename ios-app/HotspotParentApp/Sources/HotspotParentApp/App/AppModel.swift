@@ -255,6 +255,26 @@ public final class AppModel: ObservableObject {
     lastAppIntentRunAt = now
   }
 
+  /// Pull values from the shared defaults suite.
+  ///
+  /// Note: AppIntents run in a separate process. When they update SharedDefaults,
+  /// the running app won't see those changes unless we re-read them.
+  public func syncFromSharedDefaults() {
+    self.childIsLocked = SharedDefaults.childLocked
+    self.childUnlockRequested = SharedDefaults.childUnlockRequested
+
+    self.childPairedDeviceId = SharedDefaults.childPairingDeviceId
+    self.childPairedDeviceName = SharedDefaults.childPairingName
+
+    self.appIntentRunCount = SharedDefaults.appIntentRunCount
+    self.lastAppIntentRunAt = SharedDefaults.lastAppIntentRunAt
+
+    self.screenTimeAuthorized = SharedDefaults.screenTimeAuthorized
+    self.shieldingApplied = SharedDefaults.shieldingApplied
+
+    self.selectedDeviceId = SharedDefaults.selectedDeviceId
+  }
+
   // MARK: - API config persistence
 
   public func setAPIBaseURL(_ value: String) {
