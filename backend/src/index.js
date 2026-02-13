@@ -791,6 +791,42 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const deviceId = req.shortcut.deviceId;
   db.prepare("UPDATE devices SET last_seen_at = datetime('now') WHERE id = ?").run(deviceId);
 
+  // Log policy fetches as activity events (this may be the only reliable heartbeat signal).
+  // Best-effort de-dupe: don't insert more than one policy_fetch per 60s per device.
+  try {
+    const now = Date.now();
+    const last = db.prepare(
+      `
+      SELECT ts
+      FROM device_events
+      WHERE device_id = ? AND trigger = 'policy_fetch'
+      ORDER BY ts DESC
+      LIMIT 1
+      `
+    ).get(deviceId);
+
+    if (!last || (now - Number(last.ts || 0)) > 60_000) {
+      const shortcutVersion = String(req.header('X-Shortcut-Version') || req.header('X-SpotCheck-Shortcut-Version') || '').slice(0, 50) || null;
+      db.prepare(
+        `
+        INSERT INTO device_events (id, device_id, ts, trigger, shortcut_version, actions_attempted, result_ok, result_errors)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      ).run(
+        id(),
+        deviceId,
+        now,
+        'policy_fetch',
+        shortcutVersion,
+        JSON.stringify(['fetch_policy']),
+        1,
+        JSON.stringify([])
+      );
+    }
+  } catch (e) {
+    // Don't block policy fetch if logging fails.
+  }
+
   const pol = db
     .prepare(
       `
