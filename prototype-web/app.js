@@ -314,12 +314,8 @@ function openSheet({ title, body, actions = [], onClose }) {
 }
 
 function adsCard() {
-  if (state.adsRemoved) return null;
-  return el('div', { class: 'ad' }, [
-    el('div', { class: 'ad-badge' }, 'Ad'),
-    el('div', { class: 'ad-title' }, 'SpeedifyPress — Make WordPress Fast'),
-    el('div', { class: 'ad-sub' }, 'Real-world performance audits + fixes. (Prototype placeholder)')
-  ]);
+  // Temporarily disabled while we iterate on core UX.
+  return null;
 }
 
 function enrollmentSheet({ backTo }) {
@@ -714,8 +710,6 @@ function screenParentDashboard() {
 
       el('div', { class: 'sc-grid' }, state.devices.map(tileForDevice)),
 
-      // Keep ads + other cards below (prototype-only)
-      adsCard(),
     ]),
     tabs: bottomTabs('dashboard'),
   };
