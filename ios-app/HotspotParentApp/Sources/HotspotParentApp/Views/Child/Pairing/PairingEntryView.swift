@@ -13,68 +13,108 @@ public struct PairingEntryView: View {
   public init() {}
 
   public var body: some View {
-    Form {
-      Section("Enter pairing code") {
-        TextField("Code", text: $code)
-          .textInputAutocapitalization(.characters)
-          .autocorrectionDisabled()
-          .font(.system(.body, design: .monospaced))
+    ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        Text("Pairing")
+          .font(.system(size: 34, weight: .bold))
+          .padding(.top, 2)
 
-        Button {
-          busy = true
-          errorText = nil
-          Task {
-            defer { busy = false }
-            do {
-              let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-              try await model.pairChildDevice(code: trimmed)
-            } catch {
-              errorText = "Pairing failed: \(error)"
+        SettingsGroup("Enter pairing code") {
+          VStack(alignment: .leading, spacing: 10) {
+            TextField("Code", text: $code)
+              .textInputAutocapitalization(.characters)
+              .autocorrectionDisabled()
+              .font(.system(.body, design: .monospaced))
+              .padding(.vertical, 10)
+              .padding(.horizontal, 12)
+              .background(Color.white.opacity(0.04))
+              .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                  .stroke(Color.white.opacity(0.08), lineWidth: 1)
+              )
+              .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Button {
+              busy = true
+              errorText = nil
+              Task {
+                defer { busy = false }
+                do {
+                  let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                  try await model.pairChildDevice(code: trimmed)
+                  // Refresh any derived state
+                  model.syncFromSharedDefaults()
+                } catch {
+                  errorText = "Pairing failed: \(error)"
+                }
+              }
+            } label: {
+              Text(busy ? "Pairing…" : "Pair")
+                .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
+            .tint(.blue)
+            .disabled(busy || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
           }
-        } label: {
-          Text(busy ? "Pairing…" : "Pair")
+          .padding(.vertical, 10)
+          .padding(.horizontal, 12)
         }
-        .disabled(busy || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-      }
 
-      if let cfg = model.loadHotspotConfig() {
-        Section("Current pairing") {
-          LabeledContent("API") {
-            Text(cfg.apiBaseURL)
-              .font(.system(.footnote, design: .monospaced))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-          LabeledContent("Device") {
-            Text(model.childPairedDeviceName ?? "—")
-          }
-          LabeledContent("Device id") {
-            Text(model.childPairedDeviceId ?? "—")
-              .font(.system(.footnote, design: .monospaced))
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
+        if let cfg = model.loadHotspotConfig() {
+          SettingsGroup("Current pairing") {
+            SettingsRow(
+              systemIcon: "link",
+              title: "API",
+              subtitle: cfg.apiBaseURL,
+              rightText: nil,
+              showsChevron: false,
+              action: nil
+            )
+            SettingsDivider()
+            SettingsRow(
+              systemIcon: "iphone",
+              title: "Device",
+              subtitle: model.childPairedDeviceName ?? "—",
+              rightText: nil,
+              showsChevron: false,
+              action: nil
+            )
+            SettingsDivider()
+            SettingsRow(
+              systemIcon: "number",
+              title: "Device id",
+              subtitle: model.childPairedDeviceId ?? "—",
+              rightText: nil,
+              showsChevron: false,
+              action: nil
+            )
           }
         }
-      }
 
-      if let errorText {
-        Section {
+        if let errorText {
           Text(errorText)
             .foregroundStyle(.red)
             .font(.footnote)
         }
-      }
 
-      #if DEBUG
-      Section("Debug") {
-        Button("Simulate Shortcut run") {
-          model.recordIntentRun()
+        #if DEBUG
+        SettingsGroup("Debug") {
+          SettingsRow(
+            systemIcon: "ladybug",
+            title: "Simulate Shortcut run",
+            subtitle: nil,
+            rightText: nil,
+            showsChevron: false,
+            action: { model.recordIntentRun() }
+          )
         }
+        #endif
       }
-      #endif
+      .padding(.horizontal, 18)
+      .padding(.bottom, 32)
     }
-    .navigationTitle("Pairing")
+    .navigationTitle("")
+    .navigationBarTitleDisplayMode(.inline)
   }
 }
 
