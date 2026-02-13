@@ -299,35 +299,39 @@ private struct PolicyEditorCard: View {
           Text("Quiet hours")
             .font(.subheadline.weight(.semibold))
 
-          HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-              Text("Start")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+          GeometryReader { geo in
+            let colW = (geo.size.width - 12) / 2
+            HStack(alignment: .top, spacing: 12) {
+              VStack(alignment: .leading, spacing: 6) {
+                Text("Start")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
 
-              DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-                .environment(\.locale, Locale(identifier: "en_GB"))
-                .frame(height: 120)
-                .frame(maxWidth: .infinity)
-                .clipped()
-            }
+                DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
+                  .labelsHidden()
+                  .datePickerStyle(.wheel)
+                  .environment(\.locale, Locale(identifier: "en_GB"))
+                  .frame(width: colW, height: 140)
+                  .clipped()
+              }
+              .frame(width: colW)
 
-            VStack(alignment: .leading, spacing: 6) {
-              Text("End")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+              VStack(alignment: .leading, spacing: 6) {
+                Text("End")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
 
-              DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-                .environment(\.locale, Locale(identifier: "en_GB"))
-                .frame(height: 120)
-                .frame(maxWidth: .infinity)
-                .clipped()
+                DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
+                  .labelsHidden()
+                  .datePickerStyle(.wheel)
+                  .environment(\.locale, Locale(identifier: "en_GB"))
+                  .frame(width: colW, height: 140)
+                  .clipped()
+              }
+              .frame(width: colW)
             }
           }
+          .frame(height: 170)
           .padding(10)
           .background(Color.white.opacity(0.04))
           .clipShape(RoundedRectangle(cornerRadius: 16))
