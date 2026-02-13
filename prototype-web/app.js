@@ -705,8 +705,17 @@ function screenParentDashboard() {
   return {
     nav: navbar({ title: 'Dashboard', rightText: `Signed in as ${state.parentName}`, rightButton: plusBtn }),
     body: el('div', { class: 'content sc-home' }, [
-      el('div', { class: 'sc-title' }, 'All Child Devices'),
-      el('div', { class: 'sc-subtitle' }, 'Tap a device to adjust rules and view activity'),
+      el('div', { class: 'sc-headrow' }, [
+        el('div', {}, [
+          el('div', { class: 'sc-title' }, 'All Child Devices'),
+          el('div', { class: 'sc-subtitle' }, 'Tap a device to adjust rules and view activity'),
+        ]),
+        el('button', {
+          class: 'iconbtn sc-plus',
+          onClick: () => enrollmentSheet({ backTo: '/parent/dashboard' }),
+          'aria-label': 'Add device'
+        }, '+'),
+      ]),
 
       el('div', { class: 'sc-grid' }, state.devices.map(tileForDevice)),
 
@@ -1216,7 +1225,9 @@ function render() {
   const p = route.path || '/';
 
   appRoot.innerHTML = '';
-  appRoot.appendChild(s.nav);
+  // Prototype convention: no visible top navbar (matches captured screens).
+  // Screens should include their own titles/controls inside the content.
+  if (s.nav && false) appRoot.appendChild(s.nav);
   appRoot.appendChild(s.body);
 
   const active = activeTabForPath(p);

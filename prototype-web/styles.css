@@ -532,6 +532,22 @@ hr.sep{ border:none; border-top:1px solid rgba(255,255,255,.10); margin: 12px 0;
   font-weight: 650;
 }
 
+.sc-headrow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+}
+.sc-plus{
+  margin-top: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 22px;
+  line-height: 1;
+  background: rgba(255,255,255,.08);
+}
+
 .sc-grid{
   display:grid;
   grid-template-columns: 1fr 1fr;
