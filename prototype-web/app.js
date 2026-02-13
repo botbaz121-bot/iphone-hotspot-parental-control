@@ -514,7 +514,8 @@ function screenLanding() {
     navReset();
     state.mode = 'parent';
     persist();
-    route.go('/parent/onboarding');
+    // Onboarding removed: go straight to sign-in (or dashboard if already signed in)
+    route.go(state.signedIn ? '/parent/dashboard' : '/parent/signin');
   };
 
   const goChild = () => {
@@ -612,7 +613,7 @@ function screenParentOnboarding() {
 
 function screenParentSignIn() {
   return {
-    nav: navbar({ title: 'Sign In', backTo: '/parent/onboarding' }),
+    nav: navbar({ title: 'Sign In', backTo: '/' }),
     body: el('div', { class: 'content' }, [
       el('div', { class: 'card vstack' }, [
         el('div', { class: 'h1' }, 'Sign In'),
@@ -1274,7 +1275,9 @@ function resolveScreen() {
   if (p === '/' || p === '') return screenLanding();
 
   // Parent flow
-  if (p === '/parent/onboarding') return screenParentOnboarding();
+  // Parent flow
+  // Onboarding removed: go straight to sign-in (or dashboard if already signed in)
+  if (p === '/parent/onboarding') return state.signedIn ? screenParentDashboard() : screenParentSignIn();
   if (p === '/parent/signin') return screenParentSignIn();
   if (p === '/parent/dashboard') return screenParentDashboard();
   // Devices screen removed; route back to Dashboard.
