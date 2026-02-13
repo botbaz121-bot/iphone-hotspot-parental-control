@@ -15,11 +15,6 @@ public struct ChildDashboardView: View {
 
   public var body: some View {
     ScrollView {
-      // Re-read intent telemetry (AppIntents update SharedDefaults out-of-process)
-      // so the dashboard highlights update without restarting the app.
-      // This runs whenever the view appears.
-      .onAppear { model.syncFromSharedDefaults() }
-
       VStack(alignment: .leading, spacing: 14) {
         Text("Setup checklist")
           .font(.system(size: 34, weight: .bold))
@@ -42,6 +37,10 @@ public struct ChildDashboardView: View {
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
     }
+    // Re-read intent telemetry (AppIntents update SharedDefaults out-of-process)
+    // so the dashboard highlights update without restarting the app.
+    // This runs whenever the view appears.
+    .onAppear { model.syncFromSharedDefaults() }
     .sheet(isPresented: $showAutomationsInfo) {
       NavigationStack {
         ScrollView {
