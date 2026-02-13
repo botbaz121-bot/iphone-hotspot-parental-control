@@ -31,16 +31,12 @@ public struct ChildPairView: View {
           )
         }
 
-        SettingsGroup("Or enter pairing code") {
-          SettingsRow(
-            systemIcon: "number",
-            title: "Enter pairing code",
-            subtitle: "Use the code shown on the parent phone.",
-            action: {
-              // navigation handled below
-            }
-          )
-        }
+        Text("Or enter pairing code")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+          .textCase(.uppercase)
+          .padding(.horizontal, 4)
+          .padding(.top, 8)
 
         NavigationLink {
           PairingEntryView()
@@ -51,7 +47,6 @@ public struct ChildPairView: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(.blue)
-        .padding(.top, 4)
 
         if model.loadHotspotConfig() != nil {
           Button(role: .destructive) {
