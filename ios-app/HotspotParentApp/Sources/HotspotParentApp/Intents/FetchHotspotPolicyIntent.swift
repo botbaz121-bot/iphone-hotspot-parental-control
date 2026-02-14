@@ -16,6 +16,9 @@ public struct FetchHotspotPolicyIntent: AppIntent {
     "Fetches the current policy from the backend and returns it as JSON for the SpotCheck Shortcut."
   )
 
+  private static let cacheKey = "last_policy_json"
+  private static let cacheTsKey = "last_policy_cached_at"
+
   public init() {}
 
   public func perform() async throws -> some IntentResult & ReturnsValue<String> {
@@ -41,40 +44,64 @@ public struct FetchHotspotPolicyIntent: AppIntent {
 
     let url = base.appendingPathComponent("policy")
 
-    var req = URLRequest(url: url)
-    req.httpMethod = "GET"
-    req.setValue("application/json", forHTTPHeaderField: "Accept")
-    // Backend supports shortcut-friendly bearer auth where bearer == device_secret
-    req.setValue("Bearer \(cfg.deviceSecret)", forHTTPHeaderField: "Authorization")
-    // Extra: browser-like UA can help with some WAF/CDN rules
-    req.setValue("SpotCheckShortcut/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
+    do {
+      var req = URLRequest(url: url)
+      req.httpMethod = "GET"
+      req.setValue("application/json", forHTTPHeaderField: "Accept")
+      // Backend supports shortcut-friendly bearer auth where bearer == device_secret
+      req.setValue("Bearer \(cfg.deviceSecret)", forHTTPHeaderField: "Authorization")
+      // Extra: browser-like UA can help with some WAF/CDN rules
+      req.setValue("SpotCheckShortcut/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
 
-    let (data, resp) = try await URLSession.shared.data(for: req)
-    let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+      let (data, resp) = try await URLSession.shared.data(for: req)
+      let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
 
-    // Always return JSON string; if backend returned HTML, surface that as an error.
-    if !(200...299).contains(code) {
-      let body = String(data: data, encoding: .utf8) ?? ""
+      // Always return JSON string; if backend returned HTML, surface that as an error.
+      if !(200...299).contains(code) {
+        let body = String(data: data, encoding: .utf8) ?? ""
+        throw NSError(domain: "SpotCheck", code: code, userInfo: [NSLocalizedDescriptionKey: body])
+      }
+
+      // Best effort: verify it's JSON-ish (starts with { or [)
+      let trimmed = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      if !(trimmed.hasPrefix("{") || trimmed.hasPrefix("[")) {
+        throw NSError(domain: "SpotCheck", code: 0, userInfo: [NSLocalizedDescriptionKey: trimmed])
+      }
+
+      // Cache last-known-good policy strictly.
+      SharedDefaults.suite.set(trimmed, forKey: Self.cacheKey)
+      SharedDefaults.suite.set(Date().timeIntervalSince1970, forKey: Self.cacheTsKey)
+
+      return .result(value: trimmed)
+    } catch {
+      // Strict offline: fall back to cached policy if present.
+      if let cached = SharedDefaults.suite.string(forKey: Self.cacheKey) {
+        var obj: [String: Any] = [:]
+        if let d = cached.data(using: .utf8),
+           let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+          obj = o
+        }
+        obj["offline"] = true
+        let ts = SharedDefaults.suite.double(forKey: Self.cacheTsKey)
+        if ts > 0 {
+          obj["cachedAt"] = Int(ts * 1000)
+        }
+
+        let out = (try? JSONSerialization.data(withJSONObject: obj, options: []))
+          .flatMap { String(data: $0, encoding: .utf8) }
+          ?? cached
+
+        return .result(value: out)
+      }
+
       let payload: [String: Any] = [
-        "error": "http_\(code)",
-        "body": body
+        "error": "offline_no_cache",
+        "help": "No internet connection and no cached policy yet. Connect to the internet once to cache the policy.",
+        "detail": String(describing: error)
       ]
       let out = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted])
-      return .result(value: String(data: out, encoding: .utf8) ?? "{\"error\":\"http_\(code)\"}")
+      return .result(value: String(data: out, encoding: .utf8) ?? "{\"error\":\"offline_no_cache\"}")
     }
-
-    // Best effort: verify it's JSON-ish (starts with { or [)
-    let trimmed = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    if !(trimmed.hasPrefix("{") || trimmed.hasPrefix("[")) {
-      let payload: [String: Any] = [
-        "error": "non_json_response",
-        "body": trimmed
-      ]
-      let out = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted])
-      return .result(value: String(data: out, encoding: .utf8) ?? "{\"error\":\"non_json_response\"}")
-    }
-
-    return .result(value: trimmed)
   }
 }
 
