@@ -1,7 +1,6 @@
 import Foundation
 
 public struct UpdatePolicyRequest: Encodable {
-  public var enforce: Bool?
   public var setHotspotOff: Bool?
   public var rotatePassword: Bool?
   public var setWifiOff: Bool?
@@ -23,7 +22,6 @@ public struct UpdatePolicyRequest: Encodable {
   }
 
   public init(
-    enforce: Bool? = nil,
     setHotspotOff: Bool? = nil,
     rotatePassword: Bool? = nil,
     setWifiOff: Bool? = nil,
@@ -34,7 +32,6 @@ public struct UpdatePolicyRequest: Encodable {
     tz: String? = nil,
     gapMinutes: Int? = nil
   ) {
-    self.enforce = enforce
     self.setHotspotOff = setHotspotOff
     self.rotatePassword = rotatePassword
     self.setWifiOff = setWifiOff

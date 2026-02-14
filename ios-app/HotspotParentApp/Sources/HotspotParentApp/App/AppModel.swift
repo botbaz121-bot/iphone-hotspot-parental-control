@@ -338,7 +338,6 @@ public final class AppModel: ObservableObject {
   }
 
   public func updateSelectedDevicePolicy(
-    enforce: Bool? = nil,
     setHotspotOff: Bool? = nil,
     setWifiOff: Bool? = nil,
     setMobileDataOff: Bool? = nil,
@@ -353,7 +352,6 @@ public final class AppModel: ObservableObject {
     guard let client = apiClient else { throw APIError.invalidResponse }
 
     let patch = UpdatePolicyRequest(
-      enforce: enforce,
       setHotspotOff: setHotspotOff,
       rotatePassword: rotatePassword,
       setWifiOff: setWifiOff,

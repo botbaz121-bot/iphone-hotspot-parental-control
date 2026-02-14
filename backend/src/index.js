@@ -72,7 +72,6 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS device_policies (
   id TEXT PRIMARY KEY,
   device_id TEXT NOT NULL UNIQUE,
-  enforce INTEGER NOT NULL DEFAULT 1,
   set_hotspot_off INTEGER NOT NULL DEFAULT 1,
   set_wifi_off INTEGER NOT NULL DEFAULT 0,
   set_mobile_data_off INTEGER NOT NULL DEFAULT 0,
@@ -642,7 +641,6 @@ app.get('/admin', (req, res) => {
       <tr>
         <th>Name</th>
         <th>Token</th>
-        <th>Enforce</th>
         <th>Gap (min)</th>
         <th>Day</th>
         <th>Start</th>
@@ -729,7 +727,6 @@ app.get('/admin', (req, res) => {
         tr.innerHTML =
           '<td>' + escapeHtml(d.name||'') + '</td>' +
           '<td><code>' + escapeHtml(d.device_token) + '</code></td>' +
-          '<td><input type="checkbox" class="enforce" ' + (d.enforce ? 'checked' : '') + ' /></td>' +
           '<td><input class="gapMin" size="6" value="' + escapeHtml(String(gapMin)) + '" /></td>' +
           '<td>' +
             '<select class="daySel">' +
@@ -777,7 +774,6 @@ app.get('/admin', (req, res) => {
         applyDayToInputs();
 
         tr.querySelector('.saveRow').onclick = async ()=>{
-          const enforce = tr.querySelector('.enforce').checked;
           const gapMinutes = Number(String(tr.querySelector('.gapMin').value||'').trim());
           const quietStartVal = String(tr.querySelector('.quietStart').value||'').trim();
           const quietEndVal = String(tr.querySelector('.quietEnd').value||'').trim();
@@ -793,7 +789,7 @@ app.get('/admin', (req, res) => {
           if (quietStartVal && quietEndVal) quietDaysModel[k] = { start: quietStartVal, end: quietEndVal };
           else delete quietDaysModel[k];
 
-          const patch = { enforce, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
+          const patch = { setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
           patch.tz = tzVal ? tzVal : 'Europe/Paris';
 
@@ -901,7 +897,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const pol = db
     .prepare(
       `
-      SELECT enforce, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, quiet_days, tz
+      SELECT set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, quiet_days, tz
       FROM device_policies
       WHERE device_id = ?
       `
@@ -1075,7 +1071,6 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         d.created_at,
         d.last_seen_at,
         MAX(e.ts) AS last_event_ts,
-        p.enforce AS enforce,
         p.set_hotspot_off AS set_hotspot_off,
         p.set_wifi_off AS set_wifi_off,
         p.set_mobile_data_off AS set_mobile_data_off,
@@ -1189,8 +1184,8 @@ app.post('/api/devices', requireParentOrAdmin, (req, res) => {
 
   db.prepare(
     `
-    INSERT INTO device_policies (id, device_id, enforce, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, gap_ms)
-    VALUES (?, ?, 1, 1, 0, 0, 1, 7200000)
+    INSERT INTO device_policies (id, device_id, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, gap_ms)
+    VALUES (?, ?, 1, 0, 0, 1, 7200000)
     `
   ).run(id(), deviceId);
 
@@ -1301,7 +1296,6 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   if (!device) return res.status(404).json({ error: 'not_found' });
 
   const schema = z.object({
-    enforce: z.boolean().optional(),
     setHotspotOff: z.boolean().optional(),
     setWifiOff: z.boolean().optional(),
     setMobileDataOff: z.boolean().optional(),
@@ -1320,10 +1314,6 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
 
   const fields = [];
   const values = [];
-  if (patch.enforce != null) {
-    fields.push('enforce = ?');
-    values.push(patch.enforce ? 1 : 0);
-  }
   if (patch.setHotspotOff != null) {
     fields.push('set_hotspot_off = ?');
     values.push(patch.setHotspotOff ? 1 : 0);
