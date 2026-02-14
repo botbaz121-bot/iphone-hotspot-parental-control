@@ -526,31 +526,35 @@ private struct PolicyEditorCard: View {
         }
 
         if quiet {
-          // Day selector
-          HStack(alignment: .center, spacing: 8) {
-            ForEach(["sun","mon","tue","wed","thu","fri","sat"], id: \.self) { d in
-              Button {
-                selectedDay = d
-                let start = quietDays[d]?.start ?? "22:00"
-                let end = quietDays[d]?.end ?? "07:00"
-                startDate = Self.parseTime(start) ?? startDate
-                endDate = Self.parseTime(end) ?? endDate
-              } label: {
-                Text(Self.dayLabel(d))
-                  .font(.caption.weight(.semibold))
-                  .frame(width: 30, height: 28)
-                  .background(selectedDay == d ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
-                  .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                      .stroke(Color.white.opacity(selectedDay == d ? 0.35 : 0.10), lineWidth: 1)
-                  )
-                  .clipShape(RoundedRectangle(cornerRadius: 10))
+          // Day selector (horiz scroll so it never wraps)
+          ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+              ForEach(["sun","mon","tue","wed","thu","fri","sat"], id: \.self) { d in
+                Button {
+                  selectedDay = d
+                  let start = quietDays[d]?.start ?? "22:00"
+                  let end = quietDays[d]?.end ?? "07:00"
+                  startDate = Self.parseTime(start) ?? startDate
+                  endDate = Self.parseTime(end) ?? endDate
+                } label: {
+                  Text(Self.dayLabel(d))
+                    .font(.caption.weight(.semibold))
+                    .frame(width: 30, height: 28)
+                    .background(selectedDay == d ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
+                    .overlay(
+                      RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.white.opacity(selectedDay == d ? 0.35 : 0.10), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
               }
-              .buttonStyle(.plain)
             }
+            .padding(.vertical, 2)
+          }
 
-            Spacer(minLength: 8)
-
+          HStack {
+            Spacer()
             Button {
               let s = Self.formatTime(startDate)
               let e = Self.formatTime(endDate)
@@ -565,7 +569,7 @@ private struct PolicyEditorCard: View {
               ]
               scheduleSave()
             } label: {
-              Text("Copy to all")
+              Text("Copy to all days")
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
