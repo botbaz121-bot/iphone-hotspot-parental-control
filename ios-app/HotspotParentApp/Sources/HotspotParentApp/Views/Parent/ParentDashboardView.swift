@@ -456,6 +456,48 @@ private struct PolicyEditorCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
+      // Rules box (second)
+      VStack(alignment: .leading, spacing: 10) {
+        Text("Rules")
+          .font(.headline)
+
+        Toggle(isOn: $hotspotOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Hotspot OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Shortcut turns off hotspot + rotates password")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: hotspotOff) { _ in scheduleSave() }
+
+        Toggle(isOn: $wifiOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Wi‑Fi OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Turn off Wi‑Fi")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: wifiOff) { _ in scheduleSave() }
+
+        Toggle(isOn: $mobileDataOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Mobile Data OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Turn off cellular data")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: mobileDataOff) { _ in scheduleSave() }
+      }
+      .padding(18)
+      .background(Color.primary.opacity(0.06))
+      .clipShape(RoundedRectangle(cornerRadius: 22))
+
       // Schedule box (first)
       VStack(alignment: .leading, spacing: 10) {
         HStack {
@@ -572,47 +614,6 @@ private struct PolicyEditorCard: View {
       .background(Color.primary.opacity(0.06))
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
-      // Rules box (second)
-      VStack(alignment: .leading, spacing: 10) {
-        Text("Rules")
-          .font(.headline)
-
-        Toggle(isOn: $hotspotOff) {
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Hotspot OFF")
-              .font(.subheadline.weight(.semibold))
-            Text("Shortcut turns off hotspot + rotates password")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-        }
-        .onChange(of: hotspotOff) { _ in scheduleSave() }
-
-        Toggle(isOn: $wifiOff) {
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Wi‑Fi OFF")
-              .font(.subheadline.weight(.semibold))
-            Text("Turn off Wi‑Fi")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-        }
-        .onChange(of: wifiOff) { _ in scheduleSave() }
-
-        Toggle(isOn: $mobileDataOff) {
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Mobile Data OFF")
-              .font(.subheadline.weight(.semibold))
-            Text("Turn off cellular data")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
-        }
-        .onChange(of: mobileDataOff) { _ in scheduleSave() }
-      }
-      .padding(18)
-      .background(Color.primary.opacity(0.06))
-      .clipShape(RoundedRectangle(cornerRadius: 22))
     }
   }
 
