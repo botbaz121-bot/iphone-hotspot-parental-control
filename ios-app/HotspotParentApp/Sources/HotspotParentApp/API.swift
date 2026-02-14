@@ -29,6 +29,35 @@ public enum APIError: Error, CustomStringConvertible {
       case .httpStatus(let code, let body): return "httpStatus(\(code)): \(body)"
     }
   }
+
+  public var userMessage: String {
+    switch self {
+      case .invalidResponse:
+        return "Couldn’t reach the server. Please try again."
+      case .httpStatus(let code, let body):
+        // Try to parse {"error":"..."}
+        let err = APIError.parseErrorCode(body)
+
+        if err == "invalid_code" || err == "invalid_pairing_code" {
+          return "That pairing code is invalid or expired. Ask the parent phone to generate a new one."
+        }
+        if code == 401 {
+          return "You’re not authorized. Please sign in again and try."
+        }
+        if code == 404 {
+          return "Not found. Please check the code and try again."
+        }
+        return "Request failed (\(code)). Please try again."
+    }
+  }
+
+  private static func parseErrorCode(_ body: String) -> String? {
+    guard let data = body.data(using: .utf8) else { return nil }
+    if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+      if let e = obj["error"] as? String { return e }
+    }
+    return nil
+  }
 }
 
 public struct HTTP {

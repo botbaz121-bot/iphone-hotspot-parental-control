@@ -45,7 +45,11 @@ public struct PairingEntryView: View {
                   // Refresh any derived state
                   model.syncFromSharedDefaults()
                 } catch {
-                  errorText = "Pairing failed: \(error)"
+                  if let apiErr = error as? APIError {
+                    errorText = apiErr.userMessage
+                  } else {
+                    errorText = "Pairing failed. Please try again."
+                  }
                 }
               }
             } label: {
