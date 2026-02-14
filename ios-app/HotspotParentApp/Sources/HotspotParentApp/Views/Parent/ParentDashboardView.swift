@@ -383,12 +383,17 @@ private struct DeviceDetailsSheet: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
       } else {
-        VStack(alignment: .leading, spacing: 12) {
-          ForEach(events.prefix(8), id: \.id) { e in
-            Text("\(Self.formatEventTime(e.ts)) — \(Self.formatTrigger(e.trigger))")
-              .font(.subheadline.weight(.semibold))
+        ScrollView {
+          VStack(alignment: .leading, spacing: 12) {
+            ForEach(events.prefix(100), id: \.id) { e in
+              Text("\(Self.formatEventTime(e.ts)) — \(Self.formatTrigger(e.trigger))")
+                .font(.subheadline.weight(.semibold))
+            }
           }
+          .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxHeight: 168) // ~5 rows
+        .scrollIndicators(.hidden)
       }
     }
     .padding(18)
