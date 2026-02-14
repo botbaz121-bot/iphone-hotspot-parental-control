@@ -387,8 +387,14 @@ private struct DeviceDetailsSheet: View {
         ScrollView {
           VStack(alignment: .leading, spacing: 12) {
             ForEach(events.prefix(100), id: \.id) { e in
-              Text("\(Self.formatEventTime(e.ts)) — \(Self.formatTrigger(e.trigger))")
-                .font(.subheadline.weight(.semibold))
+              HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(Self.formatEventTime(e.ts))
+                  .font(.subheadline.weight(.semibold))
+                  .monospacedDigit()
+                  .frame(width: 120, alignment: .leading)
+                Text(Self.formatTrigger(e.trigger))
+                  .font(.subheadline.weight(.semibold))
+              }
             }
           }
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -420,8 +426,14 @@ private struct DeviceDetailsSheet: View {
 
   private static func formatEventTime(_ ts: Int) -> String {
     let d = Date(timeIntervalSince1970: TimeInterval(ts) / 1000.0)
+
     let f = DateFormatter()
-    f.dateFormat = "HH:mm"
+    f.locale = .current
+    f.timeZone = .current
+    f.dateStyle = .short
+    f.timeStyle = .short
+
+    // Examples: 14/02/2026, 16:44
     return f.string(from: d)
   }
 
