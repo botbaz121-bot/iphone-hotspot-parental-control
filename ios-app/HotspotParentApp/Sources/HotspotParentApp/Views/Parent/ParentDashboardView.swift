@@ -360,10 +360,6 @@ private struct DeviceDetailsSheet: View {
           }
         }
       }
-
-      Text("Tip: this list is inline (no tap-to-open).")
-        .font(.footnote)
-        .foregroundStyle(.secondary)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))
@@ -395,7 +391,7 @@ private struct DeviceDetailsSheet: View {
 
   private static func formatTrigger(_ t: String) -> String {
     switch t {
-      case "policy_fetch": return "Policy fetch"
+      case "policy_fetch": return "Checked status"
       default: return t.replacingOccurrences(of: "_", with: " ")
     }
   }
