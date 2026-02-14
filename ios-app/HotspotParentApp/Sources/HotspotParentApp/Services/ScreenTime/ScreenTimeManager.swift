@@ -45,13 +45,9 @@ public final class ScreenTimeManager {
   /// (or entitlements are missing), this becomes a no-op.
   public func applyShielding(selection: Any? = nil) async throws {
     #if canImport(FamilyControls) && canImport(ManagedSettings)
-    // Always shield Shortcuts to reduce tampering.
-    let shortcuts = ApplicationToken(bundleIdentifier: "com.apple.shortcuts")
-
     if let sel = selection as? FamilyActivitySelection {
       // Applications
-      var apps = sel.applicationTokens
-      apps.insert(shortcuts)
+      let apps = sel.applicationTokens
       store.shield.applications = apps.isEmpty ? nil : apps
 
       // Categories (ManagedSettings expects an ActivityCategoryPolicy)
@@ -62,7 +58,8 @@ public final class ScreenTimeManager {
         store.shield.applicationCategories = nil
       }
     } else {
-      store.shield.applications = [shortcuts]
+      // No selection provided: clear any per-app/category shields.
+      store.shield.applications = nil
       store.shield.applicationCategories = nil
     }
     #else

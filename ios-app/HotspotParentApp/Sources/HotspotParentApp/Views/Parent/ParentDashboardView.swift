@@ -756,9 +756,6 @@ private struct PolicyEditorCard: View {
     saving = true
     defer { saving = false }
 
-    let qs = quiet ? Self.formatTime(startDate) : nil
-    let qe = quiet ? Self.formatTime(endDate) : nil
-
     do {
       try await model.updateSelectedDevicePolicy(
         setHotspotOff: hotspotOff,

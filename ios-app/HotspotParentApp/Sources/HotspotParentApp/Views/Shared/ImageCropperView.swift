@@ -62,7 +62,7 @@ public struct ImageCropperView: UIViewControllerRepresentable {
       }
     }
 
-    public func cropViewController(_ cropViewController: TOCropViewController, didCropTo image: UIImage, withRect cropRect: CGRect, angle: Int) {
+    public func cropViewController(_ cropViewController: TOCropViewController, didCropTo image: UIImage, with cropRect: CGRect, angle: Int) {
       _ = cropRect
       _ = angle
       onCropped(image)
