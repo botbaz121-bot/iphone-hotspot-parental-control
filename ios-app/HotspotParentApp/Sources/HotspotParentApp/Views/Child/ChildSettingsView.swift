@@ -49,17 +49,6 @@ public struct ChildSettingsView: View {
             .buttonStyle(.plain)
           }
 
-          Button(role: .destructive) {
-            model.unlockChildSetup()
-            model.restartOnboarding()
-          } label: {
-            Label("Reset child setup state", systemImage: "trash")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.bordered)
-          .tint(.red)
-
-          
           SettingsGroup("Reset") {
             SettingsRow(
               systemIcon: "trash",
