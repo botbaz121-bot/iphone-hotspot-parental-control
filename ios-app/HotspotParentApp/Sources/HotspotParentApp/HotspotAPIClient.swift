@@ -58,6 +58,14 @@ public final class HotspotAPIClient {
     try await HTTP.postJSON(api.url("/api/devices/\(deviceId)/pairing-code"), body: [String: String](), headers: parentOrAdminHeaders())
   }
 
+  public func updateDevice(deviceId: String, patch: UpdateDeviceRequest) async throws {
+    let _: OkResponse = try await HTTP.patchJSON(api.url("/api/devices/\(deviceId)"), body: patch, headers: parentOrAdminHeaders())
+  }
+
+  public func deleteDevice(deviceId: String) async throws {
+    let _: OkResponse = try await HTTP.deleteJSON(api.url("/api/devices/\(deviceId)"), headers: parentOrAdminHeaders())
+  }
+
   public func updatePolicy(deviceId: String, patch: UpdatePolicyRequest) async throws {
     let _: OkResponse = try await HTTP.patchJSON(api.url("/api/devices/\(deviceId)/policy"), body: patch, headers: parentOrAdminHeaders())
   }

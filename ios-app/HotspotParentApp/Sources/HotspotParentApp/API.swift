@@ -55,6 +55,21 @@ public struct HTTP {
     try await requestJSON(url, method: "PATCH", body: body, headers: headers)
   }
 
+  public static func deleteJSON<T: Decodable>(_ url: URL, headers: [String: String] = [:]) async throws -> T {
+    var req = URLRequest(url: url)
+    req.httpMethod = "DELETE"
+    req.setValue("application/json", forHTTPHeaderField: "Accept")
+    for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
+
+    let (data, resp) = try await URLSession.shared.data(for: req)
+    guard let http = resp as? HTTPURLResponse else { throw APIError.invalidResponse }
+    if !(200..<300).contains(http.statusCode) {
+      let body = String(data: data, encoding: .utf8) ?? ""
+      throw APIError.httpStatus(http.statusCode, body)
+    }
+    return try JSONDecoder().decode(T.self, from: data)
+  }
+
   private static func requestJSON<T: Decodable>(_ url: URL, method: String, body: Encodable, headers: [String: String]) async throws -> T {
     var req = URLRequest(url: url)
     req.httpMethod = method

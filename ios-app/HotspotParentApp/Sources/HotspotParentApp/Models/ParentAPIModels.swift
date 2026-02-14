@@ -32,6 +32,16 @@ public struct OkResponse: Decodable {
   public var ok: Bool
 }
 
+public struct UpdateDeviceRequest: Encodable {
+  public var name: String?
+  public var icon: String?
+
+  public init(name: String? = nil, icon: String? = nil) {
+    self.name = name
+    self.icon = icon
+  }
+}
+
 public struct EventsResponse: Decodable {
   public var events: [DeviceEventRow]
 }

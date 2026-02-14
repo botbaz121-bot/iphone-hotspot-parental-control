@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS devices (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
   name TEXT NOT NULL DEFAULT '',
+  icon TEXT,
   device_token TEXT NOT NULL UNIQUE,
   device_secret TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -114,6 +115,12 @@ CREATE INDEX IF NOT EXISTS idx_pairing_codes_expires ON pairing_codes(expires_at
 `);
 
 // Lightweight migration for existing DBs
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devices'").get()) {
+  if (!tableHasColumn('devices', 'icon')) {
+    db.exec("ALTER TABLE devices ADD COLUMN icon TEXT");
+  }
+}
+
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_policies'").get()) {
   if (!tableHasColumn('device_policies', 'gap_ms')) {
     db.exec('ALTER TABLE device_policies ADD COLUMN gap_ms INTEGER NOT NULL DEFAULT 7200000');
@@ -1071,6 +1078,59 @@ app.post('/api/devices', requireParentOrAdmin, (req, res) => {
 });
 
 // Create a short-lived pairing code for a device.
+app.patch('/api/devices/:deviceId', requireParentOrAdmin, (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+
+    const device = req.parent
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+    if (!device) return res.status(404).json({ error: 'not_found' });
+
+    const schema = z.object({
+      name: z.string().min(1).max(200).optional(),
+      icon: z.string().min(1).max(60).nullable().optional()
+    });
+    const patch = schema.parse(req.body || {});
+
+    const fields = [];
+    const values = [];
+    if (patch.name != null) {
+      fields.push('name = ?');
+      values.push(patch.name);
+    }
+    if (patch.icon !== undefined) {
+      fields.push('icon = ?');
+      values.push(patch.icon);
+    }
+
+    if (!fields.length) return res.status(400).json({ error: 'no_fields' });
+
+    values.push(deviceId);
+    db.prepare(`UPDATE devices SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.delete('/api/devices/:deviceId', requireParentOrAdmin, (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+
+    const device = req.parent
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+    if (!device) return res.status(404).json({ error: 'not_found' });
+
+    db.prepare('DELETE FROM devices WHERE id = ?').run(deviceId);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.post('/api/devices/:deviceId/pairing-code', requireParentOrAdmin, (req, res, next) => {
   try {
     const { deviceId } = req.params;

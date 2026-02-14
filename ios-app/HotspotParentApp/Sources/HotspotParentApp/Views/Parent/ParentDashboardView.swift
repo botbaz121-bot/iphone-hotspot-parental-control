@@ -179,20 +179,98 @@ private struct DeviceDetailsSheet: View {
             .environmentObject(model)
 
           recentActivityCard
-
-          troubleshootingCard
         }
         .padding(.top, 18)
         .padding(.horizontal, 18)
         .padding(.bottom, 32)
       }
-      .navigationTitle(device.name)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
+        ToolbarItem(placement: .principal) {
+          deviceTitleMenu
+        }
         ToolbarItem(placement: .topBarTrailing) {
           Button("Done") { dismiss() }
         }
       }
+      .alert("Action failed", isPresented: Binding(
+        get: { actionError != nil },
+        set: { if !$0 { actionError = nil } }
+      )) {
+        Button("OK", role: .cancel) { actionError = nil }
+      } message: {
+        Text(actionError ?? "Unknown error")
+      }
+    }
+  }
+
+  @State private var showRename = false
+  @State private var renameText: String = ""
+  @State private var showDeleteConfirm = false
+  @State private var actionError: String?
+
+  private var deviceTitleMenu: some View {
+    Menu {
+      Button {
+        renameText = device.name
+        showRename = true
+      } label: {
+        Label("Rename", systemImage: "pencil")
+      }
+
+      Button {
+        // Placeholder: icon selection UI can be added later.
+      } label: {
+        Label("Choose icon", systemImage: "square.dashed")
+      }
+
+      Divider()
+
+      Button(role: .destructive) {
+        showDeleteConfirm = true
+      } label: {
+        Label("Delete", systemImage: "trash")
+      }
+    } label: {
+      HStack(spacing: 6) {
+        Text(device.name)
+          .font(.headline.weight(.semibold))
+        Image(systemName: "chevron.down")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+    .confirmationDialog(
+      "Delete this device?",
+      isPresented: $showDeleteConfirm,
+      titleVisibility: .visible
+    ) {
+      Button("Delete", role: .destructive) {
+        Task {
+          do {
+            try await model.deleteDevice(deviceId: device.id)
+            dismiss()
+          } catch {
+            actionError = String(describing: error)
+          }
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    }
+    .alert("Rename device", isPresented: $showRename) {
+      TextField("Name", text: $renameText)
+      Button("Save") {
+        Task {
+          do {
+            let t = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !t.isEmpty else { return }
+            try await model.renameDevice(deviceId: device.id, name: t)
+          } catch {
+            actionError = String(describing: error)
+          }
+        }
+      }
+      Button("Cancel", role: .cancel) {}
     }
   }
 
@@ -210,33 +288,6 @@ private struct DeviceDetailsSheet: View {
       Text("Tip: this list is scrollable; details are inline (no tap-to-open).")
         .font(.footnote)
         .foregroundStyle(.secondary)
-    }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var troubleshootingCard: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("Troubleshooting")
-        .font(.headline)
-
-      Button {
-        // Keep minimal for now.
-      } label: {
-        Label("Shortcut not running", systemImage: "wrench.and.screwdriver")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-
-      Button(role: .destructive) {
-        model.resetLocalData()
-      } label: {
-        Label("Remove device", systemImage: "trash")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-      .tint(.red)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))

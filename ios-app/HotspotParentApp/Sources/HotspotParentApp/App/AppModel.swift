@@ -379,6 +379,20 @@ public final class AppModel: ObservableObject {
     return code
   }
 
+  public func renameDevice(deviceId: String, name: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.updateDevice(deviceId: deviceId, patch: UpdateDeviceRequest(name: name, icon: nil))
+    await refreshParentDashboard()
+  }
+
+  public func deleteDevice(deviceId: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.deleteDevice(deviceId: deviceId)
+    // If we deleted the selected device, clear selection.
+    if selectedDeviceId == deviceId { selectedDeviceId = nil }
+    await refreshParentDashboard()
+  }
+
   // MARK: - Debug
 
   public func resetLocalData() {
