@@ -55,7 +55,7 @@ public struct ChildLockedView: View {
       Button {
         Task { await unlockWithApple() }
       } label: {
-        Label("Unlock (parent)", systemImage: "arrow.right")
+        Label("Unlock", systemImage: "arrow.right")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)

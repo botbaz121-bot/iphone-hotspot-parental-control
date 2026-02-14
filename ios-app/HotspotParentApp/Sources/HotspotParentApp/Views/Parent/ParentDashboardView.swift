@@ -394,11 +394,20 @@ private struct PolicyEditorCard: View {
       }
 
       Button {
-        // TODO: wire to backend
-        let start = Self.formatTime(startDate)
-        let end = Self.formatTime(endDate)
-        _ = start
-        _ = end
+        let qs = quiet ? Self.formatTime(startDate) : nil
+        let qe = quiet ? Self.formatTime(endDate) : nil
+        Task {
+          do {
+            try await model.updateSelectedDevicePolicy(
+              setHotspotOff: hotspotOff,
+              quietStart: qs,
+              quietEnd: qe,
+              tz: "Europe/Paris"
+            )
+          } catch {
+            // surfaced by the parent sheet menu alert
+          }
+        }
       } label: {
         Label("Save rules", systemImage: "slider.horizontal.3")
           .frame(maxWidth: .infinity)

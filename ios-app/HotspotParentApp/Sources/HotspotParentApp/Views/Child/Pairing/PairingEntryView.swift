@@ -60,35 +60,16 @@ public struct PairingEntryView: View {
           .padding(.horizontal, 12)
         }
 
-        if let cfg = model.loadHotspotConfig() {
-          SettingsGroup("Current pairing") {
-            SettingsRow(
-              systemIcon: "link",
-              title: "API",
-              subtitle: cfg.apiBaseURL,
-              rightText: nil,
-              showsChevron: false,
-              action: nil
-            )
-            SettingsDivider()
-            SettingsRow(
-              systemIcon: "iphone",
-              title: "Device",
-              subtitle: model.childPairedDeviceName ?? "—",
-              rightText: nil,
-              showsChevron: false,
-              action: nil
-            )
-            SettingsDivider()
-            SettingsRow(
-              systemIcon: "number",
-              title: "Device id",
-              subtitle: model.childPairedDeviceId ?? "—",
-              rightText: nil,
-              showsChevron: false,
-              action: nil
-            )
+        if model.loadHotspotConfig() != nil {
+          Button(role: .destructive) {
+            model.unpairChildDevice()
+            model.syncFromSharedDefaults()
+          } label: {
+            Label("Unpair", systemImage: "link.badge.minus")
+              .frame(maxWidth: .infinity)
           }
+          .buttonStyle(.bordered)
+          .tint(.red)
         }
 
         if let errorText {
@@ -97,18 +78,6 @@ public struct PairingEntryView: View {
             .font(.footnote)
         }
 
-        #if DEBUG
-        SettingsGroup("Debug") {
-          SettingsRow(
-            systemIcon: "ladybug",
-            title: "Simulate Shortcut run",
-            subtitle: nil,
-            rightText: nil,
-            showsChevron: false,
-            action: { model.recordIntentRun() }
-          )
-        }
-        #endif
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)

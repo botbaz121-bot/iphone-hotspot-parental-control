@@ -33,37 +33,20 @@ public struct ChildSettingsView: View {
 
           SettingsGroup("Setup") {
             NavigationLink {
-              ChildPairView()
+              PairingEntryView()
                 .environmentObject(model)
             } label: {
               SettingsRow(
                 systemIcon: "qrcode",
                 title: model.loadHotspotConfig() != nil ? "Edit pairing" : "Pair device",
-                subtitle: "Scan a QR code or enter a pairing code",
+                subtitle: "Enter the pairing code from the parent phone",
                 rightText: (model.loadHotspotConfig() != nil) ? "Paired" : "Not paired",
                 showsChevron: true,
                 action: nil
               )
-              // Make the whole row tappable (since SettingsRow is a Button internally)
               .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-          }
-
-          SettingsGroup("Debug (prototype helpers)") {
-            SettingsRow(
-              systemIcon: "link",
-              title: "Simulate Shortcut run",
-              subtitle: "Increments run count (mock)",
-              action: { model.recordIntentRun() }
-            )
-            SettingsDivider()
-            SettingsRow(
-              systemIcon: "shield",
-              title: model.screenTimeAuthorized ? "Unset Screen Time auth" : "Set Screen Time auth",
-              subtitle: "Toggle FamilyControls permission (mock)",
-              action: { model.screenTimeAuthorized.toggle() }
-            )
           }
 
           Button(role: .destructive) {
