@@ -117,15 +117,26 @@ private struct DeviceTileView: View {
   }
 
   private static func stableHue(_ s: String) -> Double {
-    // deterministic hash (don’t use Swift's Hashable which can vary between runs)
+    // Deterministic hash (don’t use Swift's Hashable which can vary between runs)
     let v = s.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
-    var hue = Double(abs(v) % 360) / 360.0
 
-    // Avoid a blue band (~0.55–0.70) and a pink band (~0.85–0.98)
-    if hue >= 0.55 && hue <= 0.70 { hue = fmod(hue + 0.18, 1.0) }
-    if hue >= 0.85 && hue <= 0.98 { hue = fmod(hue - 0.22 + 1.0, 1.0) }
+    // Use a fixed palette of clearly-separated hues to avoid collisions (especially blues).
+    // (0–1 where 0 = red, 0.33 = green, 0.66 = blue)
+    let palette: [Double] = [
+      0.03, // red
+      0.08, // orange
+      0.13, // yellow
+      0.20, // yellow-green
+      0.28, // green
+      0.36, // mint
+      0.44, // teal
+      0.74, // purple
+      0.82, // magenta
+      0.91  // pink
+    ]
 
-    return hue
+    let idx = abs(v) % palette.count
+    return palette[idx]
   }
 
   var body: some View {
