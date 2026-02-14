@@ -21,8 +21,8 @@ public struct ParentDashboardView: View {
           header
 
           LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            ForEach(model.parentDevices, id: \.id) { d in
-              DeviceTileView(device: d) {
+            ForEach(Array(model.parentDevices.enumerated()), id: \.element.id) { idx, d in
+              DeviceTileView(device: d, colorIndex: idx) {
                 // Open device details
                 model.selectedDeviceId = d.id
                 detailsDeviceId = d.id
@@ -103,59 +103,25 @@ public struct ParentDashboardView: View {
 private struct DeviceTileView: View {
   @EnvironmentObject private var model: AppModel
   let device: DashboardDevice
+  let colorIndex: Int
   var onTap: () -> Void
 
   private var gradient: LinearGradient {
-    // Fixed gradient palette (distinct + readable). Avoids “too similar blues”.
-    let spec = Self.stableGradientSpec(device.id.isEmpty ? device.name : device.id)
-
-    let c1 = Color(hue: spec.h1, saturation: spec.s1, brightness: spec.b1)
-    let c2 = Color(hue: spec.h2, saturation: spec.s2, brightness: spec.b2)
-
-    return LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing)
-  }
-
-  private struct GradientSpec {
-    let h1: Double
-    let s1: Double
-    let b1: Double
-    let h2: Double
-    let s2: Double
-    let b2: Double
-  }
-
-  private static func stableGradientSpec(_ s: String) -> GradientSpec {
-    // deterministic hash (don’t use Swift's Hashable which can vary between runs)
-    let v = s.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
-
-    // Hue pairs (0–1). Chosen to be far apart visually and avoid a sea of blues.
-    let palette: [GradientSpec] = [
-      .init(h1: 0.03, s1: 0.90, b1: 0.92, h2: 0.06, s2: 0.92, b2: 0.72), // red→orange
-      .init(h1: 0.08, s1: 0.92, b1: 0.92, h2: 0.11, s2: 0.94, b2: 0.72), // orange→amber
-      .init(h1: 0.13, s1: 0.85, b1: 0.95, h2: 0.17, s2: 0.90, b2: 0.72), // yellow→lime
-      .init(h1: 0.22, s1: 0.82, b1: 0.92, h2: 0.28, s2: 0.86, b2: 0.70), // green
-      .init(h1: 0.38, s1: 0.80, b1: 0.92, h2: 0.44, s2: 0.86, b2: 0.70), // mint→teal
-      .init(h1: 0.48, s1: 0.78, b1: 0.92, h2: 0.52, s2: 0.84, b2: 0.68), // cyan/seafoam (not deep blue)
-      .init(h1: 0.74, s1: 0.78, b1: 0.92, h2: 0.78, s2: 0.84, b2: 0.70), // purple
-      .init(h1: 0.82, s1: 0.84, b1: 0.92, h2: 0.88, s2: 0.88, b2: 0.70), // magenta→pink
+    // Rotate between 8 very distinct gradients by *tile index*.
+    // This prevents same-looking tiles for small numbers of devices.
+    let palette: [LinearGradient] = [
+      LinearGradient(colors: [Color(red: 0.98, green: 0.40, blue: 0.33), Color(red: 0.82, green: 0.18, blue: 0.27)], startPoint: .topLeading, endPoint: .bottomTrailing), // red
+      LinearGradient(colors: [Color(red: 1.00, green: 0.62, blue: 0.22), Color(red: 0.93, green: 0.36, blue: 0.12)], startPoint: .topLeading, endPoint: .bottomTrailing), // orange
+      LinearGradient(colors: [Color(red: 0.98, green: 0.86, blue: 0.18), Color(red: 0.78, green: 0.62, blue: 0.10)], startPoint: .topLeading, endPoint: .bottomTrailing), // yellow
+      LinearGradient(colors: [Color(red: 0.32, green: 0.86, blue: 0.36), Color(red: 0.12, green: 0.62, blue: 0.22)], startPoint: .topLeading, endPoint: .bottomTrailing), // green
+      LinearGradient(colors: [Color(red: 0.22, green: 0.86, blue: 0.78), Color(red: 0.08, green: 0.62, blue: 0.64)], startPoint: .topLeading, endPoint: .bottomTrailing), // teal
+      LinearGradient(colors: [Color(red: 0.74, green: 0.40, blue: 1.00), Color(red: 0.46, green: 0.34, blue: 1.00)], startPoint: .topLeading, endPoint: .bottomTrailing), // purple
+      LinearGradient(colors: [Color(red: 1.00, green: 0.36, blue: 0.72), Color(red: 0.88, green: 0.18, blue: 0.56)], startPoint: .topLeading, endPoint: .bottomTrailing), // magenta
+      LinearGradient(colors: [Color(red: 0.58, green: 0.72, blue: 1.00), Color(red: 0.24, green: 0.46, blue: 0.98)], startPoint: .topLeading, endPoint: .bottomTrailing), // blue
     ]
 
-    let idx = abs(v) % palette.count
-    var spec = palette[idx]
-
-    // Add a tiny brightness variation based on v so two “close” hues still diverge.
-    let bump = (abs(v) % 3) - 1 // -1,0,1
-    let delta = Double(bump) * 0.03
-    spec = .init(
-      h1: spec.h1,
-      s1: spec.s1,
-      b1: min(0.98, max(0.70, spec.b1 + delta)),
-      h2: spec.h2,
-      s2: spec.s2,
-      b2: min(0.92, max(0.60, spec.b2 - delta))
-    )
-
-    return spec
+    let idx = ((colorIndex % palette.count) + palette.count) % palette.count
+    return palette[idx]
   }
 
   var body: some View {
