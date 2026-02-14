@@ -883,7 +883,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     // Leon will encode this logic in the Shortcut.
     quietHours: hasQuiet
       ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
-      : { start: '12:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' }
+      : { start: '00:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' }
   };
 
   res.json(out);
@@ -1061,7 +1061,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       // Leon will encode this logic in the Shortcut.
       quietHours: hasQuiet
         ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
-        : { start: '12:00', end: '23:59', tz: r.tz || 'Europe/Paris' },
+        : { start: '00:00', end: '23:59', tz: r.tz || 'Europe/Paris' },
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
