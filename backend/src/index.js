@@ -844,18 +844,16 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     )
     .get(deviceId);
 
-  const { qs, qe } = withDefaultQuiet(pol?.quiet_start, pol?.quiet_end);
+  const hasQuiet = pol?.quiet_start != null && pol?.quiet_end != null;
   const out = {
     enforce: pol ? !!pol.enforce : true,
     actions: {
       setHotspotOff: pol ? !!pol.set_hotspot_off : true,
       rotatePassword: pol ? !!pol.rotate_password : true
     },
-    quietHours: {
-      start: qs,
-      end: qe,
-      tz: pol?.tz || 'Europe/Paris'
-    }
+    quietHours: hasQuiet
+      ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
+      : null
   };
 
   res.json(out);
@@ -1004,7 +1002,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const setHotspotOff = r.set_hotspot_off == null ? true : !!r.set_hotspot_off;
     const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
 
-    const inQuiet = enforce ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : false;
+    const hasQuiet = r.quiet_start != null && r.quiet_end != null;
+    const inQuiet = (enforce && hasQuiet) ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : false;
     const shouldBeRunning = enforce && !inQuiet;
 
     const gap = shouldBeRunning ? (lastEventTs == null ? true : now - lastEventTs > gapMs) : false;
@@ -1022,10 +1021,9 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setHotspotOff,
         rotatePassword
       },
-      quietHours: (() => {
-        const { qs, qe } = withDefaultQuiet(r.quiet_start, r.quiet_end);
-        return { start: qs, end: qe, tz: r.tz || 'Europe/Paris' };
-      })(),
+      quietHours: hasQuiet
+        ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
+        : null,
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
