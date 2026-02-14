@@ -385,6 +385,15 @@ public final class AppModel: ObservableObject {
     await refreshParentDashboard()
   }
 
+  public func setDevicePhoto(deviceId: String, jpegData: Data?) {
+    do {
+      try DevicePhotoStore.setPhotoJPEG(deviceId: deviceId, data: jpegData)
+      objectWillChange.send()
+    } catch {
+      // best-effort
+    }
+  }
+
   public func deleteDevice(deviceId: String) async throws {
     guard let client = apiClient else { throw APIError.invalidResponse }
     try await client.deleteDevice(deviceId: deviceId)

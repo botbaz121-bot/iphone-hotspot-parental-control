@@ -3,6 +3,10 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if canImport(PhotosUI)
+import PhotosUI
+#endif
+
 public struct ParentDashboardView: View {
   @EnvironmentObject private var model: AppModel
 
@@ -97,6 +101,7 @@ public struct ParentDashboardView: View {
 }
 
 private struct DeviceTileView: View {
+  @EnvironmentObject private var model: AppModel
   let device: DashboardDevice
   var onTap: () -> Void
 
@@ -136,9 +141,28 @@ private struct DeviceTileView: View {
                 RoundedRectangle(cornerRadius: 10)
                   .stroke(Color.white.opacity(0.18), lineWidth: 1)
               )
+
+            #if canImport(UIKit)
+            if let img = DevicePhotoStore.getUIImage(deviceId: device.id) {
+              Image(uiImage: img)
+                .resizable()
+                .scaledToFill()
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 9)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+                .padding(1)
+            } else {
+              Text(String(device.name.prefix(1)).uppercased())
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white.opacity(0.95))
+            }
+            #else
             Text(String(device.name.prefix(1)).uppercased())
               .font(.headline.weight(.bold))
               .foregroundStyle(.white.opacity(0.95))
+            #endif
           }
           .frame(width: 28, height: 28)
 
@@ -209,6 +233,10 @@ private struct DeviceDetailsSheet: View {
   @State private var showDeleteConfirm = false
   @State private var actionError: String?
 
+  #if canImport(PhotosUI)
+  @State private var pickedPhoto: PhotosPickerItem?
+  #endif
+
   private var deviceTitleMenu: some View {
     Menu {
       Button {
@@ -218,11 +246,17 @@ private struct DeviceDetailsSheet: View {
         Label("Rename", systemImage: "pencil")
       }
 
-      Button {
-        // Placeholder: icon selection UI can be added later.
-      } label: {
-        Label("Choose icon", systemImage: "square.dashed")
+      #if canImport(PhotosUI)
+      PhotosPicker(selection: $pickedPhoto, matching: .images, photoLibrary: .shared()) {
+        Label("Choose photo", systemImage: "photo")
       }
+      #else
+      Button {
+        // Placeholder: photo picker unavailable on this build target.
+      } label: {
+        Label("Choose photo", systemImage: "photo")
+      }
+      #endif
 
       Divider()
 
@@ -238,6 +272,18 @@ private struct DeviceDetailsSheet: View {
         Image(systemName: "chevron.down")
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
+      }
+    }
+    .onChange(of: pickedPhoto) { item in
+      guard let item else { return }
+      Task {
+        do {
+          if let data = try await item.loadTransferable(type: Data.self) {
+            model.setDevicePhoto(deviceId: device.id, jpegData: data)
+          }
+        } catch {
+          actionError = String(describing: error)
+        }
       }
     }
     .confirmationDialog(
