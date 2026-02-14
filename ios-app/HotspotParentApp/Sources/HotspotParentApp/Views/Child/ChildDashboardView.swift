@@ -45,8 +45,46 @@ public struct ChildDashboardView: View {
     .sheet(isPresented: $showAutomationsInfo) {
       NavigationStack {
         ScrollView {
-          VStack(alignment: .leading, spacing: 12) {
-            Text("Turn on the automations inside the Shortcuts app. If iOS asks, allow notifications and always allow where possible.")
+          VStack(alignment: .leading, spacing: 14) {
+            Text("Turn on the automations inside the Shortcuts app.")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+
+            SettingsGroup("What you should see") {
+              SettingsRow(
+                systemIcon: "clock",
+                title: "At a time (daily)",
+                subtitle: "Runs Hotspot Policy every day",
+                showsChevron: false,
+                action: nil
+              )
+              SettingsDivider()
+              SettingsRow(
+                systemIcon: "wifi",
+                title: "When joining your Wi‑Fi",
+                subtitle: "Runs Hotspot Policy when this phone connects",
+                showsChevron: false,
+                action: nil
+              )
+              SettingsDivider()
+              SettingsRow(
+                systemIcon: "app",
+                title: "When an app is opened (e.g. Settings)",
+                subtitle: "Runs Hotspot Policy when key apps open",
+                showsChevron: false,
+                action: nil
+              )
+              SettingsDivider()
+              SettingsRow(
+                systemIcon: "battery.50",
+                title: "When battery level changes",
+                subtitle: "Optional: run at 50% / low power situations",
+                showsChevron: false,
+                action: nil
+              )
+            }
+
+            Text("Tip: In Shortcuts → Automation, make sure each automation is toggled on. If iOS asks, allow notifications and choose “Always Allow” where possible.")
               .font(.footnote)
               .foregroundStyle(.secondary)
           }
