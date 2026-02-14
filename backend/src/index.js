@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS device_policies (
   rotate_password INTEGER NOT NULL DEFAULT 1,
   quiet_start TEXT,
   quiet_end TEXT,
+  quiet_days TEXT,
   tz TEXT,
   gap_ms INTEGER NOT NULL DEFAULT 7200000,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -132,6 +133,9 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
   }
   if (!tableHasColumn('device_policies', 'set_mobile_data_off')) {
     db.exec('ALTER TABLE device_policies ADD COLUMN set_mobile_data_off INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!tableHasColumn('device_policies', 'quiet_days')) {
+    db.exec('ALTER TABLE device_policies ADD COLUMN quiet_days TEXT');
   }
 }
 
@@ -640,8 +644,9 @@ app.get('/admin', (req, res) => {
         <th>Token</th>
         <th>Enforce</th>
         <th>Gap (min)</th>
-        <th>Quiet start</th>
-        <th>Quiet end</th>
+        <th>Day</th>
+        <th>Start</th>
+        <th>End</th>
         <th>TZ</th>
         <th>Hotspot off</th>
         <th>Wi‑Fi off</th>
@@ -714,6 +719,7 @@ app.get('/admin', (req, res) => {
         const quietStart = d.quietHours && d.quietHours.start ? d.quietHours.start : '';
         const quietEnd = d.quietHours && d.quietHours.end ? d.quietHours.end : '';
         const tz = d.quietHours && d.quietHours.tz ? d.quietHours.tz : '';
+        const quietDays = d.quietDays || null;
 
         const setHotspotOff = d.actions && d.actions.setHotspotOff ? true : false;
         const setWifiOff = d.actions && d.actions.setWifiOff ? true : false;
@@ -725,6 +731,17 @@ app.get('/admin', (req, res) => {
           '<td><code>' + escapeHtml(d.device_token) + '</code></td>' +
           '<td><input type="checkbox" class="enforce" ' + (d.enforce ? 'checked' : '') + ' /></td>' +
           '<td><input class="gapMin" size="6" value="' + escapeHtml(String(gapMin)) + '" /></td>' +
+          '<td>' +
+            '<select class="daySel">' +
+              '<option value="mon">M</option>' +
+              '<option value="tue">T</option>' +
+              '<option value="wed">W</option>' +
+              '<option value="thu">T</option>' +
+              '<option value="fri">F</option>' +
+              '<option value="sat">S</option>' +
+              '<option value="sun">S</option>' +
+            '</select>' +
+          '</td>' +
           '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '') + '" /></td>' +
           '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
@@ -743,6 +760,22 @@ app.get('/admin', (req, res) => {
             '<span class="pairOut" style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"></span>' +
           '</td>';
 
+        // per-row quietDays model (preserved across day switching)
+        let quietDaysModel = quietDays && typeof quietDays === 'object' ? JSON.parse(JSON.stringify(quietDays)) : {};
+
+        function getSelDay(){
+          return String(tr.querySelector('.daySel')?.value||'mon');
+        }
+        function applyDayToInputs(){
+          const k=getSelDay();
+          const w=quietDaysModel[k]||{};
+          tr.querySelector('.quietStart').value = w.start || '';
+          tr.querySelector('.quietEnd').value = w.end || '';
+        }
+        tr.querySelector('.daySel').value = (d.quietDay || 'mon');
+        tr.querySelector('.daySel').onchange = ()=>applyDayToInputs();
+        applyDayToInputs();
+
         tr.querySelector('.saveRow').onclick = async ()=>{
           const enforce = tr.querySelector('.enforce').checked;
           const gapMinutes = Number(String(tr.querySelector('.gapMin').value||'').trim());
@@ -755,12 +788,17 @@ app.get('/admin', (req, res) => {
           const setMobileDataOff = tr.querySelector('.setMobileDataOff').checked;
           const rotatePassword = tr.querySelector('.rotatePassword').checked;
 
+          // write current day back into the model
+          const k = getSelDay();
+          if (quietStartVal && quietEndVal) quietDaysModel[k] = { start: quietStartVal, end: quietEndVal };
+          else delete quietDaysModel[k];
+
           const patch = { enforce, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
-          // If schedule inputs are blank, store null (means schedule OFF).
-          patch.quietStart = quietStartVal ? quietStartVal : null;
-          patch.quietEnd = quietEndVal ? quietEndVal : null;
           patch.tz = tzVal ? tzVal : 'Europe/Paris';
+
+          // If no days configured, store null (schedule off).
+          patch.quietDays = Object.keys(quietDaysModel).length ? quietDaysModel : null;
 
           tr.style.opacity = '0.6';
           try{
@@ -863,34 +901,48 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const pol = db
     .prepare(
       `
-      SELECT enforce, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, tz
+      SELECT enforce, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, quiet_days, tz
       FROM device_policies
       WHERE device_id = ?
       `
     )
     .get(deviceId);
 
-  const hasSchedule = pol?.quiet_start != null && pol?.quiet_end != null;
-  const schedule = hasSchedule
+  const quietDays = parseQuietDaysJSON(pol?.quiet_days);
+
+  const hasLegacySchedule = pol?.quiet_start != null && pol?.quiet_end != null;
+  const legacySchedule = hasLegacySchedule
     ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
     : null;
 
+  const tz = pol?.tz || 'Europe/Paris';
+  const todayKey = weekdayKeyNow(tz);
+  const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
+  const hasDaySchedule = todays && todays.start && todays.end;
+
   // New semantics: schedule defines when enforcement IS ACTIVE.
   // If schedule isn't set, enforcement is active all day.
-  const isQuietHours = (pol ? !!pol.enforce : true)
-    ? (hasSchedule
-        ? isWithinQuietHours({ quietStart: pol.quiet_start, quietEnd: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' })
-        : true)
+  const enforce = pol ? !!pol.enforce : true;
+  const isQuietHours = enforce
+    ? (quietDays
+        ? (hasDaySchedule ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz }) : true)
+        : (hasLegacySchedule ? isWithinQuietHours({ quietStart: pol.quiet_start, quietEnd: pol.quiet_end, tz }) : true))
     : false;
 
+  const schedule = quietDays ? todays : legacySchedule;
+
   const out = {
-    enforce: pol ? !!pol.enforce : true,
+    enforce,
     actions: {
       setHotspotOff: pol ? !!pol.set_hotspot_off : true,
       setWifiOff: pol ? !!pol.set_wifi_off : false,
       setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
       rotatePassword: pol ? !!pol.rotate_password : true
     },
+
+    // New fields (per-day schedule)
+    quietDays: quietDays,
+    quietDay: todayKey,
     quietHours: schedule,
     // isQuietHours tells the Shortcut whether enforcement is active right now (schedule is evaluated server-side).
     isQuietHours
@@ -1023,6 +1075,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         p.rotate_password AS rotate_password,
         p.quiet_start AS quiet_start,
         p.quiet_end AS quiet_end,
+        p.quiet_days AS quiet_days,
         p.tz AS tz,
         p.gap_ms AS gap_ms
       FROM devices d
@@ -1046,10 +1099,21 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const setMobileDataOff = r.set_mobile_data_off == null ? false : !!r.set_mobile_data_off;
     const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
 
-    const hasSchedule = r.quiet_start != null && r.quiet_end != null;
+    const quietDays = parseQuietDaysJSON(r.quiet_days);
+    const tz = r.tz || 'Europe/Paris';
+
+    const hasLegacySchedule = r.quiet_start != null && r.quiet_end != null;
+
+    const todayKey = weekdayKeyNow(tz);
+    const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
+    const hasDaySchedule = todays && todays.start && todays.end;
+
     const inQuiet = enforce
-      ? (hasSchedule ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : true)
+      ? (quietDays
+          ? (hasDaySchedule ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz }) : true)
+          : (hasLegacySchedule ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz }) : true))
       : false;
+
     // New semantics: "inQuietHours" means within the enforcement schedule.
     const shouldBeRunning = enforce && inQuiet;
 
@@ -1070,9 +1134,11 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setMobileDataOff,
         rotatePassword
       },
-      quietHours: hasSchedule
-        ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
-        : null,
+      quietDays: quietDays,
+      quietDay: todayKey,
+      quietHours: quietDays
+        ? (hasDaySchedule ? { start: todays.start, end: todays.end, tz } : null)
+        : (hasLegacySchedule ? { start: r.quiet_start, end: r.quiet_end, tz } : null),
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
@@ -1234,6 +1300,7 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
     rotatePassword: z.boolean().optional(),
     quietStart: z.string().max(20).nullable().optional(),
     quietEnd: z.string().max(20).nullable().optional(),
+    quietDays: z.record(z.string(), z.object({ start: z.string().max(20), end: z.string().max(20) })).nullable().optional(),
     tz: z.string().max(60).nullable().optional(),
     gapMs: z.number().int().min(60_000).max(7 * 24 * 60 * 60 * 1000).optional(),
     gapMinutes: z.number().int().min(1).max(7 * 24 * 60).optional()
@@ -1264,6 +1331,15 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   if (patch.rotatePassword != null) {
     fields.push('rotate_password = ?');
     values.push(patch.rotatePassword ? 1 : 0);
+  }
+  if (patch.quietDays !== undefined) {
+    fields.push('quiet_days = ?');
+    values.push(patch.quietDays ? JSON.stringify(patch.quietDays) : null);
+    // If quietDays is set, clear legacy fields to avoid confusion.
+    if (patch.quietDays != null) {
+      fields.push('quiet_start = NULL');
+      fields.push('quiet_end = NULL');
+    }
   }
   if (patch.quietStart !== undefined) {
     fields.push('quiet_start = ?');
@@ -1374,6 +1450,25 @@ function isWithinQuietHours({ quietStart, quietEnd, tz }) {
   // Range can cross midnight.
   if (s < e) return nowMin >= s && nowMin < e;
   return nowMin >= s || nowMin < e;
+}
+
+function weekdayKeyNow(tz) {
+  const wd = new Intl.DateTimeFormat('en-US', { timeZone: tz || 'Europe/Paris', weekday: 'short' }).format(new Date());
+  const map = { Mon: 'mon', Tue: 'tue', Wed: 'wed', Thu: 'thu', Fri: 'fri', Sat: 'sat', Sun: 'sun' };
+  return map[wd] || 'mon';
+}
+
+function parseQuietDaysJSON(raw) {
+  if (raw == null) return null;
+  try {
+    const s = String(raw).trim();
+    if (!s) return null;
+    const obj = JSON.parse(s);
+    if (!obj || typeof obj !== 'object') return null;
+    return obj;
+  } catch {
+    return null;
+  }
 }
 
 // Basic JSON error handler

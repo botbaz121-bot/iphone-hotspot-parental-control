@@ -8,8 +8,19 @@ public struct UpdatePolicyRequest: Encodable {
   public var setMobileDataOff: Bool?
   public var quietStart: String?
   public var quietEnd: String?
+  public var quietDays: [String: QuietDayWindow]?
   public var tz: String?
   public var gapMinutes: Int?
+
+  public struct QuietDayWindow: Encodable {
+    public var start: String
+    public var end: String
+
+    public init(start: String, end: String) {
+      self.start = start
+      self.end = end
+    }
+  }
 
   public init(
     enforce: Bool? = nil,
@@ -19,6 +30,7 @@ public struct UpdatePolicyRequest: Encodable {
     setMobileDataOff: Bool? = nil,
     quietStart: String? = nil,
     quietEnd: String? = nil,
+    quietDays: [String: QuietDayWindow]? = nil,
     tz: String? = nil,
     gapMinutes: Int? = nil
   ) {
@@ -29,6 +41,7 @@ public struct UpdatePolicyRequest: Encodable {
     self.setMobileDataOff = setMobileDataOff
     self.quietStart = quietStart
     self.quietEnd = quietEnd
+    self.quietDays = quietDays
     self.tz = tz
     self.gapMinutes = gapMinutes
   }

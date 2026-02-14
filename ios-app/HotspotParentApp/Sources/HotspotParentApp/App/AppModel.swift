@@ -345,6 +345,7 @@ public final class AppModel: ObservableObject {
     rotatePassword: Bool? = nil,
     quietStart: String? = nil,
     quietEnd: String? = nil,
+    quietDays: [String: UpdatePolicyRequest.QuietDayWindow]? = nil,
     tz: String? = nil,
     gapMinutes: Int? = nil
   ) async throws {
@@ -359,6 +360,7 @@ public final class AppModel: ObservableObject {
       setMobileDataOff: setMobileDataOff,
       quietStart: quietStart,
       quietEnd: quietEnd,
+      quietDays: quietDays,
       tz: tz,
       gapMinutes: gapMinutes
     )

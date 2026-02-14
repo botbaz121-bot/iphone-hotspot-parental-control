@@ -418,6 +418,8 @@ private struct PolicyEditorCard: View {
   @State private var mobileDataOff: Bool
 
   @State private var quiet: Bool
+  @State private var selectedDay: String = "mon"
+  @State private var quietDays: [String: UpdatePolicyRequest.QuietDayWindow] = [:]
 
   @State private var startDate: Date
   @State private var endDate: Date
@@ -431,11 +433,23 @@ private struct PolicyEditorCard: View {
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
     _wifiOff = State(initialValue: device.actions.setWifiOff)
     _mobileDataOff = State(initialValue: device.actions.setMobileDataOff)
-    _quiet = State(initialValue: device.quietHours != nil)
+    _quiet = State(initialValue: device.quietDays != nil)
 
-    // Use wheel time pickers like iOS Settings.
-    let start = device.quietHours?.start ?? "22:00"
-    let end = device.quietHours?.end ?? "07:00"
+    let initialDay = device.quietDay ?? "mon"
+    _selectedDay = State(initialValue: initialDay)
+
+    // Initialize quietDays state from backend
+    var qd: [String: UpdatePolicyRequest.QuietDayWindow] = [:]
+    if let src = device.quietDays {
+      for (k, v) in src {
+        qd[k] = UpdatePolicyRequest.QuietDayWindow(start: v.start, end: v.end)
+      }
+    }
+    _quietDays = State(initialValue: qd)
+
+    // Pickers show the selected day values (or defaults)
+    let start = qd[initialDay]?.start ?? "22:00"
+    let end = qd[initialDay]?.end ?? "07:00"
     _startDate = State(initialValue: Self.parseTime(start) ?? Date())
     _endDate = State(initialValue: Self.parseTime(end) ?? Date())
   }
@@ -464,9 +478,51 @@ private struct PolicyEditorCard: View {
               .foregroundStyle(.secondary)
           }
         }
-        .onChange(of: quiet) { _ in scheduleSave() }
+        .onChange(of: quiet) { isOn in
+          if !isOn {
+            quietDays = [:]
+          } else if quietDays.isEmpty {
+            // seed all days with current picker values
+            let s = Self.formatTime(startDate)
+            let e = Self.formatTime(endDate)
+            quietDays = [
+              "mon": .init(start: s, end: e),
+              "tue": .init(start: s, end: e),
+              "wed": .init(start: s, end: e),
+              "thu": .init(start: s, end: e),
+              "fri": .init(start: s, end: e),
+              "sat": .init(start: s, end: e),
+              "sun": .init(start: s, end: e),
+            ]
+          }
+          scheduleSave()
+        }
 
         if quiet {
+          // Day selector
+          HStack(spacing: 8) {
+            ForEach(["sun","mon","tue","wed","thu","fri","sat"], id: \.self) { d in
+              Button {
+                selectedDay = d
+                let start = quietDays[d]?.start ?? "22:00"
+                let end = quietDays[d]?.end ?? "07:00"
+                startDate = Self.parseTime(start) ?? startDate
+                endDate = Self.parseTime(end) ?? endDate
+              } label: {
+                Text(Self.dayLabel(d))
+                  .font(.caption.weight(.semibold))
+                  .frame(width: 30, height: 28)
+                  .background(selectedDay == d ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
+                  .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                      .stroke(Color.white.opacity(selectedDay == d ? 0.35 : 0.10), lineWidth: 1)
+                  )
+                  .clipShape(RoundedRectangle(cornerRadius: 10))
+              }
+              .buttonStyle(.plain)
+            }
+          }
+
           GeometryReader { geo in
             let colW = (geo.size.width - 12) / 2
             HStack(alignment: .top, spacing: 12) {
@@ -481,7 +537,10 @@ private struct PolicyEditorCard: View {
                   .environment(\.locale, Locale(identifier: "en_GB"))
                   .frame(width: colW, height: 140)
                   .clipped()
-                  .onChange(of: startDate) { _ in scheduleSave() }
+                  .onChange(of: startDate) { _ in
+                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
+                    scheduleSave()
+                  }
               }
               .frame(width: colW)
 
@@ -496,7 +555,10 @@ private struct PolicyEditorCard: View {
                   .environment(\.locale, Locale(identifier: "en_GB"))
                   .frame(width: colW, height: 140)
                   .clipped()
-                  .onChange(of: endDate) { _ in scheduleSave() }
+                  .onChange(of: endDate) { _ in
+                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
+                    scheduleSave()
+                  }
               }
               .frame(width: colW)
             }
@@ -572,6 +634,19 @@ private struct PolicyEditorCard: View {
     return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: Date())
   }
 
+  private static func dayLabel(_ k: String) -> String {
+    switch k {
+      case "mon": return "M"
+      case "tue": return "T"
+      case "wed": return "W"
+      case "thu": return "T"
+      case "fri": return "F"
+      case "sat": return "S"
+      case "sun": return "S"
+      default: return "?"
+    }
+  }
+
   private func scheduleSave() {
     saveTask?.cancel()
     saveTask = Task {
@@ -593,8 +668,7 @@ private struct PolicyEditorCard: View {
         setHotspotOff: hotspotOff,
         setWifiOff: wifiOff,
         setMobileDataOff: mobileDataOff,
-        quietStart: qs,
-        quietEnd: qe,
+        quietDays: quiet ? quietDays : nil,
         tz: "Europe/Paris"
       )
     } catch {

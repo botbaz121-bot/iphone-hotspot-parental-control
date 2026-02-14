@@ -48,6 +48,14 @@ public struct DashboardDevice: Decodable {
     public var rotatePassword: Bool
   }
 
+  public var quietDays: [String: QuietDay]?
+  public struct QuietDay: Decodable {
+    public var start: String
+    public var end: String
+  }
+
+  public var quietDay: String?
+
   public var quietHours: QuietHours?
   public struct QuietHours: Decodable {
     public var start: String?
