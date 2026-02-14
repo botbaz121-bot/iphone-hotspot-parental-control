@@ -708,8 +708,8 @@ app.get('/admin', (req, res) => {
           '<td><code>' + escapeHtml(d.device_token) + '</code></td>' +
           '<td><input type="checkbox" class="enforce" ' + (d.enforce ? 'checked' : '') + ' /></td>' +
           '<td><input class="gapMin" size="6" value="' + escapeHtml(String(gapMin)) + '" /></td>' +
-          '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '12:00') + '" /></td>' +
-          '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '12:00') + '" /></td>' +
+          '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '') + '" /></td>' +
+          '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
@@ -731,9 +731,9 @@ app.get('/admin', (req, res) => {
 
           const patch = { enforce };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
-          // Never send null quiet hours (Shortcut-friendly). Use 12:00–12:00 as "disabled".
-          patch.quietStart = quietStartVal ? quietStartVal : '12:00';
-          patch.quietEnd = quietEndVal ? quietEndVal : '12:00';
+          // If schedule inputs are blank, store null (means schedule OFF).
+          patch.quietStart = quietStartVal ? quietStartVal : null;
+          patch.quietEnd = quietEndVal ? quietEndVal : null;
           patch.tz = tzVal ? tzVal : 'Europe/Paris';
 
           tr.style.opacity = '0.6';
