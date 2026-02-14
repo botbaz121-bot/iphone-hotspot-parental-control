@@ -9,11 +9,15 @@ let package = Package(
   products: [
     .library(name: "HotspotParentApp", targets: ["HotspotParentApp"])
   ],
-  dependencies: [],
+  dependencies: [
+    .package(url: "https://github.com/TimOliver/TOCropViewController.git", from: "2.7.4")
+  ],
   targets: [
     .target(
       name: "HotspotParentApp",
-      dependencies: []
+      dependencies: [
+        .product(name: "TOCropViewController", package: "TOCropViewController")
+      ]
     ),
     .testTarget(
       name: "HotspotParentAppTests",

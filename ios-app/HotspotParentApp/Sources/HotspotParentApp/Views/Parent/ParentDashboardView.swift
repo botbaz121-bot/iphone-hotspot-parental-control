@@ -237,6 +237,11 @@ private struct DeviceDetailsSheet: View {
   @State private var showPhotoPicker: Bool = false
   #endif
 
+  #if canImport(UIKit)
+  @State private var imageToCrop: UIImage?
+  @State private var showCropper: Bool = false
+  #endif
+
   private var deviceTitleMenu: some View {
     Menu {
       Button {
@@ -288,7 +293,16 @@ private struct DeviceDetailsSheet: View {
       Task {
         do {
           if let data = try await item.loadTransferable(type: Data.self) {
+            #if canImport(UIKit)
+            if let img = UIImage(data: data) {
+              imageToCrop = img
+              showCropper = true
+            } else {
+              model.setDevicePhoto(deviceId: device.id, jpegData: data)
+            }
+            #else
             model.setDevicePhoto(deviceId: device.id, jpegData: data)
+            #endif
           }
         } catch {
           actionError = String(describing: error)
@@ -313,6 +327,27 @@ private struct DeviceDetailsSheet: View {
       }
       Button("Cancel", role: .cancel) {}
     }
+    #if canImport(UIKit) && canImport(TOCropViewController)
+    .sheet(isPresented: $showCropper) {
+      if let img = imageToCrop {
+        ImageCropperView(
+          image: img,
+          onCropped: { cropped in
+            let jpeg = cropped.jpegData(compressionQuality: 0.85)
+            model.setDevicePhoto(deviceId: device.id, jpegData: jpeg)
+            showCropper = false
+            imageToCrop = nil
+          },
+          onCancel: {
+            showCropper = false
+            imageToCrop = nil
+          }
+        )
+        .ignoresSafeArea()
+      }
+    }
+    #endif
+
     .alert("Rename device", isPresented: $showRename) {
       TextField("Name", text: $renameText)
       Button("Save") {
