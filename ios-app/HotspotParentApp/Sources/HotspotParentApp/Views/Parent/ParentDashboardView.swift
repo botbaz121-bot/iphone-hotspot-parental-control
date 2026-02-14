@@ -273,9 +273,37 @@ private struct DeviceDetailsSheet: View {
         Label("Delete", systemImage: "trash")
       }
     } label: {
-      HStack(spacing: 6) {
+      HStack(spacing: 8) {
+        #if canImport(UIKit)
+        if let img = DevicePhotoStore.getUIImage(deviceId: device.id) {
+          Image(uiImage: img)
+            .resizable()
+            .scaledToFill()
+            .frame(width: 26, height: 26)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .overlay(
+              RoundedRectangle(cornerRadius: 7)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+        } else {
+          ZStack {
+            RoundedRectangle(cornerRadius: 7)
+              .fill(Color.white.opacity(0.10))
+              .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                  .stroke(Color.white.opacity(0.12), lineWidth: 1)
+              )
+            Text(String(device.name.prefix(1)).uppercased())
+              .font(.caption.weight(.bold))
+              .foregroundStyle(.white.opacity(0.9))
+          }
+          .frame(width: 26, height: 26)
+        }
+        #endif
+
         Text(device.name)
           .font(.headline.weight(.semibold))
+
         Image(systemName: "chevron.down")
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
