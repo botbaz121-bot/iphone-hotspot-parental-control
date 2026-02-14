@@ -873,12 +873,14 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const hasSchedule = pol?.quiet_start != null && pol?.quiet_end != null;
   const schedule = hasSchedule
     ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
-    : { start: '00:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' };
+    : null;
 
   // New semantics: schedule defines when enforcement IS ACTIVE.
   // If schedule isn't set, enforcement is active all day.
   const isQuietHours = (pol ? !!pol.enforce : true)
-    ? (hasSchedule ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz: schedule.tz }) : true)
+    ? (hasSchedule
+        ? isWithinQuietHours({ quietStart: pol.quiet_start, quietEnd: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' })
+        : true)
     : false;
 
   const out = {
@@ -890,6 +892,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
       rotatePassword: pol ? !!pol.rotate_password : true
     },
     quietHours: schedule,
+    // isQuietHours tells the Shortcut whether enforcement is active right now (schedule is evaluated server-side).
     isQuietHours
   };
 
@@ -1067,10 +1070,9 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setMobileDataOff,
         rotatePassword
       },
-      // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "all day".
       quietHours: hasSchedule
         ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
-        : { start: '00:00', end: '23:59', tz: r.tz || 'Europe/Paris' },
+        : null,
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
