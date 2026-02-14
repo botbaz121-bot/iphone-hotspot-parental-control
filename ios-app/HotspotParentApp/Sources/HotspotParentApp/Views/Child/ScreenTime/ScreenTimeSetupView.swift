@@ -21,9 +21,15 @@ public struct ScreenTimeSetupView: View {
   public var body: some View {
     Form {
       Section {
-        Text("SpotCheck uses Family Controls to help reduce tampering (e.g., by shielding the Shortcuts app).")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+          Text("SpotCheck uses Family Controls to help reduce tampering.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+
+          Text("Required: Select and shield the Shortcuts app to prevent disabling automations.")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.orange)
+        }
       }
 
       Section("Status") {
@@ -78,6 +84,18 @@ public struct ScreenTimeSetupView: View {
           }
         }
         .disabled(!model.screenTimeAuthorized)
+
+        #if canImport(FamilyControls)
+        if model.screenTimeAuthorized && !selection.applicationTokens.isEmpty {
+          // We can't programmatically force-add Shortcuts; we can only guide/validate.
+          let missingShortcuts = !selection.applicationTokens.contains(where: { String(describing: $0).lowercased().contains("shortcuts") })
+          if missingShortcuts {
+            Text("Tip: Make sure ‘Shortcuts’ is selected in the app picker.")
+              .font(.footnote)
+              .foregroundStyle(.orange)
+          }
+        }
+        #endif
 
         Button("Remove shielding", role: .destructive) {
           ScreenTimeManager.shared.clearShielding()
