@@ -106,37 +106,56 @@ private struct DeviceTileView: View {
   var onTap: () -> Void
 
   private var gradient: LinearGradient {
-    // Shortcuts-like colored tiles with a wide hue space so devices don't collide.
-    // We also try to avoid the app's blue/pink range so tiles feel distinct.
-    let hue = Self.stableHue(device.id.isEmpty ? device.name : device.id)
+    // Fixed gradient palette (distinct + readable). Avoids “too similar blues”.
+    let spec = Self.stableGradientSpec(device.id.isEmpty ? device.name : device.id)
 
-    let c1 = Color(hue: hue, saturation: 0.82, brightness: 0.92)
-    let c2 = Color(hue: fmod(hue + 0.06, 1.0), saturation: 0.88, brightness: 0.74)
+    let c1 = Color(hue: spec.h1, saturation: spec.s1, brightness: spec.b1)
+    let c2 = Color(hue: spec.h2, saturation: spec.s2, brightness: spec.b2)
 
     return LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing)
   }
 
-  private static func stableHue(_ s: String) -> Double {
-    // Deterministic hash (don’t use Swift's Hashable which can vary between runs)
+  private struct GradientSpec {
+    let h1: Double
+    let s1: Double
+    let b1: Double
+    let h2: Double
+    let s2: Double
+    let b2: Double
+  }
+
+  private static func stableGradientSpec(_ s: String) -> GradientSpec {
+    // deterministic hash (don’t use Swift's Hashable which can vary between runs)
     let v = s.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
 
-    // Use a fixed palette of clearly-separated hues to avoid collisions (especially blues).
-    // (0–1 where 0 = red, 0.33 = green, 0.66 = blue)
-    let palette: [Double] = [
-      0.03, // red
-      0.08, // orange
-      0.13, // yellow
-      0.20, // yellow-green
-      0.28, // green
-      0.36, // mint
-      0.44, // teal
-      0.74, // purple
-      0.82, // magenta
-      0.91  // pink
+    // Hue pairs (0–1). Chosen to be far apart visually and avoid a sea of blues.
+    let palette: [GradientSpec] = [
+      .init(h1: 0.03, s1: 0.90, b1: 0.92, h2: 0.06, s2: 0.92, b2: 0.72), // red→orange
+      .init(h1: 0.08, s1: 0.92, b1: 0.92, h2: 0.11, s2: 0.94, b2: 0.72), // orange→amber
+      .init(h1: 0.13, s1: 0.85, b1: 0.95, h2: 0.17, s2: 0.90, b2: 0.72), // yellow→lime
+      .init(h1: 0.22, s1: 0.82, b1: 0.92, h2: 0.28, s2: 0.86, b2: 0.70), // green
+      .init(h1: 0.38, s1: 0.80, b1: 0.92, h2: 0.44, s2: 0.86, b2: 0.70), // mint→teal
+      .init(h1: 0.48, s1: 0.78, b1: 0.92, h2: 0.52, s2: 0.84, b2: 0.68), // cyan/seafoam (not deep blue)
+      .init(h1: 0.74, s1: 0.78, b1: 0.92, h2: 0.78, s2: 0.84, b2: 0.70), // purple
+      .init(h1: 0.82, s1: 0.84, b1: 0.92, h2: 0.88, s2: 0.88, b2: 0.70), // magenta→pink
     ]
 
     let idx = abs(v) % palette.count
-    return palette[idx]
+    var spec = palette[idx]
+
+    // Add a tiny brightness variation based on v so two “close” hues still diverge.
+    let bump = (abs(v) % 3) - 1 // -1,0,1
+    let delta = Double(bump) * 0.03
+    spec = .init(
+      h1: spec.h1,
+      s1: spec.s1,
+      b1: min(0.98, max(0.70, spec.b1 + delta)),
+      h2: spec.h2,
+      s2: spec.s2,
+      b2: min(0.92, max(0.60, spec.b2 - delta))
+    )
+
+    return spec
   }
 
   var body: some View {
