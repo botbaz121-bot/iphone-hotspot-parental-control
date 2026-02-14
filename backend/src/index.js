@@ -870,7 +870,17 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     )
     .get(deviceId);
 
-  const hasQuiet = pol?.quiet_start != null && pol?.quiet_end != null;
+  const hasSchedule = pol?.quiet_start != null && pol?.quiet_end != null;
+  const schedule = hasSchedule
+    ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
+    : { start: '00:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' };
+
+  // New semantics: schedule defines when enforcement IS ACTIVE.
+  // If schedule isn't set, enforcement is active all day.
+  const isQuietHours = (pol ? !!pol.enforce : true)
+    ? (hasSchedule ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz: schedule.tz }) : true)
+    : false;
+
   const out = {
     enforce: pol ? !!pol.enforce : true,
     actions: {
@@ -879,11 +889,8 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
       setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
       rotatePassword: pol ? !!pol.rotate_password : true
     },
-    // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "no quiet hours".
-    // Leon will encode this logic in the Shortcut.
-    quietHours: hasQuiet
-      ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
-      : { start: '00:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' }
+    quietHours: schedule,
+    isQuietHours
   };
 
   res.json(out);
@@ -1036,9 +1043,12 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const setMobileDataOff = r.set_mobile_data_off == null ? false : !!r.set_mobile_data_off;
     const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
 
-    const hasQuiet = r.quiet_start != null && r.quiet_end != null;
-    const inQuiet = (enforce && hasQuiet) ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : false;
-    const shouldBeRunning = enforce && !inQuiet;
+    const hasSchedule = r.quiet_start != null && r.quiet_end != null;
+    const inQuiet = enforce
+      ? (hasSchedule ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz: r.tz }) : true)
+      : false;
+    // New semantics: "inQuietHours" means within the enforcement schedule.
+    const shouldBeRunning = enforce && inQuiet;
 
     const gap = shouldBeRunning ? (lastEventTs == null ? true : now - lastEventTs > gapMs) : false;
 
@@ -1057,9 +1067,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setMobileDataOff,
         rotatePassword
       },
-      // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "no quiet hours".
-      // Leon will encode this logic in the Shortcut.
-      quietHours: hasQuiet
+      // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "all day".
+      quietHours: hasSchedule
         ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
         : { start: '00:00', end: '23:59', tz: r.tz || 'Europe/Paris' },
       inQuietHours: inQuiet,

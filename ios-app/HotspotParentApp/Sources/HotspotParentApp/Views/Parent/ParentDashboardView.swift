@@ -439,9 +439,9 @@ private struct PolicyEditorCard: View {
 
         Toggle(isOn: $quiet) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Quiet hours")
+            Text("Enforcement schedule")
               .font(.subheadline.weight(.semibold))
-            Text("Pause enforcement during this time")
+            Text("Enforcement is active during this time")
               .font(.footnote)
               .foregroundStyle(.secondary)
           }
