@@ -920,25 +920,32 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
   const hasDaySchedule = todays && todays.start && todays.end;
 
-  // New semantics: schedule defines when enforcement IS ACTIVE.
-  // If schedule isn't set, enforcement is active all day.
-  const enforce = pol ? !!pol.enforce : true;
-  const isQuietHours = enforce
-    ? (quietDays
-        ? (hasDaySchedule ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz }) : true)
-        : (hasLegacySchedule ? isWithinQuietHours({ quietStart: pol.quiet_start, quietEnd: pol.quiet_end, tz }) : true))
-    : false;
-
   const schedule = quietDays ? todays : legacySchedule;
+  const hasSchedule = schedule && schedule.start && schedule.end;
+
+  // Shortcut contract:
+  // - The global "enforce" is computed by the backend.
+  // - If ANY of Hotspot/Wi‑Fi/Mobile Data is configured OFF, then enforcement is potentially active.
+  // - If a schedule is set and we're OUTSIDE the schedule window, enforce=false.
+  const actions = {
+    setHotspotOff: pol ? !!pol.set_hotspot_off : true,
+    setWifiOff: pol ? !!pol.set_wifi_off : false,
+    setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
+    rotatePassword: pol ? !!pol.rotate_password : true
+  };
+
+  const wantsEnforcement = !!(actions.setHotspotOff || actions.setWifiOff || actions.setMobileDataOff);
+
+  const inScheduleWindow = hasSchedule
+    ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
+    : true;
+
+  const enforce = wantsEnforcement && inScheduleWindow;
+  const isQuietHours = inScheduleWindow;
 
   const out = {
     enforce,
-    actions: {
-      setHotspotOff: pol ? !!pol.set_hotspot_off : true,
-      setWifiOff: pol ? !!pol.set_wifi_off : false,
-      setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
-      rotatePassword: pol ? !!pol.rotate_password : true
-    },
+    actions,
 
     // New fields (per-day schedule)
     quietDays: quietDays,
@@ -1093,11 +1100,13 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const lastEventTs = r.last_event_ts != null ? Number(r.last_event_ts) : null;
     const gapMs = r.gap_ms != null ? Number(r.gap_ms) : 7200000;
 
-    const enforce = r.enforce == null ? true : !!r.enforce;
     const setHotspotOff = r.set_hotspot_off == null ? true : !!r.set_hotspot_off;
     const setWifiOff = r.set_wifi_off == null ? false : !!r.set_wifi_off;
     const setMobileDataOff = r.set_mobile_data_off == null ? false : !!r.set_mobile_data_off;
     const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
+
+    const actions = { setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
+    const wantsEnforcement = !!(actions.setHotspotOff || actions.setWifiOff || actions.setMobileDataOff);
 
     const quietDays = parseQuietDaysJSON(r.quiet_days);
     const tz = r.tz || 'Europe/Paris';
@@ -1108,14 +1117,20 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
     const hasDaySchedule = todays && todays.start && todays.end;
 
-    const inQuiet = enforce
-      ? (quietDays
-          ? (hasDaySchedule ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz }) : true)
-          : (hasLegacySchedule ? isWithinQuietHours({ quietStart: r.quiet_start, quietEnd: r.quiet_end, tz }) : true))
-      : false;
+    const schedule = quietDays
+      ? (hasDaySchedule ? { start: todays.start, end: todays.end, tz } : null)
+      : (hasLegacySchedule ? { start: r.quiet_start, end: r.quiet_end, tz } : null);
+
+    const hasSchedule = schedule && schedule.start && schedule.end;
+    const inScheduleWindow = hasSchedule
+      ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
+      : true;
+
+    const enforce = wantsEnforcement && inScheduleWindow;
+    const inQuiet = inScheduleWindow;
 
     // New semantics: "inQuietHours" means within the enforcement schedule.
-    const shouldBeRunning = enforce && inQuiet;
+    const shouldBeRunning = enforce;
 
     const gap = shouldBeRunning ? (lastEventTs == null ? true : now - lastEventTs > gapMs) : false;
 
@@ -1128,17 +1143,10 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       last_event_ts: lastEventTs,
       last_event_at: lastEventTs ? new Date(lastEventTs).toISOString() : null,
       enforce,
-      actions: {
-        setHotspotOff,
-        setWifiOff,
-        setMobileDataOff,
-        rotatePassword
-      },
+      actions,
       quietDays: quietDays,
       quietDay: todayKey,
-      quietHours: quietDays
-        ? (hasDaySchedule ? { start: todays.start, end: todays.end, tz } : null)
-        : (hasLegacySchedule ? { start: r.quiet_start, end: r.quiet_end, tz } : null),
+      quietHours: schedule,
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
