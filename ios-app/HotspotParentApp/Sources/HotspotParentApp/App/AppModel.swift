@@ -393,6 +393,12 @@ public final class AppModel: ObservableObject {
     await refreshParentDashboard()
   }
 
+  public func fetchDeviceEvents(deviceId: String) async throws -> [DeviceEventRow] {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let resp = try await client.events(deviceId: deviceId)
+    return resp.events
+  }
+
   // MARK: - Debug
 
   public func resetLocalData() {

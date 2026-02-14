@@ -82,7 +82,7 @@ public struct ChildDashboardView: View {
   private var pairingTile: some View {
     let paired = model.loadHotspotConfig() != nil
     return NavigationLink {
-      ChildPairView()
+      PairingEntryView()
         .environmentObject(model)
     } label: {
       ShortcutTileCard(

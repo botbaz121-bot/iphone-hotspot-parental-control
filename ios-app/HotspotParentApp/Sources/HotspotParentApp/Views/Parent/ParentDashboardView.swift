@@ -274,24 +274,70 @@ private struct DeviceDetailsSheet: View {
     }
   }
 
+  @State private var events: [DeviceEventRow] = []
+  @State private var eventsLoading: Bool = false
+
   private var recentActivityCard: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Recent activity")
-        .font(.headline)
-
-      VStack(alignment: .leading, spacing: 12) {
-        Text("15:05 — Activity OK").font(.subheadline.weight(.semibold))
-        Text("15:20 — Policy fetch OK").font(.subheadline.weight(.semibold))
-        Text("15:35 — Policy run logged").font(.subheadline.weight(.semibold))
+      HStack {
+        Text("Recent activity")
+          .font(.headline)
+        Spacer()
+        if eventsLoading {
+          ProgressView().scaleEffect(0.9)
+        }
       }
 
-      Text("Tip: this list is scrollable; details are inline (no tap-to-open).")
+      if events.isEmpty {
+        Text("No activity yet.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      } else {
+        VStack(alignment: .leading, spacing: 12) {
+          ForEach(events.prefix(8), id: \.id) { e in
+            Text("\(Self.formatEventTime(e.ts)) — \(Self.formatTrigger(e.trigger))")
+              .font(.subheadline.weight(.semibold))
+          }
+        }
+      }
+
+      Text("Tip: this list is inline (no tap-to-open).")
         .font(.footnote)
         .foregroundStyle(.secondary)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 22))
+    .task {
+      await loadEvents()
+    }
+  }
+
+  private func loadEvents() async {
+    eventsLoading = true
+    defer { eventsLoading = false }
+
+    do {
+      let out = try await model.fetchDeviceEvents(deviceId: device.id)
+      events = out.sorted(by: { $0.ts > $1.ts })
+    } catch {
+      // best-effort; don't block details view
+      events = []
+    }
+  }
+
+  private static func formatEventTime(_ ts: Int) -> String {
+    let d = Date(timeIntervalSince1970: TimeInterval(ts) / 1000.0)
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm"
+    return f.string(from: d)
+  }
+
+  private static func formatTrigger(_ t: String) -> String {
+    switch t {
+      case "policy_fetch": return "Policy fetch"
+      default: return t.replacingOccurrences(of: "_", with: " ")
+    }
   }
 }
 
