@@ -396,6 +396,9 @@ private struct PolicyEditorCard: View {
   let device: DashboardDevice
 
   @State private var hotspotOff: Bool
+  @State private var wifiOff: Bool
+  @State private var mobileDataOff: Bool
+
   @State private var quiet: Bool
 
   @State private var startDate: Date
@@ -408,6 +411,8 @@ private struct PolicyEditorCard: View {
     self.device = device
 
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
+    _wifiOff = State(initialValue: device.actions.setWifiOff)
+    _mobileDataOff = State(initialValue: device.actions.setMobileDataOff)
     _quiet = State(initialValue: device.quietHours != nil)
 
     // Use wheel time pickers like iOS Settings.
@@ -418,53 +423,32 @@ private struct PolicyEditorCard: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack {
-        Text("Rules")
-          .font(.headline)
-        Spacer()
-        if saving {
-          Text("Saving…")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+    VStack(alignment: .leading, spacing: 12) {
+      // Schedule box (first)
+      VStack(alignment: .leading, spacing: 10) {
+        HStack {
+          Text("Schedule")
+            .font(.headline)
+          Spacer()
+          if saving {
+            Text("Saving…")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
         }
-      }
 
-      Toggle(isOn: $hotspotOff) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Hotspot OFF")
-            .font(.subheadline.weight(.semibold))
-          Text("Shortcut turns off hotspot + rotates password")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+        Toggle(isOn: $quiet) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Quiet hours")
+              .font(.subheadline.weight(.semibold))
+            Text("Pause enforcement during this time")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
         }
-      }
-      .onChange(of: hotspotOff) { _ in scheduleSave() }
+        .onChange(of: quiet) { _ in scheduleSave() }
 
-      Toggle(isOn: $quiet) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Set schedule")
-            .font(.subheadline.weight(.semibold))
-          Text("Quiet hours for this device")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-      }
-      .onChange(of: quiet) { isOn in
-        // If turned off, clear quiet hours (null in backend)
-        if !isOn {
-          scheduleSave()
-        } else {
-          // If turned on, save with the current picker values
-          scheduleSave()
-        }
-      }
-
-      if quiet {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Quiet hours")
-            .font(.subheadline.weight(.semibold))
-
+        if quiet {
           GeometryReader { geo in
             let colW = (geo.size.width - 12) / 2
             HStack(alignment: .top, spacing: 12) {
@@ -508,12 +492,53 @@ private struct PolicyEditorCard: View {
               .stroke(Color.white.opacity(0.08), lineWidth: 1)
           )
         }
-        .padding(.top, 2)
       }
+      .padding(18)
+      .background(Color.primary.opacity(0.06))
+      .clipShape(RoundedRectangle(cornerRadius: 22))
+
+      // Rules box (second)
+      VStack(alignment: .leading, spacing: 10) {
+        Text("Rules")
+          .font(.headline)
+
+        Toggle(isOn: $hotspotOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Hotspot OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Shortcut turns off hotspot + rotates password")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: hotspotOff) { _ in scheduleSave() }
+
+        Toggle(isOn: $wifiOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Wi‑Fi OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Turn off Wi‑Fi")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: wifiOff) { _ in scheduleSave() }
+
+        Toggle(isOn: $mobileDataOff) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Mobile Data OFF")
+              .font(.subheadline.weight(.semibold))
+            Text("Turn off cellular data")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: mobileDataOff) { _ in scheduleSave() }
+      }
+      .padding(18)
+      .background(Color.primary.opacity(0.06))
+      .clipShape(RoundedRectangle(cornerRadius: 22))
     }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
   }
 
   private static func parseTime(_ s: String) -> Date? {
@@ -548,6 +573,8 @@ private struct PolicyEditorCard: View {
     do {
       try await model.updateSelectedDevicePolicy(
         setHotspotOff: hotspotOff,
+        setWifiOff: wifiOff,
+        setMobileDataOff: mobileDataOff,
         quietStart: qs,
         quietEnd: qe,
         tz: "Europe/Paris"

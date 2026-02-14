@@ -4,6 +4,8 @@ public struct UpdatePolicyRequest: Encodable {
   public var enforce: Bool?
   public var setHotspotOff: Bool?
   public var rotatePassword: Bool?
+  public var setWifiOff: Bool?
+  public var setMobileDataOff: Bool?
   public var quietStart: String?
   public var quietEnd: String?
   public var tz: String?
@@ -13,6 +15,8 @@ public struct UpdatePolicyRequest: Encodable {
     enforce: Bool? = nil,
     setHotspotOff: Bool? = nil,
     rotatePassword: Bool? = nil,
+    setWifiOff: Bool? = nil,
+    setMobileDataOff: Bool? = nil,
     quietStart: String? = nil,
     quietEnd: String? = nil,
     tz: String? = nil,
@@ -21,6 +25,8 @@ public struct UpdatePolicyRequest: Encodable {
     self.enforce = enforce
     self.setHotspotOff = setHotspotOff
     self.rotatePassword = rotatePassword
+    self.setWifiOff = setWifiOff
+    self.setMobileDataOff = setMobileDataOff
     self.quietStart = quietStart
     self.quietEnd = quietEnd
     self.tz = tz

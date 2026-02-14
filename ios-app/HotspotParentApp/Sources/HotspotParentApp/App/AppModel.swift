@@ -340,6 +340,8 @@ public final class AppModel: ObservableObject {
   public func updateSelectedDevicePolicy(
     enforce: Bool? = nil,
     setHotspotOff: Bool? = nil,
+    setWifiOff: Bool? = nil,
+    setMobileDataOff: Bool? = nil,
     rotatePassword: Bool? = nil,
     quietStart: String? = nil,
     quietEnd: String? = nil,
@@ -353,6 +355,8 @@ public final class AppModel: ObservableObject {
       enforce: enforce,
       setHotspotOff: setHotspotOff,
       rotatePassword: rotatePassword,
+      setWifiOff: setWifiOff,
+      setMobileDataOff: setMobileDataOff,
       quietStart: quietStart,
       quietEnd: quietEnd,
       tz: tz,
