@@ -398,6 +398,9 @@ private struct PolicyEditorCard: View {
   @State private var startDate: Date
   @State private var endDate: Date
 
+  @State private var saveTask: Task<Void, Never>?
+  @State private var saving: Bool = false
+
   init(device: DashboardDevice) {
     self.device = device
 
@@ -413,8 +416,16 @@ private struct PolicyEditorCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Rules")
-        .font(.headline)
+      HStack {
+        Text("Rules")
+          .font(.headline)
+        Spacer()
+        if saving {
+          Text("Saving…")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+      }
 
       Toggle(isOn: $hotspotOff) {
         VStack(alignment: .leading, spacing: 2) {
@@ -425,6 +436,7 @@ private struct PolicyEditorCard: View {
             .foregroundStyle(.secondary)
         }
       }
+      .onChange(of: hotspotOff) { _ in scheduleSave() }
 
       Toggle(isOn: $quiet) {
         VStack(alignment: .leading, spacing: 2) {
@@ -433,6 +445,15 @@ private struct PolicyEditorCard: View {
           Text("Quiet hours for this device")
             .font(.footnote)
             .foregroundStyle(.secondary)
+        }
+      }
+      .onChange(of: quiet) { isOn in
+        // If turned off, clear quiet hours (null in backend)
+        if !isOn {
+          scheduleSave()
+        } else {
+          // If turned on, save with the current picker values
+          scheduleSave()
         }
       }
 
@@ -455,6 +476,7 @@ private struct PolicyEditorCard: View {
                   .environment(\.locale, Locale(identifier: "en_GB"))
                   .frame(width: colW, height: 140)
                   .clipped()
+                  .onChange(of: startDate) { _ in scheduleSave() }
               }
               .frame(width: colW)
 
@@ -469,6 +491,7 @@ private struct PolicyEditorCard: View {
                   .environment(\.locale, Locale(identifier: "en_GB"))
                   .frame(width: colW, height: 140)
                   .clipped()
+                  .onChange(of: endDate) { _ in scheduleSave() }
               }
               .frame(width: colW)
             }
@@ -484,29 +507,6 @@ private struct PolicyEditorCard: View {
         }
         .padding(.top, 2)
       }
-
-      Button {
-        let qs = quiet ? Self.formatTime(startDate) : nil
-        let qe = quiet ? Self.formatTime(endDate) : nil
-        Task {
-          do {
-            try await model.updateSelectedDevicePolicy(
-              setHotspotOff: hotspotOff,
-              quietStart: qs,
-              quietEnd: qe,
-              tz: "Europe/Paris"
-            )
-          } catch {
-            // surfaced by the parent sheet menu alert
-          }
-        }
-      } label: {
-        Label("Save rules", systemImage: "slider.horizontal.3")
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.borderedProminent)
-      .tint(.blue)
-      .padding(.top, 6)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))
@@ -524,6 +524,34 @@ private struct PolicyEditorCard: View {
     let cal = Calendar.current
     let comps = cal.dateComponents([.hour, .minute], from: t)
     return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0, second: 0, of: Date())
+  }
+
+  private func scheduleSave() {
+    saveTask?.cancel()
+    saveTask = Task {
+      try? await Task.sleep(nanoseconds: 600_000_000) // debounce
+      await saveNow()
+    }
+  }
+
+  @MainActor
+  private func saveNow() async {
+    saving = true
+    defer { saving = false }
+
+    let qs = quiet ? Self.formatTime(startDate) : nil
+    let qe = quiet ? Self.formatTime(endDate) : nil
+
+    do {
+      try await model.updateSelectedDevicePolicy(
+        setHotspotOff: hotspotOff,
+        quietStart: qs,
+        quietEnd: qe,
+        tz: "Europe/Paris"
+      )
+    } catch {
+      // Best-effort; errors are shown elsewhere in the sheet.
+    }
   }
 
   private static func formatTime(_ d: Date) -> String {
