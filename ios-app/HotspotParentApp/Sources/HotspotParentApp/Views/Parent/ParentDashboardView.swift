@@ -556,7 +556,7 @@ private struct PolicyEditorCard: View {
 
         if quiet {
           // Day selector
-          HStack(spacing: 8) {
+          HStack(alignment: .center, spacing: 8) {
             ForEach(["sun","mon","tue","wed","thu","fri","sat"], id: \.self) { d in
               Button {
                 selectedDay = d
@@ -577,6 +577,35 @@ private struct PolicyEditorCard: View {
               }
               .buttonStyle(.plain)
             }
+
+            Spacer(minLength: 8)
+
+            Button {
+              let s = Self.formatTime(startDate)
+              let e = Self.formatTime(endDate)
+              quietDays = [
+                "mon": .init(start: s, end: e),
+                "tue": .init(start: s, end: e),
+                "wed": .init(start: s, end: e),
+                "thu": .init(start: s, end: e),
+                "fri": .init(start: s, end: e),
+                "sat": .init(start: s, end: e),
+                "sun": .init(start: s, end: e),
+              ]
+              scheduleSave()
+            } label: {
+              Text("Copy to all")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.06))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
           }
 
           GeometryReader { geo in
