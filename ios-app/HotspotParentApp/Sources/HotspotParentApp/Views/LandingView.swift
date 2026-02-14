@@ -46,33 +46,6 @@ public struct LandingView: View {
           }
         }
 
-        SettingsGroup("What this models") {
-          SettingsRow(
-            systemIcon: "bolt",
-            title: "Shortcuts-only enforcement",
-            subtitle: "Hotspot off + password rotation (via Shortcut)",
-            showsChevron: false,
-            action: nil
-          )
-          SettingsDivider()
-          SettingsRow(
-            systemIcon: "checklist",
-            title: "Guided setup",
-            subtitle: "A simple child-phone checklist",
-            showsChevron: false,
-            action: nil
-          )
-        }
-
-        Button(role: .destructive) {
-          model.resetLocalData()
-        } label: {
-          Label("Clear local state", systemImage: "trash")
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .tint(.red)
-        .padding(.top, 8)
       }
       .padding(.top, 18)
       .padding(.horizontal, 18)
