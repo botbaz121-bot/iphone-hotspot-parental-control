@@ -95,6 +95,15 @@ public struct AddDeviceSheetView: View {
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button("Done") { dismiss() }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.06))
+            .overlay(
+              RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.55), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
       }
     }
