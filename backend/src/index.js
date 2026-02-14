@@ -643,6 +643,10 @@ app.get('/admin', (req, res) => {
         <th>Quiet start</th>
         <th>Quiet end</th>
         <th>TZ</th>
+        <th>Hotspot off</th>
+        <th>Wi‑Fi off</th>
+        <th>Mobile data off</th>
+        <th>Rotate password</th>
         <th>Last event</th>
         <th>Gap?</th>
         <th>Actions</th>
@@ -875,9 +879,11 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
       setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
       rotatePassword: pol ? !!pol.rotate_password : true
     },
+    // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "no quiet hours".
+    // Leon will encode this logic in the Shortcut.
     quietHours: hasQuiet
       ? { start: pol.quiet_start, end: pol.quiet_end, tz: pol?.tz || 'Europe/Paris' }
-      : null
+      : { start: '12:00', end: '23:59', tz: pol?.tz || 'Europe/Paris' }
   };
 
   res.json(out);
@@ -1051,9 +1057,11 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         setMobileDataOff,
         rotatePassword
       },
+      // Shortcut-friendly: if schedule is unset (null), send a sentinel range that means "no quiet hours".
+      // Leon will encode this logic in the Shortcut.
       quietHours: hasQuiet
         ? { start: r.quiet_start, end: r.quiet_end, tz: r.tz || 'Europe/Paris' }
-        : null,
+        : { start: '12:00', end: '23:59', tz: r.tz || 'Europe/Paris' },
       inQuietHours: inQuiet,
       shouldBeRunning,
       gapMs,
