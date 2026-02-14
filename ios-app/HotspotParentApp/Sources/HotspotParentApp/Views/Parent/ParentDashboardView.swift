@@ -462,11 +462,6 @@ private struct PolicyEditorCard: View {
           Text("Schedule")
             .font(.headline)
           Spacer()
-          if saving {
-            Text("Saving…")
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
         }
 
         Toggle(isOn: $quiet) {
