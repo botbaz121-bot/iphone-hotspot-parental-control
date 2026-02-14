@@ -631,8 +631,9 @@ private struct PolicyEditorCard: View {
           }
 
           GeometryReader { geo in
-            let colW = (geo.size.width - 12) / 2
-            HStack(alignment: .top, spacing: 12) {
+            let spacing: CGFloat = 18
+            let colW = (geo.size.width - spacing) / 2
+            HStack(alignment: .top, spacing: spacing) {
               VStack(alignment: .leading, spacing: 6) {
                 Text("Start")
                   .font(.caption)
@@ -642,8 +643,9 @@ private struct PolicyEditorCard: View {
                   .labelsHidden()
                   .datePickerStyle(.wheel)
                   .environment(\.locale, Locale(identifier: "en_GB"))
-                  .frame(width: colW, height: 140)
+                  .frame(width: colW, height: 150)
                   .clipped()
+                  .contentShape(Rectangle())
                   .onChange(of: startDate) { _ in
                     quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
                     scheduleSave()
@@ -660,8 +662,9 @@ private struct PolicyEditorCard: View {
                   .labelsHidden()
                   .datePickerStyle(.wheel)
                   .environment(\.locale, Locale(identifier: "en_GB"))
-                  .frame(width: colW, height: 140)
+                  .frame(width: colW, height: 150)
                   .clipped()
+                  .contentShape(Rectangle())
                   .onChange(of: endDate) { _ in
                     quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
                     scheduleSave()
