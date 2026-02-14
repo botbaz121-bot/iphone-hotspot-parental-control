@@ -59,28 +59,7 @@ public struct ChildSettingsView: View {
           .buttonStyle(.bordered)
           .tint(.red)
 
-          #if DEBUG
-          SettingsGroup("Debug") {
-            VStack(alignment: .leading, spacing: 10) {
-              TextField("Base URL", text: Binding(
-                get: { model.apiBaseURL },
-                set: { model.setAPIBaseURL($0) }
-              ))
-              .textInputAutocapitalization(.never)
-              .autocorrectionDisabled()
-              .textFieldStyle(.roundedBorder)
-
-              SecureField("Admin token (dev)", text: Binding(
-                get: { model.adminToken },
-                set: { model.setAdminToken($0) }
-              ))
-              .textFieldStyle(.roundedBorder)
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-          }
-          #endif
-
+          
           SettingsGroup("Reset") {
             SettingsRow(
               systemIcon: "trash",

@@ -67,15 +67,6 @@ public struct ParentSettingsView: View {
           )
         }
 
-        SettingsGroup("Debug") {
-          SettingsRow(
-            systemIcon: "ladybug",
-            title: "Static prototype",
-            subtitle: "No server, no push, no background tasks",
-            showsChevron: false,
-            action: nil
-          )
-        }
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
