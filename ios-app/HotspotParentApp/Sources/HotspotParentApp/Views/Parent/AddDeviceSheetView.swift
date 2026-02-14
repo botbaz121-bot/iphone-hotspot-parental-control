@@ -18,17 +18,6 @@ public struct AddDeviceSheetView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          SettingsGroup("Enroll") {
-            SettingsRow(
-              systemIcon: "qrcode",
-              title: "Generate a pairing code",
-              subtitle: "On the child phone: open the app → Child phone → Settings → enter the code",
-              rightText: nil,
-              showsChevron: false,
-              action: nil
-            )
-          }
-
           SettingsGroup("Device name") {
             VStack(alignment: .leading, spacing: 10) {
               TextField("Optional", text: $deviceName)
@@ -83,7 +72,7 @@ public struct AddDeviceSheetView: View {
               SettingsRow(
                 systemIcon: "number",
                 title: code,
-                subtitle: "Tap and hold to copy",
+                subtitle: "Open the child phone and enter this code in Settings.",
                 rightText: nil,
                 showsChevron: false,
                 action: nil
@@ -97,15 +86,6 @@ public struct AddDeviceSheetView: View {
               .foregroundStyle(.red)
           }
 
-          Button {
-            model.setAppMode(.childSetup)
-            dismiss()
-          } label: {
-            Label("Child phone", systemImage: "iphone")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.bordered)
-          .tint(.secondary)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 32)
