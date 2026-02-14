@@ -134,7 +134,7 @@ public struct ChildDashboardView: View {
   }
 
   private var shortcutTile: some View {
-    let shortcutURL = "https://www.icloud.com/shortcuts/1aef99958a6b4e9ea7e41be31192bab1"
+    let shortcutURL = "https://www.icloud.com/shortcuts/397015e4b5f24d488f12d0658454c6a0"
     let hasRun = model.appIntentRunCount > 0
     return ShortcutTile(
       color: hasRun ? .pink : .gray,
