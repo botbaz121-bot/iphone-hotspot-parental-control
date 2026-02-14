@@ -630,36 +630,6 @@ private struct PolicyEditorCard: View {
             .padding(.vertical, 2)
           }
 
-          HStack {
-            Spacer()
-            Button {
-              let s = Self.formatTime(startDate)
-              let e = Self.formatTime(endDate)
-              quietDays = [
-                "mon": .init(start: s, end: e),
-                "tue": .init(start: s, end: e),
-                "wed": .init(start: s, end: e),
-                "thu": .init(start: s, end: e),
-                "fri": .init(start: s, end: e),
-                "sat": .init(start: s, end: e),
-                "sun": .init(start: s, end: e),
-              ]
-              scheduleSave()
-            } label: {
-              Text("Copy to all days")
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.06))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
-          }
-
           GeometryReader { geo in
             let colW = (geo.size.width - 12) / 2
             HStack(alignment: .top, spacing: 12) {
@@ -708,6 +678,36 @@ private struct PolicyEditorCard: View {
             RoundedRectangle(cornerRadius: 16)
               .stroke(Color.white.opacity(0.08), lineWidth: 1)
           )
+          HStack {
+            Spacer()
+            Button {
+              let s = Self.formatTime(startDate)
+              let e = Self.formatTime(endDate)
+              quietDays = [
+                "mon": .init(start: s, end: e),
+                "tue": .init(start: s, end: e),
+                "wed": .init(start: s, end: e),
+                "thu": .init(start: s, end: e),
+                "fri": .init(start: s, end: e),
+                "sat": .init(start: s, end: e),
+                "sun": .init(start: s, end: e),
+              ]
+              scheduleSave()
+            } label: {
+              Text("Copy to all days")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.06))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+          }
+
         }
       }
       .padding(18)
