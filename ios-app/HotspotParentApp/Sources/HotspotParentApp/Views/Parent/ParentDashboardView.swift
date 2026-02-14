@@ -106,23 +106,26 @@ private struct DeviceTileView: View {
   var onTap: () -> Void
 
   private var gradient: LinearGradient {
-    // Shortcuts-like colored tiles, but avoid the app's blue/pink.
-    // Use a stable per-device palette selection.
-    let gradients: [LinearGradient] = [
-      LinearGradient(colors: [Color(red: 0.00, green: 0.76, blue: 0.66), Color(red: 0.18, green: 0.83, blue: 0.44)], startPoint: .topLeading, endPoint: .bottomTrailing), // teal→green
-      LinearGradient(colors: [Color(red: 0.54, green: 0.36, blue: 1.0), Color(red: 0.35, green: 0.49, blue: 1.0)], startPoint: .topLeading, endPoint: .bottomTrailing), // purple
-      LinearGradient(colors: [Color(red: 0.93, green: 0.58, blue: 0.12), Color(red: 0.93, green: 0.40, blue: 0.16)], startPoint: .topLeading, endPoint: .bottomTrailing), // orange
-      LinearGradient(colors: [Color(red: 0.20, green: 0.70, blue: 0.30), Color(red: 0.10, green: 0.50, blue: 0.20)], startPoint: .topLeading, endPoint: .bottomTrailing), // green
-    ]
+    // Shortcuts-like colored tiles with a wide hue space so devices don't collide.
+    // We also try to avoid the app's blue/pink range so tiles feel distinct.
+    let hue = Self.stableHue(device.id.isEmpty ? device.name : device.id)
 
-    let idx = Self.stableColorIndex(device.id.isEmpty ? device.name : device.id, mod: gradients.count)
-    return gradients[idx]
+    let c1 = Color(hue: hue, saturation: 0.82, brightness: 0.92)
+    let c2 = Color(hue: fmod(hue + 0.06, 1.0), saturation: 0.88, brightness: 0.74)
+
+    return LinearGradient(colors: [c1, c2], startPoint: .topLeading, endPoint: .bottomTrailing)
   }
 
-  private static func stableColorIndex(_ s: String, mod: Int) -> Int {
+  private static func stableHue(_ s: String) -> Double {
     // deterministic hash (don’t use Swift's Hashable which can vary between runs)
     let v = s.unicodeScalars.reduce(0) { ($0 &* 31) &+ Int($1.value) }
-    return abs(v) % max(mod, 1)
+    var hue = Double(abs(v) % 360) / 360.0
+
+    // Avoid a blue band (~0.55–0.70) and a pink band (~0.85–0.98)
+    if hue >= 0.55 && hue <= 0.70 { hue = fmod(hue + 0.18, 1.0) }
+    if hue >= 0.85 && hue <= 0.98 { hue = fmod(hue - 0.22 + 1.0, 1.0) }
+
+    return hue
   }
 
   var body: some View {
