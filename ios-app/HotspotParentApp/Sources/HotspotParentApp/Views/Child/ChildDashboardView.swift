@@ -12,6 +12,51 @@ public struct ChildDashboardView: View {
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
 
+  private struct AutomationRow: View {
+    let title: String
+
+    var body: some View {
+      HStack(spacing: 12) {
+        // ICON -> ICON (match Shortcuts automation list style)
+        HStack(spacing: 6) {
+          ZStack {
+            RoundedRectangle(cornerRadius: 8)
+              .fill(Color.white.opacity(0.08))
+            Image(systemName: "wrench.and.screwdriver")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.white.opacity(0.9))
+          }
+          .frame(width: 26, height: 26)
+
+          ZStack {
+            RoundedRectangle(cornerRadius: 8)
+              .fill(Color.pink.opacity(0.85))
+            // Use the same icon we use for the Shortcut tile.
+            Image(systemName: "link")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.white)
+          }
+          .frame(width: 26, height: 26)
+        }
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(title)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .truncationMode(.tail)
+
+          Text("Enforce Hotspot Policy")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+
+        Spacer(minLength: 0)
+      }
+      .padding(.vertical, 6)
+    }
+  }
+
   public init() {}
 
   public var body: some View {
@@ -51,37 +96,13 @@ public struct ChildDashboardView: View {
               .foregroundStyle(.secondary)
 
             SettingsGroup("What you should see") {
-              SettingsRow(
-                systemIcon: "clock",
-                title: "At a time (daily)",
-                subtitle: "Runs Hotspot Policy every day",
-                showsChevron: false,
-                action: nil
-              )
+              AutomationRow(title: "At a time (daily)")
               SettingsDivider()
-              SettingsRow(
-                systemIcon: "wifi",
-                title: "When joining your Wi‑Fi",
-                subtitle: "Runs Hotspot Policy when this phone connects",
-                showsChevron: false,
-                action: nil
-              )
+              AutomationRow(title: "When joining your Wi‑Fi")
               SettingsDivider()
-              SettingsRow(
-                systemIcon: "app",
-                title: "When an app is opened (e.g. Settings)",
-                subtitle: "Runs Hotspot Policy when key apps open",
-                showsChevron: false,
-                action: nil
-              )
+              AutomationRow(title: "When an app is opened (e.g. Settings)")
               SettingsDivider()
-              SettingsRow(
-                systemIcon: "battery.50",
-                title: "When battery level changes",
-                subtitle: "Optional: run at 50% / low power situations",
-                showsChevron: false,
-                action: nil
-              )
+              AutomationRow(title: "When battery level changes")
             }
 
             Text("Tip: In Shortcuts → Automation, make sure each automation is toggled on. If iOS asks, allow notifications and choose “Always Allow” where possible.")
