@@ -711,6 +711,11 @@ app.get('/admin', (req, res) => {
         const quietEnd = d.quietHours && d.quietHours.end ? d.quietHours.end : '';
         const tz = d.quietHours && d.quietHours.tz ? d.quietHours.tz : '';
 
+        const setHotspotOff = d.actions && d.actions.setHotspotOff ? true : false;
+        const setWifiOff = d.actions && d.actions.setWifiOff ? true : false;
+        const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;
+        const rotatePassword = d.actions && d.actions.rotatePassword ? true : false;
+
         tr.innerHTML =
           '<td>' + escapeHtml(d.name||'') + '</td>' +
           '<td><code>' + escapeHtml(d.device_token) + '</code></td>' +
@@ -719,6 +724,10 @@ app.get('/admin', (req, res) => {
           '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '') + '" /></td>' +
           '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setHotspotOff" ' + (setHotspotOff ? 'checked' : '') + ' />Hotspot off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setWifiOff" ' + (setWifiOff ? 'checked' : '') + ' />Wi‑Fi off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' />Mobile data off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="rotatePassword" ' + (rotatePassword ? 'checked' : '') + ' />Rotate password</label></td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
           '<td>' +
@@ -737,7 +746,12 @@ app.get('/admin', (req, res) => {
           const quietEndVal = String(tr.querySelector('.quietEnd').value||'').trim();
           const tzVal = String(tr.querySelector('.tz').value||'').trim();
 
-          const patch = { enforce };
+          const setHotspotOff = tr.querySelector('.setHotspotOff').checked;
+          const setWifiOff = tr.querySelector('.setWifiOff').checked;
+          const setMobileDataOff = tr.querySelector('.setMobileDataOff').checked;
+          const rotatePassword = tr.querySelector('.rotatePassword').checked;
+
+          const patch = { enforce, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
           // If schedule inputs are blank, store null (means schedule OFF).
           patch.quietStart = quietStartVal ? quietStartVal : null;
