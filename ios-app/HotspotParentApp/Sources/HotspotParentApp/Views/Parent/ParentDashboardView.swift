@@ -303,6 +303,8 @@ private struct DeviceDetailsSheet: View {
 
         Text(device.name)
           .font(.headline.weight(.semibold))
+          .lineLimit(1)
+          .truncationMode(.tail)
 
         Image(systemName: "chevron.down")
           .font(.caption.weight(.semibold))
