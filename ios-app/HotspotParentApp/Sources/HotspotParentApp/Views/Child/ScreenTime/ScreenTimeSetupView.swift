@@ -43,6 +43,38 @@ public struct ScreenTimeSetupView: View {
         }
       }
 
+      Section("Diagnostics") {
+        Text("Use these buttons to quickly test whether Screen Time shielding works in this build (e.g. TestFlight).")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+
+        Button("Test: apply shielding now") {
+          Task {
+            do {
+              #if canImport(FamilyControls)
+              try await ScreenTimeManager.shared.applyShielding(selection: selection)
+              #else
+              try await ScreenTimeManager.shared.applyShielding()
+              #endif
+
+              await MainActor.run {
+                model.shieldingApplied = true
+                status = "✅ Shielding applied. Try opening Shortcuts to confirm it’s blocked."
+              }
+            } catch {
+              await MainActor.run { status = "❌ Apply shielding failed: \(error)" }
+            }
+          }
+        }
+        .disabled(!model.screenTimeAuthorized)
+
+        Button("Test: remove shielding", role: .destructive) {
+          ScreenTimeManager.shared.clearShielding()
+          model.shieldingApplied = false
+          status = "Shielding removed."
+        }
+      }
+
       Section("Actions") {
         Button("Request authorization") {
           Task {
