@@ -238,6 +238,7 @@ private struct DeviceDetailsSheet: View {
 
   #if canImport(PhotosUI)
   @State private var pickedPhoto: PhotosPickerItem?
+  @State private var showPhotoPicker: Bool = false
   #endif
 
   private var deviceTitleMenu: some View {
@@ -250,7 +251,9 @@ private struct DeviceDetailsSheet: View {
       }
 
       #if canImport(PhotosUI)
-      PhotosPicker(selection: $pickedPhoto, matching: .images, photoLibrary: .shared()) {
+      Button {
+        showPhotoPicker = true
+      } label: {
         Label("Choose photo", systemImage: "photo")
       }
       #else
@@ -277,6 +280,13 @@ private struct DeviceDetailsSheet: View {
           .foregroundStyle(.secondary)
       }
     }
+    #if canImport(PhotosUI)
+    .photosPicker(
+      isPresented: $showPhotoPicker,
+      selection: $pickedPhoto,
+      matching: .images,
+      photoLibrary: .shared()
+    )
     .onChange(of: pickedPhoto) { item in
       guard let item else { return }
       Task {
@@ -289,6 +299,7 @@ private struct DeviceDetailsSheet: View {
         }
       }
     }
+    #endif
     .confirmationDialog(
       "Delete this device?",
       isPresented: $showDeleteConfirm,
