@@ -94,7 +94,7 @@ public struct LandingView: View {
   }
 
   private func signInMessage(for raw: String?) -> String {
-    let base = "To use Parent phone, you need to sign in so we can create a unique parent ID. This links your devices, protects activity/rules, and enables parent-only controls (including Screen Time / Family controls)."
+    let base = "To setup a parent phone, we need to know who you are. This will allow you to unlock paired child phones and enables locking apps on the child device via Apple Screen Time / Family Controls."
 
     let detail: String = {
       guard let raw, !raw.isEmpty else { return "" }
