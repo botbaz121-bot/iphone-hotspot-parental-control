@@ -44,6 +44,7 @@ public struct PairingEntryView: View {
                   try await model.pairChildDevice(code: trimmed)
                   // Refresh any derived state
                   model.syncFromSharedDefaults()
+                  errorText = "Paired successfully."
                 } catch {
                   if let apiErr = error as? APIError {
                     errorText = apiErr.userMessage
@@ -65,6 +66,17 @@ public struct PairingEntryView: View {
         }
 
         if model.loadHotspotConfig() != nil {
+          SettingsGroup("Paired") {
+            SettingsRow(
+              systemIcon: "iphone",
+              title: model.childPairedDeviceName ?? "Child phone",
+              subtitle: "This phone is paired",
+              rightText: "Paired",
+              showsChevron: false,
+              action: nil
+            )
+          }
+
           Button(role: .destructive) {
             model.unpairChildDevice()
             model.syncFromSharedDefaults()
@@ -78,7 +90,7 @@ public struct PairingEntryView: View {
 
         if let errorText {
           Text(errorText)
-            .foregroundStyle(.red)
+            .foregroundStyle(errorText.contains("success") ? .green : .red)
             .font(.footnote)
         }
 
