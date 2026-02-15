@@ -4,55 +4,232 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SpotChecker</title>
+  <meta name="description" content="SpotChecker helps parents enforce hotspot rules using Apple Shortcuts and optional Screen Time / Family Controls." />
+
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin: 0; padding: 0; }
-    .wrap { max-width: 860px; margin: 0 auto; padding: 44px 18px; }
-    h1 { font-size: 38px; margin: 0 0 10px; }
-    p { line-height: 1.55; }
-    .card { border: 1px solid rgba(127,127,127,0.25); border-radius: 16px; padding: 18px; margin-top: 18px; }
-    .links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+    :root {
+      color-scheme: light dark;
+      --bg: #0b0d12;
+      --card: rgba(255,255,255,0.06);
+      --stroke: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.68);
+      --accent1: #ff3b82;
+      --accent2: #6a5cff;
+      --accent3: #2bd2ff;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f7fb;
+        --card: rgba(0,0,0,0.04);
+        --stroke: rgba(0,0,0,0.10);
+        --text: rgba(0,0,0,0.92);
+        --muted: rgba(0,0,0,0.62);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(106,92,255,0.35), transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, rgba(255,59,130,0.25), transparent 60%),
+        radial-gradient(900px 700px at 60% 90%, rgba(43,210,255,0.18), transparent 60%),
+        var(--bg);
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 18px 54px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     a { color: inherit; }
-    .pill { display: inline-block; padding: 10px 12px; border: 1px solid rgba(127,127,127,0.35); border-radius: 12px; text-decoration: none; }
-    .muted { opacity: 0.7; font-size: 14px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      text-decoration: none;
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(10px);
+    }
+
+    .pill:hover { border-color: rgba(255,255,255,0.18); }
+
+    .hero {
+      padding: 30px 2px 8px;
+    }
+
+    h1 {
+      font-size: 44px;
+      line-height: 1.05;
+      margin: 0 0 10px;
+      letter-spacing: -0.6px;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .card {
+      grid-column: span 12;
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    @media (min-width: 900px) {
+      .card.half { grid-column: span 6; }
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    ul { margin: 0; padding-left: 18px; line-height: 1.65; color: var(--text); }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .screens {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (min-width: 900px) {
+      .screens { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    .shot {
+      display: block;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(127,127,127,0.25);
+      background: rgba(0,0,0,0.18);
+    }
+
+    .shot img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transform: translateZ(0);
+    }
+
+    .footer {
+      margin-top: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <h1>SpotChecker</h1>
-    <p class="muted">A lightweight iPhone setup to help parents enforce hotspot rules via Shortcuts + optional Screen Time locking.</p>
-
-    <div class="card">
-      <h2 style="margin:0 0 10px">What it does</h2>
-      <ul style="margin:0; padding-left: 18px; line-height: 1.6;">
-        <li>Parent enrolls a child device and configures rules + an enforcement schedule.</li>
-        <li>Parent installs the Shortcut on the child phone and enables automations to regularly check status and enforce policies at the right times.</li>
-        <li>We integrate with Apple Shortcuts to apply the actions decided by the parent (such as turning off Personal Hotspot, Wi‑Fi, or Mobile Data).</li>
-        <li>Optionally, we use Apple Screen Time / Family Controls to help block selected apps and reduce tampering.</li>
-      </ul>
-    </div>
-
-    <div class="links">
-      <a class="pill" href="/privacy/">Privacy Policy</a>
-      <a class="pill" href="/support/">Support</a>
-    </div>
-
-    <div class="card">
-      <h2 style="margin:0 0 10px">Screens</h2>
-      <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
-        <a href="/screens/parent-dashboard.jpg?v=20260215"><img alt="Parent dashboard" src="/screens/parent-dashboard.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
-        <a href="/screens/parent-rules.jpg?v=20260215"><img alt="Child rules" src="/screens/parent-rules.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
-        <a href="/screens/child-checklist.jpg?v=20260215"><img alt="Child setup checklist" src="/screens/child-checklist.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>SpotChecker</div>
       </div>
-      <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px;">
-        <a href="/screens/shortcut-add.jpg?v=20260215"><img alt="Add Shortcut" src="/screens/shortcut-add.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
-        <a href="/screens/child-settings.jpg?v=20260215"><img alt="Child settings" src="/screens/child-settings.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
-        <a href="/screens/setup-complete.jpg?v=20260215"><img alt="Setup complete" src="/screens/setup-complete.jpg?v=20260215" style="width:100%; border-radius: 14px; border: 1px solid rgba(127,127,127,0.25);" /></a>
+      <div class="nav">
+        <a class="pill" href="/privacy/">Privacy Policy</a>
+        <a class="pill" href="/support/">Support</a>
       </div>
-      <p class="muted" style="margin-top: 10px;">Images shown are from a development/TestFlight build.</p>
     </div>
 
-    <p class="muted" style="margin-top: 26px;">© SpotChecker. Contact: <a href="mailto:support@spotchecker.app">support@spotchecker.app</a></p>
+    <div class="hero">
+      <h1>Parental controls for hotspot rules.</h1>
+      <p class="subtitle">SpotChecker helps parents enforce connectivity rules using Apple Shortcuts automations and (optionally) Apple Screen Time / Family Controls.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card half">
+        <h2>What it does</h2>
+        <ul>
+          <li>Parent enrolls a child device and configures rules + an enforcement schedule.</li>
+          <li>Parent installs the Shortcut on the child phone and enables automations to regularly check status and enforce policies at the right times.</li>
+          <li>We integrate with Apple Shortcuts to apply actions decided by the parent (such as turning off Personal Hotspot, Wi‑Fi, or Mobile Data).</li>
+          <li>Optionally, we use Apple Screen Time / Family Controls to help block selected apps and reduce tampering.</li>
+        </ul>
+        <p class="muted" style="margin-top: 12px;">Support: <a href="mailto:support@spotchecker.app">support@spotchecker.app</a></p>
+      </div>
+
+      <div class="card half">
+        <h2>Screens</h2>
+        <div class="screens">
+          <a class="shot" href="/screens/parent-dashboard.jpg?v=20260215"><img alt="Parent dashboard" src="/screens/parent-dashboard.jpg?v=20260215" /></a>
+          <a class="shot" href="/screens/parent-rules.jpg?v=20260215"><img alt="Child rules" src="/screens/parent-rules.jpg?v=20260215" /></a>
+          <a class="shot" href="/screens/child-checklist.jpg?v=20260215"><img alt="Child setup checklist" src="/screens/child-checklist.jpg?v=20260215" /></a>
+          <a class="shot" href="/screens/shortcut-add.jpg?v=20260215"><img alt="Add Shortcut" src="/screens/shortcut-add.jpg?v=20260215" /></a>
+          <a class="shot" href="/screens/child-settings.jpg?v=20260215"><img alt="Child settings" src="/screens/child-settings.jpg?v=20260215" /></a>
+          <a class="shot" href="/screens/setup-complete.jpg?v=20260215"><img alt="Setup complete" src="/screens/setup-complete.jpg?v=20260215" /></a>
+        </div>
+        <p class="muted" style="margin-top: 12px;">Images shown are from a development/TestFlight build.</p>
+      </div>
+
+      <div class="card">
+        <div class="footer">
+          <div class="muted">© SpotChecker</div>
+          <div class="muted">Domain: <code>spotchecker.app</code></div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
