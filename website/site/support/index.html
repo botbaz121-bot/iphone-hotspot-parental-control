@@ -40,6 +40,49 @@
     }
 
     .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 54px; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      text-decoration: none;
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(10px);
+    }
+
     p, li { line-height: 1.6; }
     .muted { color: var(--muted); font-size: 14px; }
     a { color: inherit; }
@@ -49,7 +92,17 @@
 </head>
 <body>
   <div class="wrap">
-    <p class="muted"><a href="/">← Home</a></p>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>SpotChecker</div>
+      </div>
+      <div class="nav">
+        <a class="pill" href="/privacy/">Privacy Policy</a>
+        <a class="pill" href="/support/">Support</a>
+      </div>
+    </div>
+
     <div class="card">
       <h1>Support</h1>
 
