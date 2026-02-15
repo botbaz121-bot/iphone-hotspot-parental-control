@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SpotChecker</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin: 0; padding: 0; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 44px 18px; }
+    h1 { font-size: 38px; margin: 0 0 10px; }
+    p { line-height: 1.55; }
+    .card { border: 1px solid rgba(127,127,127,0.25); border-radius: 16px; padding: 18px; margin-top: 18px; }
+    .links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+    a { color: inherit; }
+    .pill { display: inline-block; padding: 10px 12px; border: 1px solid rgba(127,127,127,0.35); border-radius: 12px; text-decoration: none; }
+    .muted { opacity: 0.7; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SpotChecker</h1>
+    <p class="muted">A lightweight iPhone setup to help parents enforce hotspot rules via Shortcuts + optional Screen Time locking.</p>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px">What it does</h2>
+      <ul style="margin:0; padding-left: 18px; line-height: 1.6;">
+        <li>Parent enrolls a child device and configures rules + an enforcement schedule.</li>
+        <li>Child installs the Shortcut and enables automations to regularly “check status”.</li>
+        <li>The Shortcut pulls policy from the backend and applies actions (hotspot / Wi‑Fi / mobile data etc.).</li>
+      </ul>
+    </div>
+
+    <div class="links">
+      <a class="pill" href="/privacy/">Privacy Policy</a>
+      <a class="pill" href="/support/">Support</a>
+    </div>
+
+    <p class="muted" style="margin-top: 26px;">© SpotChecker. Contact: <a href="mailto:support@spotchecker.app">support@spotchecker.app</a></p>
+  </div>
+</body>
+</html>
