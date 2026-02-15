@@ -63,7 +63,7 @@ public enum AppDefaults {
   }
 
   public static var apiBaseURL: String {
-    get { defaults.string(forKey: Key.apiBaseURL) ?? "https://hotspot.abomb.co.uk" }
+    get { defaults.string(forKey: Key.apiBaseURL) ?? "https://api.spotchecker.app" }
     set { defaults.set(newValue, forKey: Key.apiBaseURL) }
   }
 
