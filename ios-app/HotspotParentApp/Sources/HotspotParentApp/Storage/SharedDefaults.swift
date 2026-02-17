@@ -26,6 +26,7 @@ public enum SharedDefaults {
     static let screenTimeAuthorized = "spotcheck.screentime.authorized"
     static let shieldingApplied = "spotcheck.screentime.shieldingApplied"
     static let screenTimeSelectionData = "spotcheck.screentime.selection.data"
+    static let screenTimeQuietSelectionData = "spotcheck.screentime.quietSelection.data"
     static let screenTimeHasRequiredSelection = "spotcheck.screentime.requiredSelection"
     static let screenTimeDegradedReason = "spotcheck.screentime.degradedReason"
     static let screenTimeScheduleEnforcedNow = "spotcheck.screentime.scheduleEnforcedNow"
@@ -46,6 +47,7 @@ public enum SharedDefaults {
       Key.screenTimeAuthorized,
       Key.shieldingApplied,
       Key.screenTimeSelectionData,
+      Key.screenTimeQuietSelectionData,
       Key.screenTimeHasRequiredSelection,
       Key.screenTimeDegradedReason,
       Key.screenTimeScheduleEnforcedNow,
@@ -134,6 +136,17 @@ public enum SharedDefaults {
   public static var screenTimeHasRequiredSelection: Bool {
     get { suite.object(forKey: Key.screenTimeHasRequiredSelection) as? Bool ?? false }
     set { suite.set(newValue, forKey: Key.screenTimeHasRequiredSelection) }
+  }
+
+  public static var screenTimeQuietSelectionData: Data? {
+    get { suite.data(forKey: Key.screenTimeQuietSelectionData) }
+    set {
+      if let newValue {
+        suite.set(newValue, forKey: Key.screenTimeQuietSelectionData)
+      } else {
+        suite.removeObject(forKey: Key.screenTimeQuietSelectionData)
+      }
+    }
   }
 
   public static var screenTimeDegradedReason: String? {

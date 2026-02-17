@@ -14,8 +14,10 @@ public struct ScreenTimeSetupView: View {
   @State private var busy = false
 
   #if canImport(FamilyControls)
-  @State private var selection = FamilyActivitySelection()
-  @State private var showingPicker = false
+  @State private var requiredSelection = FamilyActivitySelection()
+  @State private var quietSelection = FamilyActivitySelection()
+  @State private var showingRequiredPicker = false
+  @State private var showingQuietPicker = false
   #endif
 
   public init() {}
@@ -54,10 +56,10 @@ public struct ScreenTimeSetupView: View {
 
         SettingsGroup("Step 2") {
           SettingsRow(
-            systemIcon: selectionSummary.shortcutsSelected ? "checkmark.circle" : "exclamationmark.circle",
-            title: "Select protected apps",
-            subtitle: "Shortcuts is required and will remain locked at all times",
-            rightText: selectionSummary.shortcutsSelected ? "Ready" : "Shortcuts missing",
+            systemIcon: selectionSummary.hasRequiredSelection ? "checkmark.circle" : "exclamationmark.circle",
+            title: "Always-locked app (required)",
+            subtitle: "Choose Shortcuts here so it stays locked at all times",
+            rightText: selectionSummary.hasRequiredSelection ? "Ready" : "Missing",
             showsChevron: false,
             action: nil
           )
@@ -66,9 +68,20 @@ public struct ScreenTimeSetupView: View {
 
           SettingsRow(
             systemIcon: "app.badge",
-            title: "Apps selected",
-            subtitle: "Other apps follow quiet hours",
-            rightText: "\(selectionSummary.totalAppsSelected)",
+            title: "Always-locked apps selected",
+            subtitle: "Blocked all day",
+            rightText: "\(selectionSummary.requiredAppsSelected)",
+            showsChevron: false,
+            action: nil
+          )
+
+          SettingsDivider()
+
+          SettingsRow(
+            systemIcon: "moon.stars",
+            title: "Quiet-hours apps selected",
+            subtitle: "Blocked only during quiet hours",
+            rightText: "\(selectionSummary.quietAppsSelected)",
             showsChevron: false,
             action: nil
           )
@@ -76,9 +89,18 @@ public struct ScreenTimeSetupView: View {
 
         #if canImport(FamilyControls)
         Button {
-          showingPicker = true
+          showingRequiredPicker = true
         } label: {
-          Text("Choose apps")
+          Text("Choose always-locked app")
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(!model.screenTimeAuthorized || busy)
+
+        Button {
+          showingQuietPicker = true
+        } label: {
+          Text("Choose quiet-hours apps (optional)")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
@@ -103,13 +125,13 @@ public struct ScreenTimeSetupView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
-        .disabled(!model.screenTimeAuthorized || !selectionSummary.shortcutsSelected || busy)
+        .disabled(!model.screenTimeAuthorized || !selectionSummary.hasRequiredSelection || busy)
 
         SettingsGroup("Protection status") {
           SettingsRow(
             systemIcon: model.shieldingApplied ? "checkmark.shield" : "xmark.shield",
-            title: "Shortcuts lock",
-            subtitle: "Always-on lock to protect automations",
+            title: "Always-locked app",
+            subtitle: "Should remain blocked all day",
             rightText: model.shieldingApplied ? "On" : "Off",
             showsChevron: false,
             action: nil
@@ -119,7 +141,7 @@ public struct ScreenTimeSetupView: View {
 
           SettingsRow(
             systemIcon: "clock.badge",
-            title: "Other apps",
+            title: "Quiet-hours apps",
             subtitle: model.screenTimeScheduleEnforcedNow ? "Currently locked (quiet hours)" : "Currently allowed",
             rightText: model.screenTimeScheduleEnforcedNow ? "Locked" : "Allowed",
             showsChevron: false,
@@ -170,20 +192,41 @@ public struct ScreenTimeSetupView: View {
       await loadSelectionAndRefresh()
     }
     #if canImport(FamilyControls)
-    .onChange(of: selection) { newValue in
-      ScreenTimeManager.shared.saveSelection(newValue)
+    .onChange(of: requiredSelection) { newValue in
+      ScreenTimeManager.shared.saveRequiredSelection(newValue)
       selectionSummary = ScreenTimeManager.shared.selectionSummary()
     }
-    .sheet(isPresented: $showingPicker) {
+    .onChange(of: quietSelection) { newValue in
+      ScreenTimeManager.shared.saveQuietSelection(newValue)
+      selectionSummary = ScreenTimeManager.shared.selectionSummary()
+    }
+    .sheet(isPresented: $showingRequiredPicker) {
       NavigationStack {
-        FamilyActivityPicker(selection: $selection)
-          .navigationTitle("Choose apps")
+        FamilyActivityPicker(selection: $requiredSelection)
+          .navigationTitle("Always-locked app")
           .navigationBarTitleDisplayMode(.inline)
           .toolbar {
             ToolbarItem(placement: .confirmationAction) {
               Button("Done") {
-                showingPicker = false
-                ScreenTimeManager.shared.saveSelection(selection)
+                showingRequiredPicker = false
+                ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
+                selectionSummary = ScreenTimeManager.shared.selectionSummary()
+                Task { await refreshStatus() }
+              }
+            }
+          }
+      }
+    }
+    .sheet(isPresented: $showingQuietPicker) {
+      NavigationStack {
+        FamilyActivityPicker(selection: $quietSelection)
+          .navigationTitle("Quiet-hours apps")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Done") {
+                showingQuietPicker = false
+                ScreenTimeManager.shared.saveQuietSelection(quietSelection)
                 selectionSummary = ScreenTimeManager.shared.selectionSummary()
                 Task { await refreshStatus() }
               }
@@ -196,8 +239,11 @@ public struct ScreenTimeSetupView: View {
 
   private func loadSelectionAndRefresh() async {
     #if canImport(FamilyControls)
-    if let saved = ScreenTimeManager.shared.loadSelection() {
-      selection = saved
+    if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
+      requiredSelection = savedRequired
+    }
+    if let savedQuiet = ScreenTimeManager.shared.loadQuietSelection() {
+      quietSelection = savedQuiet
     }
     #endif
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
@@ -223,7 +269,8 @@ public struct ScreenTimeSetupView: View {
     defer { busy = false }
 
     #if canImport(FamilyControls)
-    ScreenTimeManager.shared.saveSelection(selection)
+    ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
+    ScreenTimeManager.shared.saveQuietSelection(quietSelection)
     #endif
     await refreshStatus()
     if model.shieldingApplied {

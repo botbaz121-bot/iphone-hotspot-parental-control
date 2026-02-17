@@ -9,12 +9,14 @@ import ManagedSettings
 #endif
 
 public struct ScreenTimeSelectionSummary {
-  public var totalAppsSelected: Int
-  public var shortcutsSelected: Bool
+  public var requiredAppsSelected: Int
+  public var quietAppsSelected: Int
+  public var hasRequiredSelection: Bool
 
-  public init(totalAppsSelected: Int = 0, shortcutsSelected: Bool = false) {
-    self.totalAppsSelected = totalAppsSelected
-    self.shortcutsSelected = shortcutsSelected
+  public init(requiredAppsSelected: Int = 0, quietAppsSelected: Int = 0, hasRequiredSelection: Bool = false) {
+    self.requiredAppsSelected = requiredAppsSelected
+    self.quietAppsSelected = quietAppsSelected
+    self.hasRequiredSelection = hasRequiredSelection
   }
 }
 
@@ -79,11 +81,12 @@ public final class ScreenTimeManager {
 
   public func selectionSummary() -> ScreenTimeSelectionSummary {
     #if canImport(FamilyControls)
-    guard let selection = loadSelection() else { return ScreenTimeSelectionSummary() }
-    let split = splitSelection(selection)
+    let required = loadRequiredSelection()
+    let quiet = loadQuietSelection()
     return ScreenTimeSelectionSummary(
-      totalAppsSelected: selection.applicationTokens.count,
-      shortcutsSelected: !split.shortcutsTokens.isEmpty
+      requiredAppsSelected: required?.applicationTokens.count ?? 0,
+      quietAppsSelected: quiet?.applicationTokens.count ?? 0,
+      hasRequiredSelection: !(required?.applicationTokens.isEmpty ?? true)
     )
     #else
     return ScreenTimeSelectionSummary()
@@ -105,7 +108,8 @@ public final class ScreenTimeManager {
       )
     }
 
-    guard let selection = loadSelection() else {
+    guard let required = loadRequiredSelection(),
+          !required.applicationTokens.isEmpty else {
       clearShielding()
       return ScreenTimeProtectionStatus(
         authorized: true,
@@ -113,11 +117,11 @@ public final class ScreenTimeManager {
         hasRequiredSelection: false,
         quietHoursConfigured: false,
         scheduleEnforcedNow: false,
-        degradedReason: "Choose apps to protect first."
+        degradedReason: "Select Shortcuts in the always-locked section first."
       )
     }
 
-    return await applyPolicyDrivenShielding(selection: selection)
+    return await applyPolicyDrivenShielding(requiredSelection: required, quietSelection: loadQuietSelection())
     #else
     return ScreenTimeProtectionStatus(
       authorized: false,
@@ -131,14 +135,25 @@ public final class ScreenTimeManager {
   }
 
   #if canImport(FamilyControls)
-  public func saveSelection(_ selection: FamilyActivitySelection) {
+  public func saveRequiredSelection(_ selection: FamilyActivitySelection) {
     if let data = try? JSONEncoder().encode(selection) {
       SharedDefaults.screenTimeSelectionData = data
     }
   }
 
-  public func loadSelection() -> FamilyActivitySelection? {
+  public func loadRequiredSelection() -> FamilyActivitySelection? {
     guard let data = SharedDefaults.screenTimeSelectionData else { return nil }
+    return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+  }
+
+  public func saveQuietSelection(_ selection: FamilyActivitySelection) {
+    if let data = try? JSONEncoder().encode(selection) {
+      SharedDefaults.screenTimeQuietSelectionData = data
+    }
+  }
+
+  public func loadQuietSelection() -> FamilyActivitySelection? {
+    guard let data = SharedDefaults.screenTimeQuietSelectionData else { return nil }
     return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
   }
   #endif
@@ -150,12 +165,6 @@ public final class ScreenTimeManager {
   }
 
   #if canImport(FamilyControls) && canImport(ManagedSettings)
-  private struct SelectionSplit {
-    var shortcutsTokens: Set<ApplicationToken>
-    var otherAppTokens: Set<ApplicationToken>
-    var categoryTokens: Set<ActivityCategoryToken>
-  }
-
   private struct PolicyWindow {
     var quietHoursConfigured: Bool
     var inQuietHours: Bool
@@ -163,46 +172,23 @@ public final class ScreenTimeManager {
     static let `default` = PolicyWindow(quietHoursConfigured: false, inQuietHours: false)
   }
 
-  private func splitSelection(_ selection: FamilyActivitySelection) -> SelectionSplit {
-    let shortcuts = selection.applicationTokens.filter { token in
-      String(describing: token).lowercased().contains("shortcuts")
-    }
-    let shortcutsSet = Set(shortcuts)
-    let others = Set(selection.applicationTokens.filter { !shortcutsSet.contains($0) })
-    return SelectionSplit(
-      shortcutsTokens: shortcutsSet,
-      otherAppTokens: others,
-      categoryTokens: selection.categoryTokens
-    )
-  }
-
-  private func applyPolicyDrivenShielding(selection: FamilyActivitySelection) async -> ScreenTimeProtectionStatus {
-    let split = splitSelection(selection)
-    let hasRequired = !split.shortcutsTokens.isEmpty
-
-    guard hasRequired else {
-      clearShielding()
-      return ScreenTimeProtectionStatus(
-        authorized: true,
-        shieldingApplied: false,
-        hasRequiredSelection: false,
-        quietHoursConfigured: false,
-        scheduleEnforcedNow: false,
-        degradedReason: "Select the Shortcuts app. It must stay locked at all times."
-      )
-    }
-
+  private func applyPolicyDrivenShielding(
+    requiredSelection: FamilyActivitySelection,
+    quietSelection: FamilyActivitySelection?
+  ) async -> ScreenTimeProtectionStatus {
     let policy = await loadPolicyWindow()
     let shieldOtherAppsNow = policy.quietHoursConfigured && policy.inQuietHours
 
-    var appsToShield = split.shortcutsTokens
+    var appsToShield = Set(requiredSelection.applicationTokens)
+    let quietApps = Set(quietSelection?.applicationTokens ?? [])
     if shieldOtherAppsNow {
-      appsToShield.formUnion(split.otherAppTokens)
+      appsToShield.formUnion(quietApps)
     }
 
     store.shield.applications = appsToShield.isEmpty ? nil : appsToShield
-    if shieldOtherAppsNow, !split.categoryTokens.isEmpty {
-      store.shield.applicationCategories = .specific(split.categoryTokens)
+    let quietCategories = quietSelection?.categoryTokens ?? []
+    if shieldOtherAppsNow, !quietCategories.isEmpty {
+      store.shield.applicationCategories = .specific(quietCategories)
     } else {
       store.shield.applicationCategories = nil
     }
