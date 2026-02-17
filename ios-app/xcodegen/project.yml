@@ -1,0 +1,33 @@
+name: HotspotParent
+options:
+  bundleIdPrefix: com.bazapps
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+packages:
+  HotspotParentApp:
+    path: ../HotspotParentApp
+targets:
+  HotspotParent:
+    type: application
+    platform: iOS
+    sources:
+      - path: HotspotParentiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bazapps.hotspotparent
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: HotspotParentiOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: HotspotParentiOS/HotspotParent.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEVELOPMENT_TEAM: 3SJ44B3Q7Y
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        Release:
+          CODE_SIGN_ENTITLEMENTS: HotspotParentiOS/HotspotParent.Release.entitlements
+    dependencies:
+      - package: HotspotParentApp
+        product: HotspotParentApp

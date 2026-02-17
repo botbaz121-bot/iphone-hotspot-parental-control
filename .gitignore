@@ -1,0 +1,26 @@
+# Node
+node_modules/
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.p8
+
+# Backend local data + secrets
+backend/node_modules/
+backend/data/
+backend/deploy/*.env
+backend/deploy/*.service
+
+# OS
+.DS_Store
+
+# Local notes that may contain secrets
+**/render-postgres.local.md
+
+# Prototype local logs
+prototype-web/*.log
+prototype-web/*.log.*
+prototype-web/server.log
+prototype-web/ngrok.log

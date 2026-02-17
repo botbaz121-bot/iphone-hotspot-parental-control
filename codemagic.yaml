@@ -1,0 +1,116 @@
+workflows:
+  ios-ipa:
+    name: iOS (XcodeGen) → IPA + upload to TestFlight
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Codemagic
+
+    environment:
+      ios_signing:
+        # These are *Codemagic* resource reference names (not the Apple profile “display name”).
+        # Use an App Store (distribution) provisioning profile for TestFlight/App Store Connect.
+        provisioning_profiles:
+          - hotspotparent_appstore_profile
+        certificates:
+          - hotspotparent-distribution
+
+      vars:
+        XCODEGEN_DIR: ios-app/xcodegen
+        PROJECT_PATH: ios-app/xcodegen/HotspotParent.xcodeproj
+        SCHEME: HotspotParent
+        BUNDLE_ID: com.bazapps.hotspotparent
+        TEAM_ID: 3SJ44B3Q7Y
+
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          # Avoid `brew update` (slow/flaky in CI)
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+
+      - name: Set build number (CURRENT_PROJECT_VERSION) for App Store Connect uniqueness
+        script: |
+          set -e
+          # App Store Connect requires a monotonically increasing build number per version.
+          # Use epoch seconds (always increasing) to avoid relying on Codemagic counters.
+          BUILD_NUMBER="$(date +%s)"
+          echo "Using build number: $BUILD_NUMBER"
+
+          # Patch the XcodeGen spec so the generated .xcodeproj has the right build number.
+          SPEC_FILE="$CM_BUILD_DIR/ios-app/xcodegen/project.yml"
+          sed -i.bak -E "s/(CURRENT_PROJECT_VERSION: )\"?[0-9]+\"?/\1\"${BUILD_NUMBER}\"/" "$SPEC_FILE"
+          echo "Updated CURRENT_PROJECT_VERSION in $SPEC_FILE"
+
+      - name: Generate Xcode project
+        script: |
+          cd "$XCODEGEN_DIR"
+          xcodegen generate
+
+      - name: Apply Codemagic provisioning profiles to the generated Xcode project
+        script: |
+          xcode-project use-profiles
+
+      - name: Archive + Export IPA (App Store)
+        script: |
+          set -e
+          ARCHIVE_PATH="$CM_BUILD_DIR/build/HotspotParent.xcarchive"
+          EXPORT_PATH="$CM_BUILD_DIR/build/export"
+          mkdir -p "$EXPORT_PATH"
+
+          # Ensure CFBundleVersion (build number) increases each upload.
+          # Use epoch seconds (always increasing). Must be numeric.
+          BUILD_NUMBER="$(date +%s)"
+          echo "Archiving with build number: $BUILD_NUMBER"
+
+          xcodebuild \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            archive
+
+          # ExportOptions must be explicit in CI; otherwise exportArchive can fail with:
+          # "No profiles for 'com.bazapps.hotspotparent' were found".
+          # Export expects a provisioning profile *display name* installed on the build machine.
+          # Keep this in sync with the Name inside the .mobileprovision.
+          cat > "$CM_BUILD_DIR/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${BUNDLE_ID}</key>
+              <string>hotspotparent-appstore-with-perms</string>
+            </dict>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
+            -exportPath "$EXPORT_PATH"
+
+    artifacts:
+      - build/export/*.ipa
+      - build/**/*.xcarchive
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Upload to App Store Connect so it appears in TestFlight.
+        submit_to_testflight: true
+        # Optional: uncomment and set to your TestFlight beta group names in App Store Connect
+        # beta_groups:
+        #   - Internal Testers
