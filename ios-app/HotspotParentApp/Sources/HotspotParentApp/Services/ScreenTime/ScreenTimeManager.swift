@@ -219,7 +219,6 @@ public final class ScreenTimeManager {
 
   private func loadPolicyWindow() async -> PolicyWindow {
     if let cfg = try? KeychainStore.getCodable(HotspotConfig.self, account: KeychainAccounts.hotspotConfig),
-       let cfg,
        let base = URL(string: cfg.apiBaseURL) {
       do {
         var req = URLRequest(url: base.appendingPathComponent("policy"))
