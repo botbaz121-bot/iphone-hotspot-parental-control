@@ -34,7 +34,7 @@ public struct ScreenTimeSetupView: View {
           .foregroundStyle(.secondary)
           .padding(.bottom, 2)
 
-        SettingsGroup("Step 1") {
+        SettingsGroup("Permission") {
           SettingsRow(
             systemIcon: model.screenTimeAuthorized ? "checkmark.shield" : "shield",
             title: "Grant Screen Time permission",
@@ -54,11 +54,11 @@ public struct ScreenTimeSetupView: View {
         .buttonStyle(.borderedProminent)
         .disabled(busy || model.screenTimeAuthorized)
 
-        SettingsGroup("Step 2") {
+        SettingsGroup("Step 1: Always Locked Apps") {
           SettingsRow(
             systemIcon: selectionSummary.hasRequiredSelection ? "checkmark.circle" : "exclamationmark.circle",
-            title: "Always-locked app (required)",
-            subtitle: "Choose Shortcuts here so it stays locked at all times",
+            title: "Always Locked Apps",
+            subtitle: "Select one or more apps to lock all day",
             rightText: selectionSummary.hasRequiredSelection ? "Ready" : "Missing",
             showsChevron: false,
             action: nil
@@ -67,10 +67,10 @@ public struct ScreenTimeSetupView: View {
           SettingsDivider()
 
           SettingsRow(
-            systemIcon: "app.badge",
-            title: "Always-locked selections",
-            subtitle: "Apps and categories blocked all day",
-            rightText: "\(selectionSummary.requiredSelectionsSelected)",
+            systemIcon: "link",
+            title: "Shortcuts should be included",
+            subtitle: "For automation safety, lock Shortcuts (usually under Productivity & Finance)",
+            rightText: nil,
             showsChevron: false,
             action: nil
           )
@@ -78,10 +78,10 @@ public struct ScreenTimeSetupView: View {
           SettingsDivider()
 
           SettingsRow(
-            systemIcon: "moon.stars",
-            title: "Quiet-hours selections",
-            subtitle: "Apps and categories blocked only during quiet hours",
-            rightText: "\(selectionSummary.quietSelectionsSelected)",
+            systemIcon: "app.badge",
+            title: "Always Locked selections",
+            subtitle: "Apps and categories blocked all day",
+            rightText: "\(selectionSummary.requiredSelectionsSelected)",
             showsChevron: false,
             action: nil
           )
@@ -91,40 +91,38 @@ public struct ScreenTimeSetupView: View {
         Button {
           showingRequiredPicker = true
         } label: {
-          Text("Choose always-locked app")
+          Text("Choose Always Locked Apps")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .disabled(!model.screenTimeAuthorized || busy)
 
+        SettingsGroup("Step 2: Enforcement Schedule") {
+          SettingsRow(
+            systemIcon: "moon.stars",
+            title: "Enforcement Schedule selections",
+            subtitle: "Apps and categories blocked only during enforcement schedule hours",
+            rightText: "\(selectionSummary.quietSelectionsSelected)",
+            showsChevron: false,
+            action: nil
+          )
+        }
+
         Button {
           showingQuietPicker = true
         } label: {
-          Text("Choose quiet-hours apps (optional)")
+          Text("Choose Enforcement Schedule Apps (optional)")
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .disabled(!model.screenTimeAuthorized || busy)
         #endif
 
-        SettingsGroup("Parent control") {
-          SettingsRow(
-            systemIcon: model.shieldingApplied ? "checkmark.shield" : "xmark.shield",
-            title: "Protection is parent-managed",
-            subtitle: model.shieldingApplied
-              ? "Enabled by parent and active on this phone"
-              : "Disabled by parent or awaiting parent activation",
-            rightText: model.shieldingApplied ? "On" : "Off",
-            showsChevron: false,
-            action: nil
-          )
-
-          SettingsDivider()
-
+        SettingsGroup("Status") {
           SettingsRow(
             systemIcon: "clock.badge",
-            title: "Quiet-hours apps",
-            subtitle: model.screenTimeScheduleEnforcedNow ? "Currently locked (quiet hours)" : "Currently allowed",
+            title: "Enforcement Schedule apps",
+            subtitle: model.screenTimeScheduleEnforcedNow ? "Currently locked (enforcement schedule active)" : "Currently allowed",
             rightText: model.screenTimeScheduleEnforcedNow ? "Locked" : "Allowed",
             showsChevron: false,
             action: nil
@@ -143,14 +141,6 @@ public struct ScreenTimeSetupView: View {
             .foregroundStyle(.secondary)
         }
 
-        Button {
-          Task { await refreshStatus() }
-        } label: {
-          Text("Refresh status")
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .disabled(busy)
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
