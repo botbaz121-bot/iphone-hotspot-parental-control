@@ -168,10 +168,11 @@ public final class ScreenTimeManager {
 
   #if canImport(FamilyControls) && canImport(ManagedSettings)
   private struct PolicyWindow {
+    var activateProtection: Bool
     var quietHoursConfigured: Bool
     var inQuietHours: Bool
 
-    static let `default` = PolicyWindow(quietHoursConfigured: false, inQuietHours: false)
+    static let `default` = PolicyWindow(activateProtection: true, quietHoursConfigured: false, inQuietHours: false)
   }
 
   private func applyPolicyDrivenShielding(
@@ -179,6 +180,19 @@ public final class ScreenTimeManager {
     quietSelection: FamilyActivitySelection?
   ) async -> ScreenTimeProtectionStatus {
     let policy = await loadPolicyWindow()
+
+    guard policy.activateProtection else {
+      clearShielding()
+      return ScreenTimeProtectionStatus(
+        authorized: true,
+        shieldingApplied: false,
+        hasRequiredSelection: true,
+        quietHoursConfigured: policy.quietHoursConfigured,
+        scheduleEnforcedNow: false,
+        degradedReason: "Protection is disabled by parent settings for this child device."
+      )
+    }
+
     let shieldOtherAppsNow = policy.quietHoursConfigured && policy.inQuietHours
 
     var appsToShield = Set(requiredSelection.applicationTokens)
@@ -244,9 +258,12 @@ public final class ScreenTimeManager {
       return .default
     }
 
+    let actions = obj["actions"] as? [String: Any]
+    let activateProtection = (obj["activateProtection"] as? Bool) ?? (actions?["activateProtection"] as? Bool) ?? true
     let quietHoursConfigured = (obj["quietHours"] as? [String: Any]) != nil
     let inQuietHours = (obj["isQuietHours"] as? Bool) ?? false
     return PolicyWindow(
+      activateProtection: activateProtection,
       quietHoursConfigured: quietHoursConfigured,
       inQuietHours: quietHoursConfigured ? inQuietHours : false
     )

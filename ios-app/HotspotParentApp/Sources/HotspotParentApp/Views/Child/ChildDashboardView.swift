@@ -180,7 +180,12 @@ public struct ChildDashboardView: View {
   }
 
   private var screenTimeTile: some View {
-    let ok = model.screenTimeAuthorized && model.shieldingApplied && model.screenTimeHasRequiredSelection
+    let ok = model.screenTimeAuthorized && model.screenTimeHasRequiredSelection
+    let subtitle: String = {
+      if !ok { return "Needs setup" }
+      if model.shieldingApplied { return "Managed by parent" }
+      return "Configured (parent can enable)"
+    }()
     return NavigationLink {
       ScreenTimeSetupView()
         .environmentObject(model)
@@ -189,7 +194,7 @@ public struct ChildDashboardView: View {
         color: ok ? .pink : .gray,
         systemIcon: "shield",
         title: "Screen Time lock",
-        subtitle: ok ? "Protection active" : "Needs setup"
+        subtitle: subtitle
       )
     }
     .buttonStyle(.plain)

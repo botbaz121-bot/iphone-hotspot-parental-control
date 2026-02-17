@@ -42,6 +42,7 @@ public struct DashboardDevice: Decodable {
 
   public var actions: Actions
   public struct Actions: Decodable {
+    public var activateProtection: Bool?
     public var setHotspotOff: Bool
     public var setWifiOff: Bool
     public var setMobileDataOff: Bool

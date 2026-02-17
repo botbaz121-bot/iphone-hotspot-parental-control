@@ -483,6 +483,7 @@ private struct PolicyEditorCard: View {
   @State private var hotspotOff: Bool
   @State private var wifiOff: Bool
   @State private var mobileDataOff: Bool
+  @State private var activateProtection: Bool
 
   @State private var quiet: Bool
   @State private var selectedDay: String = "mon"
@@ -500,6 +501,7 @@ private struct PolicyEditorCard: View {
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
     _wifiOff = State(initialValue: device.actions.setWifiOff)
     _mobileDataOff = State(initialValue: device.actions.setMobileDataOff)
+    _activateProtection = State(initialValue: device.actions.activateProtection ?? true)
     _quiet = State(initialValue: device.quietDays != nil)
 
     let initialDay = device.quietDay ?? "mon"
@@ -527,6 +529,17 @@ private struct PolicyEditorCard: View {
       VStack(alignment: .leading, spacing: 10) {
         Text("Rules")
           .font(.headline)
+
+        Toggle(isOn: $activateProtection) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Activate protection")
+              .font(.subheadline.weight(.semibold))
+            Text("Controls child Screen Time shielding (always-locked + quiet-hours apps)")
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .onChange(of: activateProtection) { _ in scheduleSave() }
 
         Toggle(isOn: $hotspotOff) {
           VStack(alignment: .leading, spacing: 2) {
@@ -761,6 +774,7 @@ private struct PolicyEditorCard: View {
 
     do {
       try await model.updateSelectedDevicePolicy(
+        activateProtection: activateProtection,
         setHotspotOff: hotspotOff,
         setWifiOff: wifiOff,
         setMobileDataOff: mobileDataOff,

@@ -107,31 +107,13 @@ public struct ScreenTimeSetupView: View {
         .disabled(!model.screenTimeAuthorized || busy)
         #endif
 
-        SettingsGroup("Step 3") {
-          SettingsRow(
-            systemIcon: model.shieldingApplied ? "lock.shield" : "lock.open",
-            title: "Activate protection",
-            subtitle: model.shieldingApplied ? "Protection is active" : "Apply the configured protection now",
-            rightText: model.shieldingApplied ? "Active" : "Inactive",
-            showsChevron: false,
-            action: nil
-          )
-        }
-
-        Button {
-          Task { await activateProtection() }
-        } label: {
-          Text(model.shieldingApplied ? "Re-apply protection" : "Activate protection")
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(!model.screenTimeAuthorized || !selectionSummary.hasRequiredSelection || busy)
-
-        SettingsGroup("Protection status") {
+        SettingsGroup("Parent control") {
           SettingsRow(
             systemIcon: model.shieldingApplied ? "checkmark.shield" : "xmark.shield",
-            title: "Always-locked app",
-            subtitle: "Should remain blocked all day",
+            title: "Protection is parent-managed",
+            subtitle: model.shieldingApplied
+              ? "Enabled by parent and active on this phone"
+              : "Disabled by parent or awaiting parent activation",
             rightText: model.shieldingApplied ? "On" : "Off",
             showsChevron: false,
             action: nil
@@ -161,27 +143,14 @@ public struct ScreenTimeSetupView: View {
             .foregroundStyle(.secondary)
         }
 
-        HStack(spacing: 10) {
-          Button {
-            Task { await refreshStatus() }
-          } label: {
-            Text("Refresh status")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.bordered)
-          .disabled(busy)
-
-          Button(role: .destructive) {
-            ScreenTimeManager.shared.clearShielding()
-            model.shieldingApplied = false
-            model.screenTimeDegradedReason = "Protection was turned off on this phone."
-            statusText = "Protection removed."
-          } label: {
-            Text("Turn off")
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.bordered)
+        Button {
+          Task { await refreshStatus() }
+        } label: {
+          Text("Refresh status")
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.bordered)
+        .disabled(busy)
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
@@ -261,20 +230,6 @@ public struct ScreenTimeSetupView: View {
       await refreshStatus()
     } catch {
       statusText = "Authorization failed: \(error)"
-    }
-  }
-
-  private func activateProtection() async {
-    busy = true
-    defer { busy = false }
-
-    #if canImport(FamilyControls)
-    ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
-    ScreenTimeManager.shared.saveQuietSelection(quietSelection)
-    #endif
-    await refreshStatus()
-    if model.shieldingApplied {
-      statusText = "Protection active."
     }
   }
 

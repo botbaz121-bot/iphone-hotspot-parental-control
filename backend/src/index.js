@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS device_policies (
   id TEXT PRIMARY KEY,
   device_id TEXT NOT NULL UNIQUE,
+  activate_protection INTEGER NOT NULL DEFAULT 1,
   set_hotspot_off INTEGER NOT NULL DEFAULT 1,
   set_wifi_off INTEGER NOT NULL DEFAULT 0,
   set_mobile_data_off INTEGER NOT NULL DEFAULT 0,
@@ -124,6 +125,9 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
 }
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_policies'").get()) {
+  if (!tableHasColumn('device_policies', 'activate_protection')) {
+    db.exec('ALTER TABLE device_policies ADD COLUMN activate_protection INTEGER NOT NULL DEFAULT 1');
+  }
   if (!tableHasColumn('device_policies', 'gap_ms')) {
     db.exec('ALTER TABLE device_policies ADD COLUMN gap_ms INTEGER NOT NULL DEFAULT 7200000');
   }
@@ -897,7 +901,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const pol = db
     .prepare(
       `
-      SELECT set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, quiet_days, tz
+      SELECT activate_protection, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, quiet_start, quiet_end, quiet_days, tz
       FROM device_policies
       WHERE device_id = ?
       `
@@ -924,6 +928,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   // - If ANY of Hotspot/Wi‑Fi/Mobile Data is configured OFF, then enforcement is potentially active.
   // - If a schedule is set and we're OUTSIDE the schedule window, enforce=false.
   const actions = {
+    activateProtection: pol ? !!pol.activate_protection : true,
     setHotspotOff: pol ? !!pol.set_hotspot_off : true,
     setWifiOff: pol ? !!pol.set_wifi_off : false,
     setMobileDataOff: pol ? !!pol.set_mobile_data_off : false,
@@ -942,6 +947,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const out = {
     enforce,
     actions,
+    activateProtection: actions.activateProtection,
 
     // New fields (per-day schedule)
     quietDays: quietDays,
@@ -1075,6 +1081,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         p.set_wifi_off AS set_wifi_off,
         p.set_mobile_data_off AS set_mobile_data_off,
         p.rotate_password AS rotate_password,
+        p.activate_protection AS activate_protection,
         p.quiet_start AS quiet_start,
         p.quiet_end AS quiet_end,
         p.quiet_days AS quiet_days,
@@ -1099,8 +1106,9 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const setWifiOff = r.set_wifi_off == null ? false : !!r.set_wifi_off;
     const setMobileDataOff = r.set_mobile_data_off == null ? false : !!r.set_mobile_data_off;
     const rotatePassword = r.rotate_password == null ? true : !!r.rotate_password;
+    const activateProtection = r.activate_protection == null ? true : !!r.activate_protection;
 
-    const actions = { setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
+    const actions = { activateProtection, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
     const wantsEnforcement = !!(actions.setHotspotOff || actions.setWifiOff || actions.setMobileDataOff);
 
     const quietDays = parseQuietDaysJSON(r.quiet_days);
@@ -1184,8 +1192,8 @@ app.post('/api/devices', requireParentOrAdmin, (req, res) => {
 
   db.prepare(
     `
-    INSERT INTO device_policies (id, device_id, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, gap_ms)
-    VALUES (?, ?, 1, 0, 0, 1, 7200000)
+    INSERT INTO device_policies (id, device_id, activate_protection, set_hotspot_off, set_wifi_off, set_mobile_data_off, rotate_password, gap_ms)
+    VALUES (?, ?, 1, 1, 0, 0, 1, 7200000)
     `
   ).run(id(), deviceId);
 
@@ -1296,6 +1304,7 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   if (!device) return res.status(404).json({ error: 'not_found' });
 
   const schema = z.object({
+    activateProtection: z.boolean().optional(),
     setHotspotOff: z.boolean().optional(),
     setWifiOff: z.boolean().optional(),
     setMobileDataOff: z.boolean().optional(),
@@ -1314,6 +1323,10 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
 
   const fields = [];
   const values = [];
+  if (patch.activateProtection != null) {
+    fields.push('activate_protection = ?');
+    values.push(patch.activateProtection ? 1 : 0);
+  }
   if (patch.setHotspotOff != null) {
     fields.push('set_hotspot_off = ?');
     values.push(patch.setHotspotOff ? 1 : 0);
