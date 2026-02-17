@@ -68,9 +68,9 @@ public struct ScreenTimeSetupView: View {
 
           SettingsRow(
             systemIcon: "app.badge",
-            title: "Always-locked apps selected",
-            subtitle: "Blocked all day",
-            rightText: "\(selectionSummary.requiredAppsSelected)",
+            title: "Always-locked selections",
+            subtitle: "Apps and categories blocked all day",
+            rightText: "\(selectionSummary.requiredSelectionsSelected)",
             showsChevron: false,
             action: nil
           )
@@ -79,9 +79,9 @@ public struct ScreenTimeSetupView: View {
 
           SettingsRow(
             systemIcon: "moon.stars",
-            title: "Quiet-hours apps selected",
-            subtitle: "Blocked only during quiet hours",
-            rightText: "\(selectionSummary.quietAppsSelected)",
+            title: "Quiet-hours selections",
+            subtitle: "Apps and categories blocked only during quiet hours",
+            rightText: "\(selectionSummary.quietSelectionsSelected)",
             showsChevron: false,
             action: nil
           )

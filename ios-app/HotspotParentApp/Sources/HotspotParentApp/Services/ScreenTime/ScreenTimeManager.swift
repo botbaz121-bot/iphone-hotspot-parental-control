@@ -9,13 +9,13 @@ import ManagedSettings
 #endif
 
 public struct ScreenTimeSelectionSummary {
-  public var requiredAppsSelected: Int
-  public var quietAppsSelected: Int
+  public var requiredSelectionsSelected: Int
+  public var quietSelectionsSelected: Int
   public var hasRequiredSelection: Bool
 
-  public init(requiredAppsSelected: Int = 0, quietAppsSelected: Int = 0, hasRequiredSelection: Bool = false) {
-    self.requiredAppsSelected = requiredAppsSelected
-    self.quietAppsSelected = quietAppsSelected
+  public init(requiredSelectionsSelected: Int = 0, quietSelectionsSelected: Int = 0, hasRequiredSelection: Bool = false) {
+    self.requiredSelectionsSelected = requiredSelectionsSelected
+    self.quietSelectionsSelected = quietSelectionsSelected
     self.hasRequiredSelection = hasRequiredSelection
   }
 }
@@ -83,9 +83,11 @@ public final class ScreenTimeManager {
     #if canImport(FamilyControls)
     let required = loadRequiredSelection()
     let quiet = loadQuietSelection()
+    let requiredCount = (required?.applicationTokens.count ?? 0) + (required?.categoryTokens.count ?? 0)
+    let quietCount = (quiet?.applicationTokens.count ?? 0) + (quiet?.categoryTokens.count ?? 0)
     return ScreenTimeSelectionSummary(
-      requiredAppsSelected: required?.applicationTokens.count ?? 0,
-      quietAppsSelected: quiet?.applicationTokens.count ?? 0,
+      requiredSelectionsSelected: requiredCount,
+      quietSelectionsSelected: quietCount,
       hasRequiredSelection: !(required?.applicationTokens.isEmpty ?? true)
     )
     #else
