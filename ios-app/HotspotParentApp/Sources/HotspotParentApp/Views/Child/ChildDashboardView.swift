@@ -244,7 +244,7 @@ public struct ChildDashboardView: View {
         color: paired ? .pink : .gray,
         systemIcon: "qrcode",
         title: paired ? "Edit pairing" : "Start pairing",
-        subtitle: paired ? "Paired ✅" : "Not paired yet"
+        subtitle: paired ? "Paired" : "Not paired yet"
       )
     }
     .buttonStyle(.plain)
