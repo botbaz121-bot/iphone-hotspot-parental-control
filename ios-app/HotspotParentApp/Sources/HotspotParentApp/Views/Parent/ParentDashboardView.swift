@@ -419,11 +419,12 @@ private struct DeviceDetailsSheet: View {
             ForEach(events.prefix(100), id: \.id) { e in
               HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(Self.formatEventTime(e.ts))
-                  .font(.system(size: 16, weight: .semibold))
+                  .font(.system(size: 16))
                   .monospacedDigit()
                   .frame(width: 120, alignment: .leading)
                 Text(Self.formatTrigger(e.trigger))
-                  .font(.system(size: 16, weight: .semibold))
+                  .font(.system(size: 16))
+                  .italic()
               }
             }
           }
@@ -469,7 +470,7 @@ private struct DeviceDetailsSheet: View {
 
   private static func formatTrigger(_ t: String) -> String {
     switch t {
-      case "policy_fetch": return "Checked status"
+      case "policy_fetch": return "Phone online"
       default: return t.replacingOccurrences(of: "_", with: " ")
     }
   }
