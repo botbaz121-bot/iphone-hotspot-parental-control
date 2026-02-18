@@ -76,7 +76,12 @@ public final class ScreenTimeManager {
     #if canImport(FamilyControls)
     let center = AuthorizationCenter.shared
     do {
-      try await center.requestAuthorization(for: authorizationScope(for: mode))
+      switch mode {
+      case .individual:
+        try await center.requestAuthorization(for: .individual)
+      case .familyChild:
+        try await center.requestAuthorization(for: .child)
+      }
       return center.authorizationStatus == .approved
     } catch {
       return false
@@ -309,14 +314,4 @@ public final class ScreenTimeManager {
   }
   #endif
 
-  #if canImport(FamilyControls)
-  private func authorizationScope(for mode: ScreenTimeAuthorizationMode) -> AuthorizationCenter.AuthorizationScope {
-    switch mode {
-    case .individual:
-      return .individual
-    case .familyChild:
-      return .child
-    }
-  }
-  #endif
 }
