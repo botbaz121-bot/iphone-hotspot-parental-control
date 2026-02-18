@@ -61,7 +61,7 @@ public struct ScreenTimeSetupView: View {
             title: "Lock Shortcuts",
             subtitle: selectionSummary.hasRequiredSelection
               ? "Done"
-              : "Pick Shortcuts (and optionally Settings). Usually in Productivity & Finance.",
+              : "Pick Shortcuts app. Usually in Productivity & Finance.",
             disabled: !model.screenTimeAuthorized || busy
           ) {
             #if canImport(FamilyControls)
@@ -251,7 +251,7 @@ private struct ChecklistTile: View {
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(.white.opacity(0.80))
             .multilineTextAlignment(.leading)
-            .lineLimit(3)
+            .lineLimit(4)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
