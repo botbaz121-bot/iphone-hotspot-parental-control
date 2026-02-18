@@ -228,6 +228,8 @@ private struct ChecklistTile: View {
             customIcon
               .resizable()
               .scaledToFit()
+              .renderingMode(.template)
+              .foregroundStyle(.white.opacity(0.95))
               .frame(width: 28, height: 28)
           } else if let systemIcon {
             Image(systemName: systemIcon)
