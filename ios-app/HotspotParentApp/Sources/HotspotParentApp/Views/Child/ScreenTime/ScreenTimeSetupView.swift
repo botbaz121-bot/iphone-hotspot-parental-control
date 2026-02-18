@@ -2,11 +2,17 @@ import Foundation
 
 #if canImport(SwiftUI)
 import SwiftUI
+#endif
 
 #if canImport(FamilyControls)
 import FamilyControls
 #endif
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(SwiftUI)
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
   @State private var statusText: String?
@@ -21,6 +27,8 @@ public struct ScreenTimeSetupView: View {
   @State private var showingQuietPicker = false
   #endif
 
+  private static let shortcutsIconBase64 = "iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD2UlEQVR4nO2ZS2hVRxzGf01qrBofWC2INmIQBNMWFdpCF1URdFe0ahBfCD6KqbTGjVmpqzYIFVwI6kJKTXTV1i6ki+6r+EBMjPHRbGwbbE2FkpgYX1cGvgN/LveeOY977skiHwxcznzzf9wz8//mzMA4xpEb6oBm4BxwBxgCChm3IfnqlG8XQyp8DvRVIXBf+wNYlySBGuCoMXQT+ApYDEwhe0wBmoCvgS4TR7tii4wgiafAF3EHVxg1wF7FEiQTeToFSSxn7GCFSWatj1xn1oR7E2MNLYrtPjAhjNhs1kSa6fQWcAC4Cgyrud+t6kuKWqBbMW4II54TyS3spHgf6A2pQL3iJMV+2ekII90VyVWnJNhidKZX/9ostY3AbfU9AbYm9NEkG05nymJQpPqYxt9UNQn+9R+AySV4blqdNrxTwMSYvqZqrIu1LAIHcTAP+N1UOlf7fdiut+LGXAcWxPRZ8MUZNxFXEh9qzAPg4xhjl5oKOQCsySORN4CDwAvxLwIziY/pwE+y8SqGclckkWkJnVfyTymkTaTRTIdHMaeDD87WI9nuk6+kcXoJv6j/CtBA5dEg287HhRRxegkD6ve9+kkplP1t88aTxukl3FB/Wwjng5TK3mbKcmaJNGuBO87JEhs3qw+llD1IcEi7AAtn66QpIuuzTAQFNCzeb8AMPZ8D/K3n32t6FcM9O2P8nNCOe4ZsFWTb+aiKjnwI9Jt/fqFR+W0Rxu8CRjT+snlT/bJdVWV/t0iZPyUelgF/GZ/OlrOZq7K7NgrsIDo2mbeSi7LPlPo63kvgEPCdGfutJ5gacQL+MeCwbBXyUvbVpm838Ex9P5Y5bZmsvoK4e4qUfcBMswV5Kvsq4LE491R93lFr1rOCOI5bjPlG2X/OW9kXAT0hgtgjjk/Z/81b2QO92K/SOqR2SR9dvi1Km3xcq6ayu0/cSqHqyr7ebEOssqfBVFMJR4DN1dKRJcCf5rAsbM770GhOV/qBj6qt7HM1jx3/P32/x8UnwD+y4Q6rXdWi2omgY6MLFVD2X/UJTV6JBNuVI2bscY+yl+K7o9A48MaZ9IDOYWeRspc7oDsvznPgywR+pmn8/1kemZZS9tlG2e97lD0K3otyZNopUpTTwqyU3YdW2Tkb5VqhK+VZVRplD4NbS7eiXCvU6eKxoOuusYZ9ZtqGXvSg29PgQDqJNmSFlSrxbvvyWdRB7SaZlgTlsZKo1ZsYVUzfxBlcU3Tf0a0535SwNMdFvapTq1kTr5REorW71pTMPNu9ONOpHCaoQnTo2CYQzSzboDaSZ+Xbu7DHMQ6ywWtk2y9Osdf+/AAAAABJRU5ErkJggg=="
+
   public init() {}
 
   public var body: some View {
@@ -30,107 +38,51 @@ public struct ScreenTimeSetupView: View {
           .font(.system(size: 34, weight: .bold))
           .padding(.top, 2)
 
-        Text("Shortcuts stays locked at all times. Other selected apps are shielded only during enforcement schedule hours.")
+        Text("Complete each step to protect automation settings.")
           .font(.system(size: 14))
           .foregroundStyle(.secondary)
-          .padding(.bottom, 2)
 
-        SettingsGroup("Permission") {
-          SettingsRow(
-            systemIcon: model.screenTimeAuthorized ? "checkmark.shield" : "shield",
-            title: "Grant Screen Time permission",
-            subtitle: model.screenTimeAuthorized ? "Permission granted" : "Required before protection can be activated",
-            rightText: model.screenTimeAuthorized ? "Done" : "Pending",
-            showsChevron: false,
-            action: nil
-          )
-        }
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+          ChecklistTile(
+            color: model.screenTimeAuthorized ? .pink : .gray,
+            systemIcon: "shield",
+            customIcon: nil,
+            title: "Grant Permissions",
+            subtitle: model.screenTimeAuthorized ? "Done" : "Tap to allow Screen Time",
+            disabled: busy
+          ) {
+            Task { await requestAuthorization() }
+          }
 
-        Button {
-          Task { await requestAuthorization() }
-        } label: {
-          Text(model.screenTimeAuthorized ? "Permission granted" : "Request permission")
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(busy || model.screenTimeAuthorized)
+          ChecklistTile(
+            color: selectionSummary.hasRequiredSelection ? .pink : .gray,
+            systemIcon: selectionSummary.hasRequiredSelection ? nil : "link",
+            customIcon: shortcutsIcon,
+            title: "Lock Shortcuts",
+            subtitle: selectionSummary.hasRequiredSelection
+              ? "Done"
+              : "Pick Shortcuts (and optionally Settings). Usually in Productivity & Finance.",
+            disabled: !model.screenTimeAuthorized || busy
+          ) {
+            #if canImport(FamilyControls)
+            showingRequiredPicker = true
+            #endif
+          }
 
-        SettingsGroup("Step 1: Always Locked Apps") {
-          SettingsRow(
-            systemIcon: selectionSummary.hasRequiredSelection ? "checkmark.circle" : "exclamationmark.circle",
-            title: "Always Locked Apps",
-            subtitle: "Select one or more apps to lock all day",
-            rightText: selectionSummary.hasRequiredSelection ? "Ready" : "Missing",
-            showsChevron: false,
-            action: nil
-          )
-
-          SettingsDivider()
-
-          SettingsRow(
-            systemIcon: "link",
-            title: "Shortcuts should be included",
-            subtitle: "For automation safety, lock Shortcuts (usually under Productivity & Finance)",
-            rightText: nil,
-            showsChevron: false,
-            action: nil
-          )
-
-          SettingsDivider()
-
-          SettingsRow(
-            systemIcon: "app.badge",
-            title: "Always Locked selections",
-            subtitle: "Apps and categories blocked all day",
-            rightText: "\(selectionSummary.requiredSelectionsSelected)",
-            showsChevron: false,
-            action: nil
-          )
-        }
-
-        #if canImport(FamilyControls)
-        Button {
-          showingRequiredPicker = true
-        } label: {
-          Text("Choose Always Locked Apps")
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .disabled(!model.screenTimeAuthorized || busy)
-
-        SettingsGroup("Step 2: Enforcement Schedule") {
-          SettingsRow(
+          ChecklistTile(
+            color: selectionSummary.quietSelectionsSelected > 0 ? .pink : .gray,
             systemIcon: "moon.stars",
-            title: "Enforcement Schedule selections",
-            subtitle: "Apps and categories blocked only during enforcement schedule hours",
-            rightText: "\(selectionSummary.quietSelectionsSelected)",
-            showsChevron: false,
-            action: nil
-          )
-        }
-
-        Button {
-          showingQuietPicker = true
-        } label: {
-          Text("Choose Enforcement Schedule Apps (optional)")
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .disabled(!model.screenTimeAuthorized || busy)
-        #endif
-
-        SettingsGroup("Status") {
-          SettingsRow(
-            systemIcon: "clock.badge",
-            title: "Enforcement Schedule apps",
-            subtitle: model.screenTimeScheduleEnforcedNow ? "Currently locked (enforcement schedule active)" : "Currently allowed",
-            rightText: model.screenTimeScheduleEnforcedNow ? "Locked" : "Allowed",
-            showsChevron: false,
-            action: nil
-          )
+            customIcon: nil,
+            title: "Lock Apps",
+            subtitle: selectionSummary.quietSelectionsSelected > 0
+              ? "Done"
+              : "Choose apps/categories for Enforcement Schedule (optional)",
+            disabled: !model.screenTimeAuthorized || busy
+          ) {
+            #if canImport(FamilyControls)
+            showingQuietPicker = true
+            #endif
+          }
         }
 
         if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
@@ -150,7 +102,6 @@ public struct ScreenTimeSetupView: View {
             .font(.system(size: 13, weight: .regular, design: .monospaced))
             .foregroundStyle(.secondary)
         }
-
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
@@ -206,6 +157,16 @@ public struct ScreenTimeSetupView: View {
     #endif
   }
 
+  private var shortcutsIcon: Image? {
+    #if canImport(UIKit)
+    guard let data = Data(base64Encoded: Self.shortcutsIconBase64),
+          let uiImage = UIImage(data: data) else { return nil }
+    return Image(uiImage: uiImage)
+    #else
+    return nil
+    #endif
+  }
+
   private func loadSelectionAndRefresh() async {
     #if canImport(FamilyControls)
     if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
@@ -242,6 +203,62 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeDegradedReason = status.degradedReason
     debugText = ScreenTimeManager.shared.currentPolicyDebugLine()
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
+  }
+}
+
+private struct ChecklistTile: View {
+  let color: ShortcutTileColor
+  let systemIcon: String?
+  let customIcon: Image?
+  let title: String
+  let subtitle: String
+  let disabled: Bool
+  let action: () -> Void
+
+  var body: some View {
+    Button {
+      action()
+    } label: {
+      ZStack {
+        RoundedRectangle(cornerRadius: 22)
+          .fill(color.gradient)
+
+        VStack(alignment: .leading, spacing: 10) {
+          if let customIcon {
+            customIcon
+              .resizable()
+              .scaledToFit()
+              .frame(width: 28, height: 28)
+          } else if let systemIcon {
+            Image(systemName: systemIcon)
+              .font(.system(size: 18, weight: .semibold))
+              .foregroundStyle(.white.opacity(0.95))
+              .frame(width: 28, height: 28)
+          }
+
+          Spacer(minLength: 0)
+
+          Text(title)
+            .font(.system(size: 18, weight: .bold))
+            .foregroundStyle(.white.opacity(0.95))
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+          Text(subtitle)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(.white.opacity(0.80))
+            .multilineTextAlignment(.leading)
+            .lineLimit(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+      }
+      .frame(minHeight: 124)
+      .opacity(disabled ? 0.7 : 1)
+    }
+    .buttonStyle(.plain)
+    .disabled(disabled)
   }
 }
 
