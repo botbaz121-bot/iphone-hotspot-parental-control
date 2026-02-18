@@ -210,10 +210,11 @@ public struct ScreenTimeSetupView: View {
     do {
       let ok = try await ScreenTimeManager.shared.requestAuthorization(mode: model.screenTimeAuthorizationMode)
       model.screenTimeAuthorized = ok
-      statusText = ok ? "Permission granted." : "Permission not granted."
+      let authDebug = ScreenTimeManager.shared.currentAuthorizationDebugLine()
+      statusText = ok ? "Permission granted. \(authDebug)" : "Permission not granted. \(authDebug)"
       await refreshStatus()
     } catch {
-      statusText = "Authorization failed: \(error)"
+      statusText = "Authorization failed: \(error). \(ScreenTimeManager.shared.currentAuthorizationDebugLine())"
     }
   }
 

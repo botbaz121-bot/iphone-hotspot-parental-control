@@ -71,10 +71,12 @@ public final class ScreenTimeManager {
 
   private static let policyCacheKey = "last_policy_json"
   private var lastPolicyDebugLine: String = "policy: not loaded yet"
+  private var lastAuthorizationDebugLine: String = "auth: not requested yet"
 
   public func requestAuthorization(mode: ScreenTimeAuthorizationMode) async throws -> Bool {
     #if canImport(FamilyControls)
     let center = AuthorizationCenter.shared
+    lastAuthorizationDebugLine = "auth: request mode=\(mode.rawValue) status(before)=\(String(describing: center.authorizationStatus))"
     do {
       switch mode {
       case .individual:
@@ -84,9 +86,14 @@ public final class ScreenTimeManager {
       }
       let approved = center.authorizationStatus == .approved
       SharedDefaults.screenTimeAuthorizedModeRaw = approved ? mode.rawValue : nil
+      let grantedMode = SharedDefaults.screenTimeAuthorizedModeRaw ?? "none"
+      lastAuthorizationDebugLine =
+        "auth: mode=\(mode.rawValue) status(after)=\(String(describing: center.authorizationStatus)) approved=\(approved) grantedMode=\(grantedMode)"
       return approved
     } catch {
       SharedDefaults.screenTimeAuthorizedModeRaw = nil
+      lastAuthorizationDebugLine =
+        "auth: mode=\(mode.rawValue) error=\(String(describing: error)) status(after)=\(String(describing: center.authorizationStatus))"
       return false
     }
     #else
@@ -200,6 +207,16 @@ public final class ScreenTimeManager {
 
   public func currentPolicyDebugLine() -> String {
     lastPolicyDebugLine
+  }
+
+  public func currentAuthorizationDebugLine() -> String {
+    #if canImport(FamilyControls)
+    let mode = SharedDefaults.screenTimeAuthorizationModeRaw ?? "individual"
+    let grantedMode = SharedDefaults.screenTimeAuthorizedModeRaw ?? "none"
+    return "\(lastAuthorizationDebugLine) selectedMode=\(mode) osStatus=\(String(describing: AuthorizationCenter.shared.authorizationStatus)) grantedMode=\(grantedMode)"
+    #else
+    return "auth: Family Controls unavailable"
+    #endif
   }
 
   #if canImport(FamilyControls) && canImport(ManagedSettings)
