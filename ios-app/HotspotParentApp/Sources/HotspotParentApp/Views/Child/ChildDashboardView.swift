@@ -69,6 +69,36 @@ public struct ChildDashboardView: View {
 
   public init() {}
 
+  private var pairingComplete: Bool {
+    model.loadHotspotConfig() != nil
+  }
+
+  private var shortcutComplete: Bool {
+    model.appIntentRunCount > 0
+  }
+
+  private var automationsComplete: Bool {
+    model.appIntentRunCount >= 2
+  }
+
+  private var screenTimeComplete: Bool {
+    model.screenTimeAuthorized && model.screenTimeHasRequiredSelection
+  }
+
+  private var canFinishSetup: Bool {
+    pairingComplete && shortcutComplete && automationsComplete && screenTimeComplete
+  }
+
+  private var finishMissingSummary: String {
+    var missing: [String] = []
+    if !pairingComplete { missing.append("Pairing") }
+    if !shortcutComplete { missing.append("Shortcut") }
+    if !automationsComplete { missing.append("Automations") }
+    if !screenTimeComplete { missing.append("Screen Time") }
+    if missing.isEmpty { return "Lock phone into child mode" }
+    return "Complete first: " + missing.joined(separator: ", ")
+  }
+
   public var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
@@ -171,7 +201,7 @@ public struct ChildDashboardView: View {
   }
 
   private var pairingTile: some View {
-    let paired = model.loadHotspotConfig() != nil
+    let paired = pairingComplete
     return NavigationLink {
       PairingEntryView()
         .environmentObject(model)
@@ -188,7 +218,7 @@ public struct ChildDashboardView: View {
 
   private var shortcutTile: some View {
     let shortcutURL = "https://www.icloud.com/shortcuts/397015e4b5f24d488f12d0658454c6a0"
-    let hasRun = model.appIntentRunCount > 0
+    let hasRun = shortcutComplete
     return ShortcutTile(
       color: hasRun ? .pink : .gray,
       systemIcon: "link",
@@ -200,7 +230,7 @@ public struct ChildDashboardView: View {
   }
 
   private var automationsTile: some View {
-    let ok = model.appIntentRunCount >= 2
+    let ok = automationsComplete
     return ShortcutTile(
       color: ok ? .pink : .gray,
       systemIcon: "wrench.and.screwdriver",
@@ -212,7 +242,7 @@ public struct ChildDashboardView: View {
   }
 
   private var screenTimeTile: some View {
-    let ok = model.screenTimeAuthorized && model.screenTimeHasRequiredSelection
+    let ok = screenTimeComplete
     let subtitle: String = {
       if !ok { return "Needs setup" }
       if model.shieldingApplied { return "Managed by parent" }
@@ -233,14 +263,19 @@ public struct ChildDashboardView: View {
   }
 
   private var finishTile: some View {
-    ShortcutTile(
-      color: .gray,
-      systemIcon: "checkmark",
-      title: "Finish setup",
-      subtitle: "Lock phone into child mode"
-    ) {
+    Button {
       showFinishConfirm = true
+    } label: {
+      ShortcutTileCard(
+        color: canFinishSetup ? .pink : .gray,
+        systemIcon: "checkmark",
+        title: "Finish setup",
+        subtitle: canFinishSetup ? "Lock phone into child mode" : finishMissingSummary
+      )
+      .opacity(canFinishSetup ? 1.0 : 0.7)
     }
+    .buttonStyle(.plain)
+    .disabled(!canFinishSetup)
   }
 
   private func openURL(_ s: String) {
