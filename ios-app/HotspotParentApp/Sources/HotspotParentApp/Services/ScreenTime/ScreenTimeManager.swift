@@ -59,6 +59,18 @@ public enum ScreenTimeAuthorizationMode: String, CaseIterable {
   }
 }
 
+public struct ScreenTimeAuthorizationAttemptResult {
+  public let approved: Bool
+  public let grantedMode: ScreenTimeAuthorizationMode?
+  public let debugLine: String
+
+  public init(approved: Bool, grantedMode: ScreenTimeAuthorizationMode?, debugLine: String) {
+    self.approved = approved
+    self.grantedMode = grantedMode
+    self.debugLine = debugLine
+  }
+}
+
 @MainActor
 public final class ScreenTimeManager {
   public static let shared = ScreenTimeManager()
@@ -75,6 +87,7 @@ public final class ScreenTimeManager {
 
   public func requestAuthorization(mode: ScreenTimeAuthorizationMode) async throws -> Bool {
     #if canImport(FamilyControls)
+    SharedDefaults.screenTimeAuthorizationModeRaw = mode.rawValue
     let center = AuthorizationCenter.shared
     lastAuthorizationDebugLine = "auth: request mode=\(mode.rawValue) status(before)=\(String(describing: center.authorizationStatus))"
     do {
@@ -99,6 +112,42 @@ public final class ScreenTimeManager {
     #else
     return false
     #endif
+  }
+
+  public func requestAuthorizationAuto() async -> ScreenTimeAuthorizationAttemptResult {
+    let familyOK = (try? await requestAuthorization(mode: .familyChild)) ?? false
+    if familyOK {
+      return ScreenTimeAuthorizationAttemptResult(
+        approved: true,
+        grantedMode: .familyChild,
+        debugLine: currentAuthorizationDebugLine()
+      )
+    }
+
+    let familyDebug = currentAuthorizationDebugLine()
+    if isSingleOwnerFamilyConflict(familyDebug) {
+      return ScreenTimeAuthorizationAttemptResult(
+        approved: false,
+        grantedMode: nil,
+        debugLine: familyDebug
+      )
+    }
+
+    let individualOK = (try? await requestAuthorization(mode: .individual)) ?? false
+    if individualOK {
+      return ScreenTimeAuthorizationAttemptResult(
+        approved: true,
+        grantedMode: .individual,
+        debugLine: currentAuthorizationDebugLine()
+      )
+    }
+
+    let individualDebug = currentAuthorizationDebugLine()
+    return ScreenTimeAuthorizationAttemptResult(
+      approved: false,
+      grantedMode: nil,
+      debugLine: "familyAttempt={\(familyDebug)} individualAttempt={\(individualDebug)}"
+    )
   }
 
   public func isAuthorized() -> Bool {
@@ -224,6 +273,12 @@ public final class ScreenTimeManager {
     let underlying = (ns.userInfo[NSUnderlyingErrorKey] as? NSError)?.localizedDescription ?? "none"
     return
       "localized=\(ns.localizedDescription) domain=\(ns.domain) code=\(ns.code) userInfo=\(ns.userInfo) underlying=\(underlying)"
+  }
+
+  private func isSingleOwnerFamilyConflict(_ text: String) -> Bool {
+    let normalized = text.lowercased()
+    return normalized.contains("only one application at a time")
+      || normalized.contains("only one appliction at a time")
   }
 
   #if canImport(FamilyControls) && canImport(ManagedSettings)
