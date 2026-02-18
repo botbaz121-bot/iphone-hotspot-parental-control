@@ -711,17 +711,9 @@ private struct PolicyEditorCard: View {
               scheduleSave()
             } label: {
               Text("Copy to all days")
-                .font(.system(size: 13, weight: .semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.06))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .font(.system(size: 17, weight: .semibold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CopyAllDaysButtonStyle())
           }
 
         }
@@ -792,6 +784,21 @@ private struct PolicyEditorCard: View {
     df.timeZone = .current
     df.dateFormat = "HH:mm"
     return df.string(from: d)
+  }
+}
+
+private struct CopyAllDaysButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .foregroundStyle(configuration.isPressed ? Color.white : Color.blue)
+      .padding(.horizontal, 10)
+      .padding(.vertical, 6)
+      .background(
+        RoundedRectangle(cornerRadius: 10)
+          .fill(configuration.isPressed ? Color.blue : Color.clear)
+      )
+      .scaleEffect(configuration.isPressed ? 1.06 : 1.0)
+      .animation(.spring(response: 0.2, dampingFraction: 0.65), value: configuration.isPressed)
   }
 }
 
