@@ -125,7 +125,7 @@ public struct ChildLockedView: View {
     if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
       policyStatus = reason
     } else {
-      policyStatus = "Policy updated."
+      policyStatus = "Updated"
     }
   }
 }
