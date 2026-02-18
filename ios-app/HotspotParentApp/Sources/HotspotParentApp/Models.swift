@@ -127,7 +127,7 @@ public struct Device: Codable, Identifiable {
 }
 
 public struct CreateDeviceRequest: Codable {
-  public var name: String?
+  public var name: String
 }
 
 public struct CreateDeviceResponse: Codable {

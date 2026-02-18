@@ -1175,8 +1175,8 @@ app.get('/api/devices', requireParentOrAdmin, (req, res) => {
 });
 
 app.post('/api/devices', requireParentOrAdmin, (req, res) => {
-  const schema = z.object({ name: z.string().min(1).max(200).optional().default('Child device') });
-  const { name } = schema.parse(req.body);
+  const schema = z.object({ name: z.string().trim().min(1).max(200) });
+  const { name } = schema.parse(req.body || {});
 
   if (!req.parent && String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim() !== ADMIN_TOKEN) {
     return res.status(401).json({ error: 'unauthorized' });

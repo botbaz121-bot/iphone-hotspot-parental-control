@@ -14,13 +14,17 @@ public struct AddDeviceSheetView: View {
 
   public init() {}
 
+  private var trimmedDeviceName: String {
+    deviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
   public var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
           SettingsGroup("Device name") {
             VStack(alignment: .leading, spacing: 10) {
-              TextField("Optional", text: $deviceName)
+              TextField("Required", text: $deviceName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .padding(.vertical, 10)
@@ -39,7 +43,7 @@ public struct AddDeviceSheetView: View {
                 Task {
                   defer { loading = false }
                   do {
-                    let out = try await model.createDeviceAndPairingCode(name: deviceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : deviceName)
+                    let out = try await model.createDeviceAndPairingCode(name: trimmedDeviceName)
                     pairingCode = out.code
                   } catch {
                     status = String(describing: error)
@@ -56,7 +60,13 @@ public struct AddDeviceSheetView: View {
               }
               .buttonStyle(.borderedProminent)
               .tint(.blue)
-              .disabled(!model.isSignedIn || loading)
+              .disabled(!model.isSignedIn || loading || trimmedDeviceName.isEmpty)
+
+              if trimmedDeviceName.isEmpty {
+                Text("Device name is required.")
+                  .font(.system(size: 14))
+                  .foregroundStyle(.secondary)
+              }
 
               if !model.isSignedIn {
                 Text("Sign in first to enroll devices.")

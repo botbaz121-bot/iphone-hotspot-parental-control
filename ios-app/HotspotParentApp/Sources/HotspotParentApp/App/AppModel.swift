@@ -403,7 +403,7 @@ public final class AppModel: ObservableObject {
     return out
   }
 
-  public func createDeviceAndPairingCode(name: String?) async throws -> PairingCodeResponse {
+  public func createDeviceAndPairingCode(name: String) async throws -> PairingCodeResponse {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let created = try await client.createDevice(name: name)
     let code = try await client.createPairingCode(deviceId: created.id)

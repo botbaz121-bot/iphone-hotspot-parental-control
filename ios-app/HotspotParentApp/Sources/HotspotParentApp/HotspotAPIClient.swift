@@ -50,7 +50,7 @@ public final class HotspotAPIClient {
     try await HTTP.getJSON(api.url("/api/devices"), headers: parentOrAdminHeaders())
   }
 
-  public func createDevice(name: String?) async throws -> CreateDeviceResponse {
+  public func createDevice(name: String) async throws -> CreateDeviceResponse {
     try await HTTP.postJSON(api.url("/api/devices"), body: CreateDeviceRequest(name: name), headers: parentOrAdminHeaders())
   }
 
