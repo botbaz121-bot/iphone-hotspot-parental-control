@@ -219,9 +219,9 @@ private struct ChecklistTile: View {
         VStack(alignment: .leading, spacing: 10) {
           if let customIcon {
             customIcon
+              .renderingMode(.template)
               .resizable()
               .scaledToFit()
-              .renderingMode(.template)
               .foregroundStyle(.white.opacity(0.95))
               .frame(width: 28, height: 28)
           } else if let systemIcon {
