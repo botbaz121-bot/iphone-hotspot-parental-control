@@ -97,7 +97,7 @@ public struct ShortcutTileCard: View {
 
         if let subtitle, !subtitle.isEmpty {
           Text(subtitle)
-            .font(.system(size: 12, weight: .medium))
+            .font(.system(size: 13, weight: .medium))
             .foregroundStyle(.white.opacity(0.70))
             .multilineTextAlignment(.leading)
             .lineLimit(2)
@@ -157,7 +157,7 @@ public struct SettingsGroup<Content: View>: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text(title)
-        .font(.caption.weight(.semibold))
+        .font(.system(size: 13, weight: .semibold))
         .foregroundStyle(.secondary)
         .textCase(.uppercase)
         .padding(.horizontal, 4)
@@ -222,12 +222,12 @@ public struct SettingsRow: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
-          .font(.body.weight(.semibold))
+          .font(.system(size: 18, weight: .semibold))
           .foregroundStyle(.primary)
 
         if let subtitle, !subtitle.isEmpty {
           Text(subtitle)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
       }
@@ -236,13 +236,13 @@ public struct SettingsRow: View {
 
       if let rightText {
         Text(rightText)
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
       }
 
       if showsChevron {
         Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
+          .font(.system(size: 14, weight: .semibold))
           .foregroundStyle(.secondary.opacity(0.8))
       }
     }
@@ -277,12 +277,12 @@ public struct SettingsToggleRow: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
-          .font(.body.weight(.semibold))
+          .font(.system(size: 18, weight: .semibold))
           .foregroundStyle(.primary)
 
         if let subtitle, !subtitle.isEmpty {
           Text(subtitle)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
       }

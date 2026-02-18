@@ -56,6 +56,7 @@ public final class ScreenTimeManager {
   private init() {}
 
   private static let policyCacheKey = "last_policy_json"
+  private var lastPolicyDebugLine: String = "policy: not loaded yet"
 
   public func requestAuthorization() async throws -> Bool {
     #if canImport(FamilyControls)
@@ -166,6 +167,10 @@ public final class ScreenTimeManager {
     #endif
   }
 
+  public func currentPolicyDebugLine() -> String {
+    lastPolicyDebugLine
+  }
+
   #if canImport(FamilyControls) && canImport(ManagedSettings)
   private struct PolicyWindow {
     var activateProtection: Bool
@@ -231,17 +236,27 @@ public final class ScreenTimeManager {
 
         let (data, resp) = try await URLSession.shared.data(for: req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        guard (200...299).contains(code) else { return cachedPolicyWindow() }
+        guard (200...299).contains(code) else {
+          let cached = cachedPolicyWindow()
+          lastPolicyDebugLine = "policy source=cache(status \(code)) activateProtection=\(cached.activateProtection) inSchedule=\(cached.inQuietHours)"
+          return cached
+        }
         if let raw = String(data: data, encoding: .utf8), !raw.isEmpty {
           SharedDefaults.suite.set(raw, forKey: Self.policyCacheKey)
         }
-        return parsePolicyWindow(data)
+        let parsed = parsePolicyWindow(data)
+        lastPolicyDebugLine = "policy source=network activateProtection=\(parsed.activateProtection) inSchedule=\(parsed.inQuietHours)"
+        return parsed
       } catch {
-        return cachedPolicyWindow()
+        let cached = cachedPolicyWindow()
+        lastPolicyDebugLine = "policy source=cache(error) activateProtection=\(cached.activateProtection) inSchedule=\(cached.inQuietHours)"
+        return cached
       }
     }
 
-    return cachedPolicyWindow()
+    let cached = cachedPolicyWindow()
+    lastPolicyDebugLine = "policy source=cache(no config) activateProtection=\(cached.activateProtection) inSchedule=\(cached.inQuietHours)"
+    return cached
   }
 
   private func cachedPolicyWindow() -> PolicyWindow {

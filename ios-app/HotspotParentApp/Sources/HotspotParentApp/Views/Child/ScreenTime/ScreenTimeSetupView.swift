@@ -10,6 +10,7 @@ import FamilyControls
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
   @State private var statusText: String?
+  @State private var debugText: String?
   @State private var selectionSummary = ScreenTimeSelectionSummary()
   @State private var busy = false
 
@@ -29,7 +30,7 @@ public struct ScreenTimeSetupView: View {
           .font(.system(size: 34, weight: .bold))
           .padding(.top, 2)
 
-        Text("Shortcuts stays locked at all times. Other selected apps are shielded only during parent quiet hours.")
+        Text("Shortcuts stays locked at all times. Other selected apps are shielded only during enforcement schedule hours.")
           .font(.footnote)
           .foregroundStyle(.secondary)
           .padding(.bottom, 2)
@@ -49,6 +50,7 @@ public struct ScreenTimeSetupView: View {
           Task { await requestAuthorization() }
         } label: {
           Text(model.screenTimeAuthorized ? "Permission granted" : "Request permission")
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
@@ -92,6 +94,7 @@ public struct ScreenTimeSetupView: View {
           showingRequiredPicker = true
         } label: {
           Text("Choose Always Locked Apps")
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
@@ -112,6 +115,7 @@ public struct ScreenTimeSetupView: View {
           showingQuietPicker = true
         } label: {
           Text("Choose Enforcement Schedule Apps (optional)")
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
@@ -141,6 +145,12 @@ public struct ScreenTimeSetupView: View {
             .foregroundStyle(.secondary)
         }
 
+        if let debugText, !debugText.isEmpty {
+          Text(debugText)
+            .font(.system(size: 13, weight: .regular, design: .monospaced))
+            .foregroundStyle(.secondary)
+        }
+
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
@@ -162,7 +172,7 @@ public struct ScreenTimeSetupView: View {
     .sheet(isPresented: $showingRequiredPicker) {
       NavigationStack {
         FamilyActivityPicker(selection: $requiredSelection)
-          .navigationTitle("Always-locked app")
+          .navigationTitle("Always Locked Apps")
           .navigationBarTitleDisplayMode(.inline)
           .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -179,7 +189,7 @@ public struct ScreenTimeSetupView: View {
     .sheet(isPresented: $showingQuietPicker) {
       NavigationStack {
         FamilyActivityPicker(selection: $quietSelection)
-          .navigationTitle("Quiet-hours apps")
+          .navigationTitle("Enforcement Schedule Apps")
           .navigationBarTitleDisplayMode(.inline)
           .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -230,6 +240,7 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeHasRequiredSelection = status.hasRequiredSelection
     model.screenTimeScheduleEnforcedNow = status.scheduleEnforcedNow
     model.screenTimeDegradedReason = status.degradedReason
+    debugText = ScreenTimeManager.shared.currentPolicyDebugLine()
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
   }
 }
