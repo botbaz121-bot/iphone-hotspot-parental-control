@@ -650,6 +650,7 @@ app.get('/admin', (req, res) => {
         <th>Start</th>
         <th>End</th>
         <th>TZ</th>
+        <th>Activate protection</th>
         <th>Hotspot off</th>
         <th>Wi‑Fi off</th>
         <th>Mobile data off</th>
@@ -727,6 +728,7 @@ app.get('/admin', (req, res) => {
         const setWifiOff = d.actions && d.actions.setWifiOff ? true : false;
         const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;
         const rotatePassword = d.actions && d.actions.rotatePassword ? true : false;
+        const activateProtection = d.actions && d.actions.activateProtection == null ? true : !!(d.actions && d.actions.activateProtection);
 
         tr.innerHTML =
           '<td>' + escapeHtml(d.name||'') + '</td>' +
@@ -746,6 +748,7 @@ app.get('/admin', (req, res) => {
           '<td><input class="quietStart" type="time" value="' + escapeHtml(quietStart || '') + '" /></td>' +
           '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="activateProtection" ' + (activateProtection ? 'checked' : '') + ' />On</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setHotspotOff" ' + (setHotspotOff ? 'checked' : '') + ' />Hotspot off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setWifiOff" ' + (setWifiOff ? 'checked' : '') + ' />Wi‑Fi off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' />Mobile data off</label></td>' +
@@ -787,13 +790,14 @@ app.get('/admin', (req, res) => {
           const setWifiOff = tr.querySelector('.setWifiOff').checked;
           const setMobileDataOff = tr.querySelector('.setMobileDataOff').checked;
           const rotatePassword = tr.querySelector('.rotatePassword').checked;
+          const activateProtection = tr.querySelector('.activateProtection').checked;
 
           // write current day back into the model
           const k = getSelDay();
           if (quietStartVal && quietEndVal) quietDaysModel[k] = { start: quietStartVal, end: quietEndVal };
           else delete quietDaysModel[k];
 
-          const patch = { setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
+          const patch = { activateProtection, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
           if (Number.isFinite(gapMinutes) && gapMinutes > 0) patch.gapMinutes = gapMinutes;
           patch.tz = tzVal ? tzVal : 'Europe/Paris';
 
