@@ -82,8 +82,11 @@ public final class ScreenTimeManager {
       case .familyChild:
         try await center.requestAuthorization(for: .child)
       }
-      return center.authorizationStatus == .approved
+      let approved = center.authorizationStatus == .approved
+      SharedDefaults.screenTimeAuthorizedModeRaw = approved ? mode.rawValue : nil
+      return approved
     } catch {
+      SharedDefaults.screenTimeAuthorizedModeRaw = nil
       return false
     }
     #else
@@ -117,9 +120,11 @@ public final class ScreenTimeManager {
 
   public func reconcileProtectionNow() async -> ScreenTimeProtectionStatus {
     #if canImport(FamilyControls) && canImport(ManagedSettings)
-    let authorized = isAuthorized()
     let mode = SharedDefaults.screenTimeAuthorizationModeRaw
       .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
+    let modeAuthorized = SharedDefaults.screenTimeAuthorizedModeRaw
+      .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) == mode
+    let authorized = isAuthorized() && modeAuthorized
     guard authorized else {
       lastPolicyDebugLine = "policy source=skipped(reason=not_authorized)"
       clearShielding()

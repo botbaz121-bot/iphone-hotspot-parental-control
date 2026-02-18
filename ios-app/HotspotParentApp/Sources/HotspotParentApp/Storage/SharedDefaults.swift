@@ -25,6 +25,7 @@ public enum SharedDefaults {
 
     static let screenTimeAuthorized = "spotcheck.screentime.authorized"
     static let screenTimeAuthorizationMode = "spotcheck.screentime.authorizationMode"
+    static let screenTimeAuthorizedMode = "spotcheck.screentime.authorizedMode"
     static let shieldingApplied = "spotcheck.screentime.shieldingApplied"
     static let screenTimeSelectionData = "spotcheck.screentime.selection.data"
     static let screenTimeQuietSelectionData = "spotcheck.screentime.quietSelection.data"
@@ -47,6 +48,7 @@ public enum SharedDefaults {
       Key.lastAppIntentRunAtEpoch,
       Key.screenTimeAuthorized,
       Key.screenTimeAuthorizationMode,
+      Key.screenTimeAuthorizedMode,
       Key.shieldingApplied,
       Key.screenTimeSelectionData,
       Key.screenTimeQuietSelectionData,
@@ -125,6 +127,14 @@ public enum SharedDefaults {
       return (v?.isEmpty ?? true) ? nil : v
     }
     set { suite.set(newValue, forKey: Key.screenTimeAuthorizationMode) }
+  }
+
+  public static var screenTimeAuthorizedModeRaw: String? {
+    get {
+      let v = suite.string(forKey: Key.screenTimeAuthorizedMode)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { suite.set(newValue, forKey: Key.screenTimeAuthorizedMode) }
   }
 
   public static var shieldingApplied: Bool {
