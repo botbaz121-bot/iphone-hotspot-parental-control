@@ -201,7 +201,10 @@ public final class ScreenTimeManager {
       )
     }
 
-    let shieldOtherAppsNow = policy.quietHoursConfigured && policy.inQuietHours
+    // Backend already evaluates schedule semantics:
+    // - schedule set: true only inside schedule window
+    // - schedule unset: true (always enforce)
+    let shieldOtherAppsNow = policy.inQuietHours
 
     var appsToShield = Set(requiredSelection.applicationTokens)
     let quietApps = Set(quietSelection?.applicationTokens ?? [])
@@ -283,7 +286,7 @@ public final class ScreenTimeManager {
     return PolicyWindow(
       activateProtection: activateProtection,
       quietHoursConfigured: quietHoursConfigured,
-      inQuietHours: quietHoursConfigured ? inQuietHours : false
+      inQuietHours: inQuietHours
     )
   }
   #endif
