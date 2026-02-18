@@ -93,7 +93,7 @@ public final class ScreenTimeManager {
     } catch {
       SharedDefaults.screenTimeAuthorizedModeRaw = nil
       lastAuthorizationDebugLine =
-        "auth: mode=\(mode.rawValue) error=\(String(describing: error)) status(after)=\(String(describing: center.authorizationStatus))"
+        "auth: mode=\(mode.rawValue) error=\(authorizationErrorDetails(error)) status(after)=\(String(describing: center.authorizationStatus))"
       return false
     }
     #else
@@ -217,6 +217,13 @@ public final class ScreenTimeManager {
     #else
     return "auth: Family Controls unavailable"
     #endif
+  }
+
+  private func authorizationErrorDetails(_ error: Error) -> String {
+    let ns = error as NSError
+    let underlying = (ns.userInfo[NSUnderlyingErrorKey] as? NSError)?.localizedDescription ?? "none"
+    return
+      "localized=\(ns.localizedDescription) domain=\(ns.domain) code=\(ns.code) userInfo=\(ns.userInfo) underlying=\(underlying)"
   }
 
   #if canImport(FamilyControls) && canImport(ManagedSettings)
