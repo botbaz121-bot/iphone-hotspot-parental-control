@@ -13,30 +13,35 @@ public struct ChildDashboardView: View {
   @State private var showFinishConfirm = false
 
   private struct AutomationRow: View {
+    let triggerIcon: String
+    let triggerIconColor: Color
+    let triggerIconBackground: Color
     let title: String
 
     var body: some View {
-      HStack(spacing: 12) {
-        // ICON -> ICON (match Shortcuts automation list style)
-        HStack(spacing: 6) {
+      HStack(spacing: 10) {
+        HStack(spacing: 7) {
           ZStack {
-            RoundedRectangle(cornerRadius: 8)
-              .fill(Color.white.opacity(0.08))
-            Image(systemName: "wrench.and.screwdriver")
+            RoundedRectangle(cornerRadius: 7)
+              .fill(triggerIconBackground)
+            Image(systemName: triggerIcon)
               .font(.system(size: 13, weight: .semibold))
-              .foregroundStyle(.white.opacity(0.9))
+              .foregroundStyle(triggerIconColor)
           }
-          .frame(width: 26, height: 26)
+          .frame(width: 24, height: 24)
+
+          Image(systemName: "arrow.right")
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.secondary.opacity(0.7))
 
           ZStack {
-            RoundedRectangle(cornerRadius: 8)
-              .fill(Color.pink.opacity(0.85))
-            // Use the same icon we use for the Shortcut tile.
-            Image(systemName: "link")
+            RoundedRectangle(cornerRadius: 7)
+              .fill(Color(red: 0.29, green: 0.41, blue: 1.00))
+            Image(systemName: "globe")
               .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(.white)
           }
-          .frame(width: 26, height: 26)
+          .frame(width: 24, height: 24)
         }
 
         VStack(alignment: .leading, spacing: 2) {
@@ -52,8 +57,13 @@ public struct ChildDashboardView: View {
         }
 
         Spacer(minLength: 0)
+
+        Image(systemName: "chevron.right")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(.secondary.opacity(0.8))
       }
-      .padding(.vertical, 6)
+      .padding(.vertical, 10)
+      .padding(.horizontal, 12)
     }
   }
 
@@ -90,24 +100,46 @@ public struct ChildDashboardView: View {
     .sheet(isPresented: $showAutomationsInfo) {
       NavigationStack {
         ScrollView {
-          VStack(alignment: .leading, spacing: 14) {
-            Text("Turn on the automations inside the Shortcuts app.")
-              .font(.system(size: 14))
-              .foregroundStyle(.secondary)
+          VStack(alignment: .leading, spacing: 12) {
+            Text("Personal")
+              .font(.system(size: 34, weight: .bold))
+              .padding(.top, 2)
 
-            SettingsGroup("What you should see") {
-              AutomationRow(title: "At a time (daily)")
+            VStack(spacing: 0) {
+              AutomationRow(
+                triggerIcon: "clock.fill",
+                triggerIconColor: .orange,
+                triggerIconBackground: Color.orange.opacity(0.18),
+                title: "At a time, daily"
+              )
               SettingsDivider()
-              AutomationRow(title: "When joining your Wi‑Fi")
+              AutomationRow(
+                triggerIcon: "wifi",
+                triggerIconColor: .blue,
+                triggerIconBackground: Color.blue.opacity(0.18),
+                title: "When joining your Wi‑Fi"
+              )
               SettingsDivider()
-              AutomationRow(title: "When an app is opened (e.g. Settings)")
+              AutomationRow(
+                triggerIcon: "arrow.up.right.square.fill",
+                triggerIconColor: .white.opacity(0.9),
+                triggerIconBackground: Color.white.opacity(0.12),
+                title: "When \"Settings\" is opened"
+              )
               SettingsDivider()
-              AutomationRow(title: "When battery level changes")
+              AutomationRow(
+                triggerIcon: "battery.50",
+                triggerIconColor: .white.opacity(0.9),
+                triggerIconBackground: Color.white.opacity(0.12),
+                title: "When battery level is 50%"
+              )
             }
-
-            Text("Tip: In Shortcuts → Automation, make sure each automation is toggled on. If iOS asks, allow notifications and choose “Always Allow” where possible.")
-              .font(.system(size: 14))
-              .foregroundStyle(.secondary)
+            .background(Color.white.opacity(0.06))
+            .overlay(
+              RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22))
           }
           .padding(18)
         }
