@@ -28,14 +28,14 @@ public struct ParentOnboardingView: View {
           Text("Welcome")
             .font(.largeTitle.bold())
           Text("Set rules, guide setup on the child phone, and get a simple tamper warning if it stops running.")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
         Text("Parent")
-          .font(.caption.weight(.medium))
+          .font(.system(size: 13, weight: .medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
           .background(Color.primary.opacity(0.08))
@@ -76,7 +76,7 @@ public struct ParentOnboardingView: View {
       Text("Constraints")
         .font(.headline)
       Text("iOS apps can’t reliably toggle Personal Hotspot directly; enforcement is performed by the Shortcut on the device.")
-        .font(.footnote)
+        .font(.system(size: 14))
         .foregroundStyle(.secondary)
     }
     .padding(18)
@@ -91,10 +91,10 @@ public struct ParentOnboardingView: View {
         .foregroundStyle(.secondary)
 
       Text(title)
-        .font(.subheadline.weight(.semibold))
+        .font(.system(size: 16, weight: .semibold))
 
       Text(sub)
-        .font(.caption)
+        .font(.system(size: 13))
         .foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

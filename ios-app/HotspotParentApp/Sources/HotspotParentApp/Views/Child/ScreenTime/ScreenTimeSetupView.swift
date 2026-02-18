@@ -31,7 +31,7 @@ public struct ScreenTimeSetupView: View {
           .padding(.top, 2)
 
         Text("Shortcuts stays locked at all times. Other selected apps are shielded only during enforcement schedule hours.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
           .padding(.bottom, 2)
 
@@ -135,13 +135,13 @@ public struct ScreenTimeSetupView: View {
 
         if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
           Text(reason)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.orange)
         }
 
         if let statusText, !statusText.isEmpty {
           Text(statusText)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 

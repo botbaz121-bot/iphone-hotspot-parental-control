@@ -18,9 +18,9 @@ public struct ModeSettingsCardView: View {
       HStack {
         VStack(alignment: .leading, spacing: 3) {
           Text("This is a child phone")
-            .font(.subheadline.weight(.semibold))
+            .font(.system(size: 16, weight: .semibold))
           Text("Show the child setup experience on this device")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
         Spacer()

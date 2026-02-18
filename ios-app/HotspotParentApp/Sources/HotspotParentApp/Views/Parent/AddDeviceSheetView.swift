@@ -60,7 +60,7 @@ public struct AddDeviceSheetView: View {
 
               if !model.isSignedIn {
                 Text("Sign in first to enroll devices.")
-                  .font(.footnote)
+                  .font(.system(size: 14))
                   .foregroundStyle(.secondary)
               }
             }
@@ -83,7 +83,7 @@ public struct AddDeviceSheetView: View {
 
           if let status {
             Text(status)
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.red)
           }
 

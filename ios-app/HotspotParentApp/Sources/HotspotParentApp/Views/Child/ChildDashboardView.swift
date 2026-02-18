@@ -23,7 +23,7 @@ public struct ChildDashboardView: View {
             RoundedRectangle(cornerRadius: 8)
               .fill(Color.white.opacity(0.08))
             Image(systemName: "wrench.and.screwdriver")
-              .font(.caption.weight(.semibold))
+              .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(.white.opacity(0.9))
           }
           .frame(width: 26, height: 26)
@@ -33,7 +33,7 @@ public struct ChildDashboardView: View {
               .fill(Color.pink.opacity(0.85))
             // Use the same icon we use for the Shortcut tile.
             Image(systemName: "link")
-              .font(.caption.weight(.semibold))
+              .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(.white)
           }
           .frame(width: 26, height: 26)
@@ -41,12 +41,12 @@ public struct ChildDashboardView: View {
 
         VStack(alignment: .leading, spacing: 2) {
           Text(title)
-            .font(.subheadline.weight(.semibold))
+            .font(.system(size: 16, weight: .semibold))
             .lineLimit(1)
             .truncationMode(.tail)
 
           Text("Enforce Hotspot Policy")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
             .lineLimit(1)
         }
@@ -67,7 +67,7 @@ public struct ChildDashboardView: View {
           .padding(.top, 2)
 
         Text("Complete these steps so rules can be enforced.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
 
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
@@ -92,7 +92,7 @@ public struct ChildDashboardView: View {
         ScrollView {
           VStack(alignment: .leading, spacing: 14) {
             Text("Turn on the automations inside the Shortcuts app.")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
 
             SettingsGroup("What you should see") {
@@ -106,7 +106,7 @@ public struct ChildDashboardView: View {
             }
 
             Text("Tip: In Shortcuts → Automation, make sure each automation is toggled on. If iOS asks, allow notifications and choose “Always Allow” where possible.")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
           .padding(18)

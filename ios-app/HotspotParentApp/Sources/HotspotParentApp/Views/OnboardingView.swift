@@ -30,7 +30,7 @@ public struct OnboardingView: View {
         Text("• (Optional) Talks to the backend for admin pairing")
 
         Text("Note: iOS cannot directly toggle Personal Hotspot via public APIs. The enforcement approach is Shortcut/MDM-based (per our earlier plan).")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
           .padding(.top, 6)
       }

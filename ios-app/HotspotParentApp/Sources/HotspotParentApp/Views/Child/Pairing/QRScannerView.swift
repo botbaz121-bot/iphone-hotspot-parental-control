@@ -19,7 +19,7 @@ public struct QRScannerView: View {
         .font(.headline)
 
       Text("Use manual pairing code entry for now.")
-        .font(.footnote)
+        .font(.system(size: 14))
         .foregroundStyle(.secondary)
     }
     .padding()

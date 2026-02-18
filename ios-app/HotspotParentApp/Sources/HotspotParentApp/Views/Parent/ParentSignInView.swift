@@ -21,7 +21,7 @@ public struct ParentSignInView: View {
 
         if let status {
           Text(status)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.red)
         }
       }
@@ -38,14 +38,14 @@ public struct ParentSignInView: View {
           Text("Sign in")
             .font(.largeTitle.bold())
           Text("Sign in to manage devices and unlock child setup screens.")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
         Text("Parent")
-          .font(.caption.weight(.medium))
+          .font(.system(size: 13, weight: .medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
           .background(Color.primary.opacity(0.08))
@@ -108,7 +108,7 @@ public struct ParentSignInView: View {
       Text("Why this exists")
         .font(.headline)
       Text("The parent needs a session to create pairing codes, manage device rules, and unlock child setup screens.")
-        .font(.footnote)
+        .font(.system(size: 14))
         .foregroundStyle(.secondary)
     }
     .padding(18)

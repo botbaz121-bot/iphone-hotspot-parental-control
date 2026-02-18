@@ -32,7 +32,7 @@ public struct ParentDashboardView: View {
 
           if model.parentDevices.isEmpty {
             Text("No devices yet. Tap + to enroll one.")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
               .padding(.top, 6)
           }
@@ -79,7 +79,7 @@ public struct ParentDashboardView: View {
           .padding(.top, 2)
 
         Text("Tap a device to view rules and recent activity.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
       }
 
@@ -294,7 +294,7 @@ private struct DeviceDetailsSheet: View {
                   .stroke(Color.white.opacity(0.12), lineWidth: 1)
               )
             Text(String(device.name.prefix(1)).uppercased())
-              .font(.caption.weight(.bold))
+              .font(.system(size: 13, weight: .bold))
               .foregroundStyle(.white.opacity(0.9))
           }
           .frame(width: 26, height: 26)
@@ -307,7 +307,7 @@ private struct DeviceDetailsSheet: View {
           .truncationMode(.tail)
 
         Image(systemName: "chevron.down")
-          .font(.caption.weight(.semibold))
+          .font(.system(size: 13, weight: .semibold))
           .foregroundStyle(.secondary)
       }
     }
@@ -411,7 +411,7 @@ private struct DeviceDetailsSheet: View {
 
       if events.isEmpty {
         Text("No activity yet.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
       } else {
         ScrollView {
@@ -419,11 +419,11 @@ private struct DeviceDetailsSheet: View {
             ForEach(events.prefix(100), id: \.id) { e in
               HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(Self.formatEventTime(e.ts))
-                  .font(.subheadline.weight(.semibold))
+                  .font(.system(size: 16, weight: .semibold))
                   .monospacedDigit()
                   .frame(width: 120, alignment: .leading)
                 Text(Self.formatTrigger(e.trigger))
-                  .font(.subheadline.weight(.semibold))
+                  .font(.system(size: 16, weight: .semibold))
               }
             }
           }
@@ -533,9 +533,9 @@ private struct PolicyEditorCard: View {
         Toggle(isOn: $activateProtection) {
           VStack(alignment: .leading, spacing: 2) {
             Text("Activate protection")
-              .font(.subheadline.weight(.semibold))
+              .font(.system(size: 16, weight: .semibold))
             Text("Controls child Screen Time shielding (always-locked + quiet-hours apps)")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
         }
@@ -544,9 +544,9 @@ private struct PolicyEditorCard: View {
         Toggle(isOn: $hotspotOff) {
           VStack(alignment: .leading, spacing: 2) {
             Text("Hotspot OFF")
-              .font(.subheadline.weight(.semibold))
+              .font(.system(size: 16, weight: .semibold))
             Text("Shortcut turns off hotspot + rotates password")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
         }
@@ -555,9 +555,9 @@ private struct PolicyEditorCard: View {
         Toggle(isOn: $wifiOff) {
           VStack(alignment: .leading, spacing: 2) {
             Text("Wi‑Fi OFF")
-              .font(.subheadline.weight(.semibold))
+              .font(.system(size: 16, weight: .semibold))
             Text("Turn off Wi‑Fi")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
         }
@@ -566,9 +566,9 @@ private struct PolicyEditorCard: View {
         Toggle(isOn: $mobileDataOff) {
           VStack(alignment: .leading, spacing: 2) {
             Text("Mobile Data OFF")
-              .font(.subheadline.weight(.semibold))
+              .font(.system(size: 16, weight: .semibold))
             Text("Turn off cellular data")
-              .font(.footnote)
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
         }
@@ -589,7 +589,7 @@ private struct PolicyEditorCard: View {
         Toggle(isOn: $quiet) {
           VStack(alignment: .leading, spacing: 2) {
             Text("Enforcement schedule")
-              .font(.subheadline.weight(.semibold))
+              .font(.system(size: 16, weight: .semibold))
             Text("Enforcement only active during this time. Will enforce at all times if off")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
@@ -628,7 +628,7 @@ private struct PolicyEditorCard: View {
                   endDate = Self.parseTime(end) ?? endDate
                 } label: {
                   Text(Self.dayLabel(d))
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .frame(width: 30, height: 28)
                     .background(selectedDay == d ? Color.white.opacity(0.18) : Color.white.opacity(0.06))
                     .overlay(
@@ -649,7 +649,7 @@ private struct PolicyEditorCard: View {
             HStack(alignment: .top, spacing: spacing) {
               VStack(alignment: .leading, spacing: 6) {
                 Text("Start")
-                  .font(.caption)
+                  .font(.system(size: 13))
                   .foregroundStyle(.secondary)
 
                 DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
@@ -668,7 +668,7 @@ private struct PolicyEditorCard: View {
 
               VStack(alignment: .leading, spacing: 6) {
                 Text("End")
-                  .font(.caption)
+                  .font(.system(size: 13))
                   .foregroundStyle(.secondary)
 
                 DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
@@ -711,7 +711,7 @@ private struct PolicyEditorCard: View {
               scheduleSave()
             } label: {
               Text("Copy to all days")
-                .font(.caption.weight(.semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Color.white.opacity(0.06))

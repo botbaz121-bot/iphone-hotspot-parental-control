@@ -37,14 +37,14 @@ public struct ChildLockedView: View {
           Text("Setup complete")
             .font(.largeTitle.bold())
           Text("This screen stays on. To change anything, the parent must unlock.")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
         Text("Ready")
-          .font(.caption.weight(.medium))
+          .font(.system(size: 13, weight: .medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
           .background(Color.green.opacity(0.18))

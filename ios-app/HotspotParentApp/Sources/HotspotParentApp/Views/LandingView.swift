@@ -23,7 +23,7 @@ public struct LandingView: View {
           .padding(.top, 2)
 
         Text("Choose device type")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
 
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {

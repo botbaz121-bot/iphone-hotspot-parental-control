@@ -31,7 +31,7 @@ public struct DeviceCarouselView: View {
                     .font(.headline.weight(.semibold))
                     .lineLimit(1)
                   Text(lastSeenText(d))
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 }
@@ -71,7 +71,7 @@ public struct DeviceCarouselView: View {
               .font(.headline.weight(.semibold))
 
             Text("Add another child phone")
-              .font(.caption)
+              .font(.system(size: 13))
               .foregroundStyle(.secondary)
 
             Spacer(minLength: 0)
@@ -89,7 +89,7 @@ public struct DeviceCarouselView: View {
 
   private func badgeMuted(_ s: String) -> some View {
     Text(s)
-      .font(.caption2.weight(.medium))
+      .font(.system(size: 13, weight: .medium))
       .padding(.horizontal, 10)
       .padding(.vertical, 6)
       .background(Color.primary.opacity(0.08))
@@ -112,7 +112,7 @@ public struct DeviceCarouselView: View {
     }
 
     return Text(text)
-      .font(.caption2.weight(.semibold))
+      .font(.system(size: 13, weight: .semibold))
       .padding(.horizontal, 10)
       .padding(.vertical, 6)
       .background(bg)

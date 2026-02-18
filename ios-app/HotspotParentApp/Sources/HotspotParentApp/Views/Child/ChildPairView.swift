@@ -15,7 +15,7 @@ public struct ChildPairView: View {
           .font(.system(size: 34, weight: .bold))
 
         Text("Link this phone so the Shortcut can fetch policy and report activity.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
 
         SettingsGroup("Enter pairing code") {

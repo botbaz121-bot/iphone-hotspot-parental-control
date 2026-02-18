@@ -22,7 +22,7 @@ public struct ChildUnlockView: View {
 
         if let status {
           Text(status)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.red)
         }
       }
@@ -39,14 +39,14 @@ public struct ChildUnlockView: View {
           Text("Parent unlock")
             .font(.largeTitle.bold())
           Text("Sign in to unlock setup screens on this phone.")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
         Text("Parent")
-          .font(.caption.weight(.medium))
+          .font(.system(size: 13, weight: .medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
           .background(Color.primary.opacity(0.08))
@@ -108,7 +108,7 @@ public struct ChildUnlockView: View {
       Text("Why this exists")
         .font(.headline)
       Text("After setup, the child phone stays in a locked screen. The parent can unlock to adjust settings or re-run setup steps.")
-        .font(.footnote)
+        .font(.system(size: 14))
         .foregroundStyle(.secondary)
     }
     .padding(18)

@@ -29,14 +29,14 @@ public struct ChildWelcomeView: View {
             .font(.largeTitle.bold())
 
           Text("Pair this phone, install the Shortcut, and lock the right settings so rules can be enforced.")
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
         Text("Child")
-          .font(.caption.weight(.medium))
+          .font(.system(size: 13, weight: .medium))
           .padding(.horizontal, 10)
           .padding(.vertical, 6)
           .background(Color.primary.opacity(0.08))
@@ -78,7 +78,7 @@ public struct ChildWelcomeView: View {
       Text("Tip")
         .font(.headline)
       Text("When you’re done, use Exit child setup to hand the phone back to the parent.")
-        .font(.footnote)
+        .font(.system(size: 14))
         .foregroundStyle(.secondary)
     }
     .padding(18)
@@ -93,10 +93,10 @@ public struct ChildWelcomeView: View {
         .foregroundStyle(.secondary)
 
       Text(title)
-        .font(.subheadline.weight(.semibold))
+        .font(.system(size: 16, weight: .semibold))
 
       Text(sub)
-        .font(.caption)
+        .font(.system(size: 13))
         .foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

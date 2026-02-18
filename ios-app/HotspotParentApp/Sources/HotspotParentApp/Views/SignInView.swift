@@ -64,7 +64,7 @@ public struct SignInView: View {
         .buttonStyle(.bordered)
 
         Text("DEBUG: Stub sign-in is enabled. Release/TestFlight should use real Apple sign-in.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
           .padding(.horizontal)
@@ -77,13 +77,13 @@ public struct SignInView: View {
         .buttonStyle(.borderedProminent)
 
         Text("AuthenticationServices not available; using stub.")
-          .font(.footnote)
+          .font(.system(size: 14))
           .foregroundStyle(.secondary)
         #endif
 
         if let status {
           Text(status)
-            .font(.footnote)
+            .font(.system(size: 14))
             .foregroundStyle(.red)
             .multilineTextAlignment(.center)
             .padding(.horizontal)

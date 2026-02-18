@@ -91,7 +91,7 @@ public struct PairingEntryView: View {
         if let errorText {
           Text(errorText)
             .foregroundStyle(errorText.contains("success") ? .green : .red)
-            .font(.footnote)
+            .font(.system(size: 14))
         }
 
       }
