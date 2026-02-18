@@ -650,10 +650,10 @@ app.get('/admin', (req, res) => {
         <th>Start</th>
         <th>End</th>
         <th>TZ</th>
-        <th>Activate protection</th>
-        <th>Hotspot off</th>
-        <th>Wi‑Fi off</th>
-        <th>Mobile data off</th>
+        <th>Lock Apps</th>
+        <th>Turn Hotspot off</th>
+        <th>Turn Wi-Fi Off</th>
+        <th>Turn Mobile Data Off</th>
         <th>Rotate password</th>
         <th>Last event</th>
         <th>Gap?</th>
@@ -749,9 +749,9 @@ app.get('/admin', (req, res) => {
           '<td><input class="quietEnd" type="time" value="' + escapeHtml(quietEnd || '') + '" /></td>' +
           '<td><input class="tz" size="18" placeholder="Europe/Paris" value="' + escapeHtml(tz) + '" /></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="activateProtection" ' + (activateProtection ? 'checked' : '') + ' />On</label></td>' +
-          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setHotspotOff" ' + (setHotspotOff ? 'checked' : '') + ' />Hotspot off</label></td>' +
-          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setWifiOff" ' + (setWifiOff ? 'checked' : '') + ' />Wi‑Fi off</label></td>' +
-          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' />Mobile data off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setHotspotOff" ' + (setHotspotOff ? 'checked' : '') + ' >Turn Hotspot off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setWifiOff" ' + (setWifiOff ? 'checked' : '') + ' >Turn Wi-Fi Off</label></td>' +
+          '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' >Turn Mobile Data Off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="rotatePassword" ' + (rotatePassword ? 'checked' : '') + ' />Rotate password</label></td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +

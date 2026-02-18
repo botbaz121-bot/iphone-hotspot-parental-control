@@ -532,9 +532,9 @@ private struct PolicyEditorCard: View {
 
         Toggle(isOn: $activateProtection) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Activate protection")
+            Text("Lock Apps")
               .font(.system(size: 16, weight: .semibold))
-            Text("Controls child Screen Time shielding (always-locked + quiet-hours apps)")
+            Text("Block certain apps. Set list on child phone")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
@@ -543,9 +543,9 @@ private struct PolicyEditorCard: View {
 
         Toggle(isOn: $hotspotOff) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Hotspot OFF")
+            Text("Turn Hotspot off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Shortcut turns off hotspot + rotates password")
+            Text("Turn hotspot off")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
@@ -554,9 +554,9 @@ private struct PolicyEditorCard: View {
 
         Toggle(isOn: $wifiOff) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Wi‑Fi OFF")
+            Text("Turn Wi-Fi Off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Turn off Wi‑Fi")
+            Text("Turn Wi-Fi off")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
@@ -565,9 +565,9 @@ private struct PolicyEditorCard: View {
 
         Toggle(isOn: $mobileDataOff) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Mobile Data OFF")
+            Text("Turn Mobile Data Off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Turn off cellular data")
+            Text("Turn mobile data off")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
