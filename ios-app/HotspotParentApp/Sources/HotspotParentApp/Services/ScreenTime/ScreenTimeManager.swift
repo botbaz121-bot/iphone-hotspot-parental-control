@@ -100,6 +100,7 @@ public final class ScreenTimeManager {
     #if canImport(FamilyControls) && canImport(ManagedSettings)
     let authorized = isAuthorized()
     guard authorized else {
+      lastPolicyDebugLine = "policy source=skipped(reason=not_authorized)"
       clearShielding()
       return ScreenTimeProtectionStatus(
         authorized: false,
@@ -113,6 +114,7 @@ public final class ScreenTimeManager {
 
     guard let required = loadRequiredSelection(),
           !required.applicationTokens.isEmpty else {
+      lastPolicyDebugLine = "policy source=skipped(reason=missing_required_selection)"
       clearShielding()
       return ScreenTimeProtectionStatus(
         authorized: true,
@@ -126,6 +128,7 @@ public final class ScreenTimeManager {
 
     return await applyPolicyDrivenShielding(requiredSelection: required, quietSelection: loadQuietSelection())
     #else
+    lastPolicyDebugLine = "policy source=skipped(reason=family_controls_unavailable)"
     return ScreenTimeProtectionStatus(
       authorized: false,
       shieldingApplied: false,
