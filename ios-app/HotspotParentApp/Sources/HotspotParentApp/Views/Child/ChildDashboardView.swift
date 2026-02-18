@@ -3,6 +3,10 @@ import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
 
+#if canImport(FamilyControls)
+import FamilyControls
+#endif
+
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -11,6 +15,10 @@ public struct ChildDashboardView: View {
   @EnvironmentObject private var model: AppModel
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
+  #if canImport(FamilyControls)
+  @State private var quietSelection = FamilyActivitySelection()
+  @State private var showingQuietPicker = false
+  #endif
 
   private struct AutomationRow: View {
     let triggerIcon: String
@@ -115,6 +123,7 @@ public struct ChildDashboardView: View {
           shortcutTile
           automationsTile
           screenTimeTile
+          lockAppsTile
           finishTile
         }
         .padding(.top, 6)
@@ -127,6 +136,31 @@ public struct ChildDashboardView: View {
     // so the dashboard highlights update without restarting the app.
     // This runs whenever the view appears.
     .onAppear { model.syncFromSharedDefaults() }
+    #if canImport(FamilyControls)
+    .onAppear {
+      if let saved = ScreenTimeManager.shared.loadQuietSelection() {
+        quietSelection = saved
+      }
+    }
+    .sheet(isPresented: $showingQuietPicker) {
+      NavigationStack {
+        FamilyActivityPicker(selection: $quietSelection)
+          .navigationTitle("Enforcement Schedule Apps")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Done") {
+                showingQuietPicker = false
+                ScreenTimeManager.shared.saveQuietSelection(quietSelection)
+                Task {
+                  await model.reconcileScreenTimeProtection()
+                }
+              }
+            }
+          }
+      }
+    }
+    #endif
     .sheet(isPresented: $showAutomationsInfo) {
       NavigationStack {
         ScrollView {
@@ -276,6 +310,26 @@ public struct ChildDashboardView: View {
     }
     .buttonStyle(.plain)
     .disabled(!canFinishSetup)
+  }
+
+  private var lockAppsTile: some View {
+    let quietCount = ScreenTimeManager.shared.selectionSummary().quietSelectionsSelected
+    let ok = quietCount > 0
+    return ShortcutTile(
+      color: ok ? .pink : .gray,
+      systemIcon: "moon.stars",
+      title: "Lock apps",
+      subtitle: ok ? "Done" : "Choose apps for Enforcement Schedule"
+    ) {
+      #if canImport(FamilyControls)
+      if let saved = ScreenTimeManager.shared.loadQuietSelection() {
+        quietSelection = saved
+      } else {
+        quietSelection = FamilyActivitySelection()
+      }
+      showingQuietPicker = true
+      #endif
+    }
   }
 
   private func openURL(_ s: String) {
