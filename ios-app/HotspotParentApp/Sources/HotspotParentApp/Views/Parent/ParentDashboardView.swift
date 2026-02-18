@@ -590,8 +590,8 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Enforcement schedule")
               .font(.subheadline.weight(.semibold))
-            Text("Enforcement only active during this time. Always on if not set")
-              .font(.footnote)
+            Text("Enforcement only active during this time. Will enforce at all times if off")
+              .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
         }
