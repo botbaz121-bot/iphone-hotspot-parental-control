@@ -18,6 +18,7 @@ public struct ScreenTimeSetupView: View {
   @State private var statusText: String?
   @State private var selectionSummary = ScreenTimeSelectionSummary()
   @State private var busy = false
+  @State private var openedScreenTimeSettings = false
 
   #if canImport(FamilyControls)
   @State private var requiredSelection = FamilyActivitySelection()
@@ -83,6 +84,19 @@ public struct ScreenTimeSetupView: View {
             #if canImport(FamilyControls)
             showingQuietPicker = true
             #endif
+          }
+
+          ChecklistTile(
+            color: openedScreenTimeSettings ? .pink : .gray,
+            systemIcon: "lock.shield",
+            customIcon: nil,
+            title: "Screen Time Password",
+            subtitle: openedScreenTimeSettings
+              ? "Done"
+              : "Set a Screen Time passcode and lock Screen Time settings.",
+            disabled: busy
+          ) {
+            openScreenTimeSettings()
           }
         }
 
@@ -199,6 +213,39 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeScheduleEnforcedNow = status.scheduleEnforcedNow
     model.screenTimeDegradedReason = status.degradedReason
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
+  }
+
+  private func openScreenTimeSettings() {
+    #if canImport(UIKit)
+    if let screenTimeURL = URL(string: "App-prefs:root=SCREEN_TIME") {
+      UIApplication.shared.open(screenTimeURL, options: [:]) { success in
+        if success {
+          openedScreenTimeSettings = true
+          statusText = "Opened Screen Time settings."
+        } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+          UIApplication.shared.open(settingsURL, options: [:]) { fallbackSuccess in
+            openedScreenTimeSettings = fallbackSuccess
+            statusText = fallbackSuccess
+              ? "Opened Settings. Go to Screen Time."
+              : "Could not open Settings."
+          }
+        } else {
+          statusText = "Could not open Settings."
+        }
+      }
+    } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+      UIApplication.shared.open(settingsURL, options: [:]) { success in
+        openedScreenTimeSettings = success
+        statusText = success
+          ? "Opened Settings. Go to Screen Time."
+          : "Could not open Settings."
+      }
+    } else {
+      statusText = "Could not open Settings."
+    }
+    #else
+    statusText = "Settings shortcut unavailable on this build."
+    #endif
   }
 }
 
