@@ -65,7 +65,7 @@ public struct ChildLockedView: View {
       Button {
         Task { await refreshPolicy() }
       } label: {
-        Label(policyBusy ? "Updating…" : "Update policy", systemImage: "arrow.clockwise")
+        Label(policyBusy ? "Updating…" : "Update", systemImage: "arrow.clockwise")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.bordered)
