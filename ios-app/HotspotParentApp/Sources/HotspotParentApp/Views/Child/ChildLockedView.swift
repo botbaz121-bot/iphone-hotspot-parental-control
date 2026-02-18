@@ -11,6 +11,8 @@ public struct ChildLockedView: View {
   @EnvironmentObject private var model: AppModel
   @State private var signInError: String?
   @State private var showError = false
+  @State private var policyStatus: String?
+  @State private var policyBusy = false
 
   public init() {}
 
@@ -59,6 +61,21 @@ public struct ChildLockedView: View {
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.borderedProminent)
+
+      Button {
+        Task { await refreshPolicy() }
+      } label: {
+        Label(policyBusy ? "Updating…" : "Update policy", systemImage: "arrow.clockwise")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.bordered)
+      .disabled(policyBusy)
+
+      if let policyStatus, !policyStatus.isEmpty {
+        Text(policyStatus)
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+      }
     }
     .padding(18)
     .background(.ultraThinMaterial)
@@ -98,6 +115,18 @@ public struct ChildLockedView: View {
     signInError = "Sign in with Apple unavailable on this build target."
     showError = true
     #endif
+  }
+
+  @MainActor
+  private func refreshPolicy() async {
+    policyBusy = true
+    defer { policyBusy = false }
+    await model.reconcileScreenTimeProtection()
+    if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
+      policyStatus = reason
+    } else {
+      policyStatus = "Policy updated."
+    }
   }
 }
 
