@@ -16,7 +16,6 @@ import UIKit
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
   @State private var statusText: String?
-  @State private var debugText: String?
   @State private var selectionSummary = ScreenTimeSelectionSummary()
   @State private var busy = false
 
@@ -97,11 +96,6 @@ public struct ScreenTimeSetupView: View {
             .foregroundStyle(.secondary)
         }
 
-        if let debugText, !debugText.isEmpty {
-          Text(debugText)
-            .font(.system(size: 13, weight: .regular, design: .monospaced))
-            .foregroundStyle(.secondary)
-        }
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
@@ -201,7 +195,6 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeHasRequiredSelection = status.hasRequiredSelection
     model.screenTimeScheduleEnforcedNow = status.scheduleEnforcedNow
     model.screenTimeDegradedReason = status.degradedReason
-    debugText = ScreenTimeManager.shared.currentPolicyDebugLine()
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
   }
 }

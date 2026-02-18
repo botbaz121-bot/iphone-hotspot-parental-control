@@ -122,7 +122,7 @@ public final class ScreenTimeManager {
         hasRequiredSelection: false,
         quietHoursConfigured: false,
         scheduleEnforcedNow: false,
-        degradedReason: "Select Shortcuts in the always-locked section first."
+        degradedReason: nil
       )
     }
 
