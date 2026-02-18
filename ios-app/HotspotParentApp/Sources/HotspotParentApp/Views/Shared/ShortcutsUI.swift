@@ -51,17 +51,20 @@ public enum ShortcutTileColor {
 public struct ShortcutTileCard: View {
   public let color: ShortcutTileColor
   public let systemIcon: String
+  public let customIcon: Image?
   public let title: String
   public let subtitle: String?
 
   public init(
     color: ShortcutTileColor,
     systemIcon: String,
+    customIcon: Image? = nil,
     title: String,
     subtitle: String? = nil
   ) {
     self.color = color
     self.systemIcon = systemIcon
+    self.customIcon = customIcon
     self.title = title
     self.subtitle = subtitle
   }
@@ -72,18 +75,27 @@ public struct ShortcutTileCard: View {
         .fill(color.gradient)
 
       VStack(alignment: .leading, spacing: 10) {
-        ZStack {
-          RoundedRectangle(cornerRadius: 10)
-            .fill(Color.black.opacity(0.22))
-            .overlay(
-              RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-            )
-          Image(systemName: systemIcon)
-            .font(.system(size: 14, weight: .semibold))
+        if let customIcon {
+          customIcon
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
             .foregroundStyle(.white.opacity(0.95))
+            .frame(width: 28, height: 28)
+        } else {
+          ZStack {
+            RoundedRectangle(cornerRadius: 10)
+              .fill(Color.black.opacity(0.22))
+              .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                  .stroke(Color.white.opacity(0.18), lineWidth: 1)
+              )
+            Image(systemName: systemIcon)
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(.white.opacity(0.95))
+          }
+          .frame(width: 28, height: 28)
         }
-        .frame(width: 28, height: 28)
 
         Spacer(minLength: 0)
 
@@ -115,6 +127,7 @@ public struct ShortcutTileCard: View {
 public struct ShortcutTile: View {
   public let color: ShortcutTileColor
   public let systemIcon: String
+  public let customIcon: Image?
   public let title: String
   public let subtitle: String?
   public let action: () -> Void
@@ -122,12 +135,14 @@ public struct ShortcutTile: View {
   public init(
     color: ShortcutTileColor,
     systemIcon: String,
+    customIcon: Image? = nil,
     title: String,
     subtitle: String? = nil,
     action: @escaping () -> Void
   ) {
     self.color = color
     self.systemIcon = systemIcon
+    self.customIcon = customIcon
     self.title = title
     self.subtitle = subtitle
     self.action = action
@@ -137,7 +152,7 @@ public struct ShortcutTile: View {
     Button {
       action()
     } label: {
-      ShortcutTileCard(color: color, systemIcon: systemIcon, title: title, subtitle: subtitle)
+      ShortcutTileCard(color: color, systemIcon: systemIcon, customIcon: customIcon, title: title, subtitle: subtitle)
     }
     .buttonStyle(.plain)
   }
