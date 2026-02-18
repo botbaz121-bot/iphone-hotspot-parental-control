@@ -41,13 +41,38 @@ public struct ScreenTimeSetupView: View {
           .font(.system(size: 14))
           .foregroundStyle(.secondary)
 
+        VStack(alignment: .leading, spacing: 8) {
+          Text("Permission type")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.primary)
+
+          Picker("Permission type", selection: $model.screenTimeAuthorizationMode) {
+            ForEach(ScreenTimeAuthorizationMode.allCases, id: \.rawValue) { mode in
+              Text(mode.title).tag(mode)
+            }
+          }
+          .pickerStyle(.segmented)
+
+          Text(
+            model.screenTimeAuthorizationMode == .familyChild
+              ? "Use this when the child device is managed in an iCloud Family."
+              : "Use this when setting up directly on this device."
+          )
+          .font(.system(size: 13))
+          .foregroundStyle(.secondary)
+        }
+
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
           ChecklistTile(
             color: model.screenTimeAuthorized ? .pink : .gray,
             systemIcon: "shield",
             customIcon: nil,
             title: "Grant Permissions",
-            subtitle: model.screenTimeAuthorized ? "Done" : "Tap to allow Screen Time",
+            subtitle: model.screenTimeAuthorized
+              ? "Done"
+              : (model.screenTimeAuthorizationMode == .familyChild
+                ? "Tap to request guardian approval"
+                : "Tap to allow Screen Time"),
             disabled: busy
           ) {
             Task { await requestAuthorization() }
@@ -114,6 +139,10 @@ public struct ScreenTimeSetupView: View {
       ScreenTimeManager.shared.saveQuietSelection(newValue)
       selectionSummary = ScreenTimeManager.shared.selectionSummary()
     }
+    .onChange(of: model.screenTimeAuthorizationMode) { _ in
+      statusText = nil
+      Task { await refreshStatus() }
+    }
     .sheet(isPresented: $showingRequiredPicker) {
       NavigationStack {
         FamilyActivityPicker(selection: $requiredSelection)
@@ -179,7 +208,7 @@ public struct ScreenTimeSetupView: View {
     defer { busy = false }
 
     do {
-      let ok = try await ScreenTimeManager.shared.requestAuthorization()
+      let ok = try await ScreenTimeManager.shared.requestAuthorization(mode: model.screenTimeAuthorizationMode)
       model.screenTimeAuthorized = ok
       statusText = ok ? "Permission granted." : "Permission not granted."
       await refreshStatus()

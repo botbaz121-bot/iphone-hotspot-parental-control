@@ -68,6 +68,10 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.screenTimeAuthorized = screenTimeAuthorized }
   }
 
+  @Published public var screenTimeAuthorizationMode: ScreenTimeAuthorizationMode {
+    didSet { SharedDefaults.screenTimeAuthorizationModeRaw = screenTimeAuthorizationMode.rawValue }
+  }
+
   @Published public var shieldingApplied: Bool {
     didSet { SharedDefaults.shieldingApplied = shieldingApplied }
   }
@@ -130,6 +134,8 @@ public final class AppModel: ObservableObject {
     self.lastAppIntentRunAt = SharedDefaults.lastAppIntentRunAt
 
     self.screenTimeAuthorized = SharedDefaults.screenTimeAuthorized
+    self.screenTimeAuthorizationMode = SharedDefaults.screenTimeAuthorizationModeRaw
+      .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason
@@ -285,6 +291,8 @@ public final class AppModel: ObservableObject {
     self.lastAppIntentRunAt = SharedDefaults.lastAppIntentRunAt
 
     self.screenTimeAuthorized = SharedDefaults.screenTimeAuthorized
+    self.screenTimeAuthorizationMode = SharedDefaults.screenTimeAuthorizationModeRaw
+      .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason

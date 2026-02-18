@@ -45,6 +45,20 @@ public struct ScreenTimeProtectionStatus {
   }
 }
 
+public enum ScreenTimeAuthorizationMode: String, CaseIterable {
+  case individual
+  case familyChild
+
+  public var title: String {
+    switch self {
+    case .individual:
+      return "This Device"
+    case .familyChild:
+      return "Family Child"
+    }
+  }
+}
+
 @MainActor
 public final class ScreenTimeManager {
   public static let shared = ScreenTimeManager()
@@ -58,11 +72,11 @@ public final class ScreenTimeManager {
   private static let policyCacheKey = "last_policy_json"
   private var lastPolicyDebugLine: String = "policy: not loaded yet"
 
-  public func requestAuthorization() async throws -> Bool {
+  public func requestAuthorization(mode: ScreenTimeAuthorizationMode) async throws -> Bool {
     #if canImport(FamilyControls)
     let center = AuthorizationCenter.shared
     do {
-      try await center.requestAuthorization(for: .individual)
+      try await center.requestAuthorization(for: authorizationScope(for: mode))
       return center.authorizationStatus == .approved
     } catch {
       return false
@@ -99,6 +113,8 @@ public final class ScreenTimeManager {
   public func reconcileProtectionNow() async -> ScreenTimeProtectionStatus {
     #if canImport(FamilyControls) && canImport(ManagedSettings)
     let authorized = isAuthorized()
+    let mode = SharedDefaults.screenTimeAuthorizationModeRaw
+      .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
     guard authorized else {
       lastPolicyDebugLine = "policy source=skipped(reason=not_authorized)"
       clearShielding()
@@ -108,7 +124,9 @@ public final class ScreenTimeManager {
         hasRequiredSelection: false,
         quietHoursConfigured: false,
         scheduleEnforcedNow: false,
-        degradedReason: "Screen Time permission is not granted."
+        degradedReason: mode == .familyChild
+          ? "Waiting for guardian approval in Screen Time Family settings."
+          : "Screen Time permission is not granted."
       )
     }
 
@@ -288,6 +306,17 @@ public final class ScreenTimeManager {
       quietHoursConfigured: quietHoursConfigured,
       inQuietHours: inQuietHours
     )
+  }
+  #endif
+
+  #if canImport(FamilyControls)
+  private func authorizationScope(for mode: ScreenTimeAuthorizationMode) -> AuthorizationCenter.AuthorizationScope {
+    switch mode {
+    case .individual:
+      return .individual
+    case .familyChild:
+      return .child
+    }
   }
   #endif
 }
