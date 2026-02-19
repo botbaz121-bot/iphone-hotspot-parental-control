@@ -85,6 +85,7 @@ public struct ScreenTimeSetupView: View {
   }
 
   private func loadSelectionAndRefresh() async {
+    openedScreenTimeSettings = model.screenTimePasswordStepCompleted
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
     await refreshStatus()
   }
@@ -147,6 +148,7 @@ public struct ScreenTimeSetupView: View {
       UIApplication.shared.open(url, options: [:]) { success in
         if success {
           openedScreenTimeSettings = true
+          model.screenTimePasswordStepCompleted = true
           statusText = "Opened Screen Time settings."
         } else {
           tryOpen(index + 1)

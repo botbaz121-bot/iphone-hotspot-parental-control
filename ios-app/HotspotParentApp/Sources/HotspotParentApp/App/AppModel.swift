@@ -80,6 +80,10 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.screenTimeHasRequiredSelection = screenTimeHasRequiredSelection }
   }
 
+  @Published public var screenTimePasswordStepCompleted: Bool {
+    didSet { SharedDefaults.screenTimePasswordStepCompleted = screenTimePasswordStepCompleted }
+  }
+
   @Published public var screenTimeDegradedReason: String? {
     didSet { SharedDefaults.screenTimeDegradedReason = screenTimeDegradedReason }
   }
@@ -138,6 +142,7 @@ public final class AppModel: ObservableObject {
       .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
+    self.screenTimePasswordStepCompleted = SharedDefaults.screenTimePasswordStepCompleted
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason
     self.screenTimeScheduleEnforcedNow = SharedDefaults.screenTimeScheduleEnforcedNow
     self.childUnlockRequested = SharedDefaults.childUnlockRequested
@@ -295,6 +300,7 @@ public final class AppModel: ObservableObject {
       .flatMap(ScreenTimeAuthorizationMode.init(rawValue:)) ?? .individual
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
+    self.screenTimePasswordStepCompleted = SharedDefaults.screenTimePasswordStepCompleted
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason
     self.screenTimeScheduleEnforcedNow = SharedDefaults.screenTimeScheduleEnforcedNow
 

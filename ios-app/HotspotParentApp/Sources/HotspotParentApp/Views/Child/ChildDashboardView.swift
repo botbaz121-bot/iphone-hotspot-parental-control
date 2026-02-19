@@ -90,7 +90,9 @@ public struct ChildDashboardView: View {
   }
 
   private var screenTimeComplete: Bool {
-    model.screenTimeAuthorized && model.screenTimeHasRequiredSelection
+    model.screenTimeAuthorized
+      && model.screenTimeHasRequiredSelection
+      && model.screenTimePasswordStepCompleted
   }
 
   private var canFinishSetup: Bool {
