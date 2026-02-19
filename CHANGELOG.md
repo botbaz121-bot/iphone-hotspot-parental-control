@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 (4) - 2026-02-19
+- Made parent child-settings pending-request debug line always visible (not gated by pending state).
+- Expanded debug line with device id, pending flag, request id, and minutes to diagnose missing Approval box cases.
+
 ## 0.1.2 (3) - 2026-02-19
 - Fixed parent pending extra-time request lookup to reliably match by device in-app.
 - Added explicit `Approval` card in parent child settings with `Accept` / `Deny` actions.

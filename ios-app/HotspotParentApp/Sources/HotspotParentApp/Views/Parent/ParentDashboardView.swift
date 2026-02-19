@@ -845,15 +845,16 @@ private struct PolicyEditorCard: View {
             .disabled(applyingExtraTime || denyingExtraTime)
           }
 
-          Text("Debug: \(pendingDebugText)")
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-            .italic()
         }
         .padding(18)
         .background(Color.primary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 22))
       }
+
+      Text("Debug: deviceId=\(device.id) hasPending=\(hasPendingExtraTimeRequest) reqId=\(pendingRequestId ?? "nil") reqMins=\(pendingRequestedMinutes.map(String.init) ?? "nil") | \(pendingDebugText)")
+        .font(.system(size: 12))
+        .foregroundStyle(.secondary)
+        .italic()
 
     }
     .onAppear {
