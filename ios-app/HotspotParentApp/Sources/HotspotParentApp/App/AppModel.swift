@@ -413,6 +413,12 @@ public final class AppModel: ObservableObject {
     return extraTimePendingRequestIdByDeviceId[deviceId]
   }
 
+  public func stashExtraTimePendingRequest(deviceId: String, requestId: String, minutes: Int) {
+    let clamped = max(5, min(240, (minutes / 5) * 5))
+    extraTimePrefillMinutesByDeviceId[deviceId] = clamped
+    extraTimePendingRequestIdByDeviceId[deviceId] = requestId
+  }
+
   public func registerParentPushTokenIfPossible(_ token: String) async {
     let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !normalized.isEmpty else { return }
@@ -463,6 +469,12 @@ public final class AppModel: ObservableObject {
       return Date(timeIntervalSince1970: TimeInterval(endsAt) / 1000.0)
     }
     return nil
+  }
+
+  public func fetchLatestPendingExtraTimeRequest(deviceId: String) async throws -> ExtraTimeRequestRow? {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let out = try await client.extraTimeRequests(status: "pending", deviceId: deviceId)
+    return out.requests.first
   }
 
   public func updateSelectedDevicePolicy(

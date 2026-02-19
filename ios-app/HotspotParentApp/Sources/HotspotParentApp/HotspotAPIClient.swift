@@ -95,4 +95,14 @@ public final class HotspotAPIClient {
     let req = ExtraTimeDecisionRequest(decision: approve ? "approve" : "deny", grantedMinutes: grantedMinutes)
     return try await HTTP.postJSON(api.url("/api/extra-time/requests/\(requestId)/decision"), body: req, headers: parentOrAdminHeaders())
   }
+
+  public func extraTimeRequests(status: String = "pending", deviceId: String? = nil) async throws -> ExtraTimeRequestsResponse {
+    var parts: [String] = []
+    parts.append("status=\(status.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? status)")
+    if let deviceId, !deviceId.isEmpty {
+      parts.append("deviceId=\(deviceId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceId)")
+    }
+    let path = "/api/extra-time/requests" + (parts.isEmpty ? "" : "?\(parts.joined(separator: "&"))")
+    return try await HTTP.getJSON(api.url(path), headers: parentOrAdminHeaders())
+  }
 }

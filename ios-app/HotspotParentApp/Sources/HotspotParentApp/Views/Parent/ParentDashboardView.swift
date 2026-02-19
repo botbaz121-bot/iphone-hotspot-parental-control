@@ -609,6 +609,9 @@ private struct PolicyEditorCard: View {
         .onChange(of: quiet) { isOn in
           if !isOn {
             quietDays = [:]
+            if extraTimeStatus?.hasPrefix("Pending request:") == true {
+              extraTimeStatus = nil
+            }
           } else if quietDays.isEmpty {
             // seed all days with current picker values
             let s = Self.formatTime(startDate)
@@ -624,6 +627,9 @@ private struct PolicyEditorCard: View {
             ]
           }
           scheduleSave()
+          if isOn {
+            Task { await loadPendingExtraTimeRequest() }
+          }
         }
 
         if !quiet && wifiOff && mobileDataOff {
@@ -801,6 +807,9 @@ private struct PolicyEditorCard: View {
       } else {
         activeExtraTimeEndsAt = nil
       }
+      if quiet {
+        Task { await loadPendingExtraTimeRequest() }
+      }
     }
   }
 
@@ -843,6 +852,21 @@ private struct PolicyEditorCard: View {
     didConsumePrefill = true
     if let prefilled = model.consumeExtraTimePrefill(deviceId: device.id) {
       extraTimeMinutes = max(5, min(120, (prefilled / 5) * 5))
+    }
+  }
+
+  @MainActor
+  private func loadPendingExtraTimeRequest() async {
+    do {
+      if let req = try await model.fetchLatestPendingExtraTimeRequest(deviceId: device.id) {
+        model.stashExtraTimePendingRequest(deviceId: device.id, requestId: req.id, minutes: req.requestedMinutes)
+        extraTimeMinutes = max(5, min(120, (req.requestedMinutes / 5) * 5))
+        extraTimeStatus = "Pending request: \(req.requestedMinutes) min."
+      } else if extraTimeStatus?.hasPrefix("Pending request:") == true {
+        extraTimeStatus = nil
+      }
+    } catch {
+      // best-effort
     }
   }
 

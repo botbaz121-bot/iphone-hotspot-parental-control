@@ -111,3 +111,22 @@ public struct PushRegisterRequest: Encodable {
     self.platform = platform
   }
 }
+
+public struct ExtraTimeRequestsResponse: Decodable {
+  public var requests: [ExtraTimeRequestRow]
+}
+
+public struct ExtraTimeRequestRow: Decodable {
+  public var id: String
+  public var deviceId: String
+  public var deviceName: String
+  public var requestedMinutes: Int
+  public var reason: String?
+  public var status: String
+  public var requestedAt: Int
+  public var resolvedAt: Int?
+  public var resolvedBy: String?
+  public var grantedMinutes: Int?
+  public var startsAt: Int?
+  public var endsAt: Int?
+}
