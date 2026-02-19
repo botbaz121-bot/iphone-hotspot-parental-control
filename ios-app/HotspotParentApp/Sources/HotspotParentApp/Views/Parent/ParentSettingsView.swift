@@ -67,10 +67,23 @@ public struct ParentSettingsView: View {
           )
         }
 
+        Text(versionLine)
+          .font(.system(size: 12))
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .center)
+          .padding(.top, 8)
+
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
     }
+  }
+
+  private var versionLine: String {
+    let info = Bundle.main.infoDictionary
+    let version = (info?["CFBundleShortVersionString"] as? String) ?? "?"
+    let build = (info?["CFBundleVersion"] as? String) ?? "?"
+    return "Version \(version) (\(build))"
   }
 }
 
