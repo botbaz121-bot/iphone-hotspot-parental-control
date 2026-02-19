@@ -547,9 +547,6 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Turn Hotspot off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Turn hotspot off")
-              .font(.system(size: 14))
-              .foregroundStyle(.secondary)
           }
         }
         .onChange(of: hotspotOff) { _ in scheduleSave() }
@@ -558,9 +555,6 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Turn Wi-Fi Off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Turn Wi-Fi off")
-              .font(.system(size: 14))
-              .foregroundStyle(.secondary)
           }
         }
         .onChange(of: wifiOff) { _ in scheduleSave() }
@@ -569,9 +563,6 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Turn Mobile Data Off")
               .font(.system(size: 16, weight: .semibold))
-            Text("Turn mobile data off")
-              .font(.system(size: 14))
-              .foregroundStyle(.secondary)
           }
         }
         .onChange(of: mobileDataOff) { _ in scheduleSave() }
