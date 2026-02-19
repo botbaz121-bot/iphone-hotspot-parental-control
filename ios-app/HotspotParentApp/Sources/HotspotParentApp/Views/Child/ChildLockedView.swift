@@ -16,6 +16,7 @@ public struct ChildLockedView: View {
   @State private var extraTimeMinutes: Int = 15
   @State private var extraTimeBusy = false
   @State private var extraTimeMessage: String?
+  @State private var didInitialAutoUpdate = false
 
   public init() {}
 
@@ -23,7 +24,9 @@ public struct ChildLockedView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         headerCard
-        extraTimeCard
+        if !isProtectionCurrentlyOn {
+          extraTimeCard
+        }
       }
       .padding(.top, 22)
       .padding(.horizontal, 18)
@@ -36,6 +39,10 @@ public struct ChildLockedView: View {
     }
     .onAppear {
       statusMessage = friendlyProtectionMessage()
+      if !didInitialAutoUpdate {
+        didInitialAutoUpdate = true
+        Task { await refreshPolicy() }
+      }
     }
   }
 
@@ -201,6 +208,15 @@ public struct ChildLockedView: View {
       return "Protection is currently off and scheduled to start \(formatFriendlyBoundary(boundary, now: now))."
     }
     return "Protection is currently off."
+  }
+
+  private var isProtectionCurrentlyOn: Bool {
+    if !model.screenTimeAuthorized { return false }
+    if let reason = model.screenTimeDegradedReason?.lowercased(),
+       reason.contains("disabled by parent") {
+      return false
+    }
+    return model.screenTimeScheduleEnforcedNow
   }
 
   private func nextScheduleBoundary(after now: Date, protectionOnNow: Bool) -> Date? {
