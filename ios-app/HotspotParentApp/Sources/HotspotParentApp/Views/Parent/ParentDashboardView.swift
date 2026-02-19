@@ -517,6 +517,10 @@ private struct PolicyEditorCard: View {
   @State private var didConsumePrefill: Bool = false
   @State private var activeExtraTimeEndsAt: Date?
   @State private var hasPendingExtraTimeRequest: Bool = false
+  @State private var pendingRequestId: String?
+  @State private var pendingRequestedMinutes: Int?
+  @State private var denyingExtraTime: Bool = false
+  @State private var pendingDebugText: String = "pending: not loaded"
 
   init(device: DashboardDevice, onExtraTimeApplied: @escaping () -> Void = {}) {
     self.device = device
@@ -806,6 +810,51 @@ private struct PolicyEditorCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 22))
       }
 
+      if hasPendingExtraTimeRequest {
+        VStack(alignment: .leading, spacing: 10) {
+          Text("Approval")
+            .font(.headline)
+
+          Text("A child request is waiting.")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+
+          HStack(spacing: 10) {
+            Button {
+              Task { await applyExtraTime() }
+            } label: {
+              HStack(spacing: 8) {
+                if applyingExtraTime { ProgressView() }
+                Text(applyingExtraTime ? "Accepting..." : "Accept")
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(applyingExtraTime || denyingExtraTime)
+
+            Button(role: .destructive) {
+              Task { await denyExtraTime() }
+            } label: {
+              HStack(spacing: 8) {
+                if denyingExtraTime { ProgressView() }
+                Text(denyingExtraTime ? "Denying..." : "Deny")
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(applyingExtraTime || denyingExtraTime)
+          }
+
+          Text("Debug: \(pendingDebugText)")
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .italic()
+        }
+        .padding(18)
+        .background(Color.primary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+      }
+
     }
     .onAppear {
       consumePrefillIfNeeded()
@@ -868,14 +917,23 @@ private struct PolicyEditorCard: View {
         extraTimeMinutes = max(0, min(120, (req.requestedMinutes / 5) * 5))
         extraTimeStatus = "Pending request: \(req.requestedMinutes) min."
         hasPendingExtraTimeRequest = true
+        pendingRequestId = req.id
+        pendingRequestedMinutes = req.requestedMinutes
+        pendingDebugText = "deviceId=\(device.id) reqId=\(req.id) reqDeviceId=\(req.deviceId) mins=\(req.requestedMinutes) status=\(req.status)"
       } else if extraTimeStatus?.hasPrefix("Pending request:") == true {
         extraTimeStatus = nil
         hasPendingExtraTimeRequest = false
+        pendingRequestId = nil
+        pendingRequestedMinutes = nil
+        pendingDebugText = "deviceId=\(device.id) no pending request"
       } else {
         hasPendingExtraTimeRequest = false
+        pendingRequestId = nil
+        pendingRequestedMinutes = nil
+        pendingDebugText = "deviceId=\(device.id) no pending request"
       }
     } catch {
-      // best-effort
+      pendingDebugText = "deviceId=\(device.id) pending fetch error"
     }
   }
 
@@ -887,10 +945,30 @@ private struct PolicyEditorCard: View {
       let endsAt = try await model.parentApplyExtraTime(deviceId: device.id, minutes: extraTimeMinutes)
       activeExtraTimeEndsAt = endsAt
       hasPendingExtraTimeRequest = false
+      pendingRequestId = nil
+      pendingRequestedMinutes = nil
       extraTimeStatus = extraTimeMinutes == 0 ? "Extra time cleared." : "Extra time applied."
       onExtraTimeApplied()
     } catch {
       extraTimeStatus = "Failed to apply extra time."
+    }
+  }
+
+  @MainActor
+  private func denyExtraTime() async {
+    denyingExtraTime = true
+    defer { denyingExtraTime = false }
+    do {
+      try await model.parentDenyExtraTime(deviceId: device.id)
+      hasPendingExtraTimeRequest = false
+      pendingRequestId = nil
+      pendingRequestedMinutes = nil
+      extraTimeStatus = "Request denied."
+      pendingDebugText = "deviceId=\(device.id) denied"
+      onExtraTimeApplied()
+    } catch {
+      extraTimeStatus = "Failed to deny request."
+      pendingDebugText = "deviceId=\(device.id) deny failed"
     }
   }
 

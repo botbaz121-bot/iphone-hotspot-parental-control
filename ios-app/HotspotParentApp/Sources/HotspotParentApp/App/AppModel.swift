@@ -471,6 +471,27 @@ public final class AppModel: ObservableObject {
     return nil
   }
 
+  public func parentDenyExtraTime(deviceId: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+
+    let requestId: String = {
+      if let existing = consumeExtraTimePendingRequestId(deviceId: deviceId), !existing.isEmpty {
+        return existing
+      }
+      return ""
+    }()
+
+    if !requestId.isEmpty {
+      _ = try await client.decideExtraTimeRequest(requestId: requestId, approve: false, grantedMinutes: nil)
+    } else {
+      let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
+      guard let req = out.requests.first(where: { $0.deviceId == deviceId }) else { return }
+      _ = try await client.decideExtraTimeRequest(requestId: req.id, approve: false, grantedMinutes: nil)
+    }
+
+    await refreshParentDashboard()
+  }
+
   public func fetchLatestPendingExtraTimeRequest(deviceId: String) async throws -> ExtraTimeRequestRow? {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
