@@ -196,6 +196,10 @@ public struct ChildLockedView: View {
       return "Protection is currently off. The parent has disabled protection."
     }
 
+    if let backend = backendStatusMessage(), !backend.isEmpty {
+      return backend
+    }
+
     let boundary = nextScheduleBoundary(after: now, protectionOnNow: model.screenTimeScheduleEnforcedNow)
     if model.screenTimeScheduleEnforcedNow {
       if let boundary {
@@ -208,6 +212,17 @@ public struct ChildLockedView: View {
       return "Protection is currently off and scheduled to start \(formatFriendlyBoundary(boundary, now: now))."
     }
     return "Protection is currently off."
+  }
+
+  private func backendStatusMessage() -> String? {
+    guard let raw = SharedDefaults.suite.string(forKey: "last_policy_json"),
+          let data = raw.data(using: .utf8),
+          let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    else {
+      return nil
+    }
+    let text = (obj["statusMessage"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return (text?.isEmpty ?? true) ? nil : text
   }
 
   private var isProtectionCurrentlyOn: Bool {

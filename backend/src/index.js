@@ -1113,6 +1113,13 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const activeExtraTime = getActiveExtraTime(deviceId);
   const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
   const isQuietHours = inScheduleWindow;
+  const statusMessage = buildPolicyStatusMessage({
+    activateProtection: actions.activateProtection,
+    schedule,
+    inScheduleWindow,
+    activeExtraTime,
+    tz
+  });
 
   const out = {
     enforce,
@@ -1125,6 +1132,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     quietHours: schedule,
     // isQuietHours tells the Shortcut whether enforcement is active right now (schedule is evaluated server-side).
     isQuietHours,
+    statusMessage,
     activeExtraTime: activeExtraTime
       ? {
           requestId: activeExtraTime.id,
@@ -1963,6 +1971,36 @@ function getActiveExtraTime(deviceId, nowMs = Date.now()) {
       `
     )
     .get(deviceId, nowMs, nowMs);
+}
+
+function formatTimeInTz(date, tz) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz || 'Europe/Paris',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(date);
+    const hh = parts.find(p => p.type === 'hour')?.value;
+    const mm = parts.find(p => p.type === 'minute')?.value;
+    if (hh && mm) return `${hh}:${mm}`;
+  } catch {
+    // fall through
+  }
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function buildPolicyStatusMessage({ activateProtection, schedule, inScheduleWindow, activeExtraTime, tz }) {
+  if (!activateProtection) return 'Protection is currently off. Parent disabled protection.';
+  if (activeExtraTime && activeExtraTime.ends_at) {
+    const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
+    return `Protection is currently off for extra time and scheduled to resume at ${resume}.`;
+  }
+  if (!schedule || !schedule.start || !schedule.end) return 'Protection is currently on.';
+  if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}.`;
+  return `Protection is currently off and scheduled to start at ${schedule.start}.`;
 }
 
 function insertDeviceEvent({
