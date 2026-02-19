@@ -179,19 +179,27 @@ private struct ChecklistTile: View {
           .fill(color.gradient)
 
         VStack(alignment: .leading, spacing: 10) {
-          if let customIcon {
-            customIcon
-              .renderingMode(.template)
-              .resizable()
-              .scaledToFit()
-              .foregroundStyle(.white.opacity(0.95))
-              .frame(width: 28, height: 28)
-          } else if let systemIcon {
-            Image(systemName: systemIcon)
-              .font(.system(size: 18, weight: .semibold))
-              .foregroundStyle(.white.opacity(0.95))
-              .frame(width: 28, height: 28)
+          ZStack {
+            RoundedRectangle(cornerRadius: 10)
+              .fill(Color.black.opacity(0.22))
+              .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                  .stroke(Color.white.opacity(0.18), lineWidth: 1)
+              )
+            if let customIcon {
+              customIcon
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.white.opacity(0.95))
+                .frame(width: 18, height: 18)
+            } else if let systemIcon {
+              Image(systemName: systemIcon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.95))
+            }
           }
+          .frame(width: 28, height: 28)
 
           Spacer(minLength: 0)
 

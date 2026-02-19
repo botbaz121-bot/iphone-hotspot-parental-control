@@ -97,16 +97,6 @@ public struct ChildDashboardView: View {
     pairingComplete && shortcutComplete && automationsComplete && screenTimeComplete
   }
 
-  private var finishMissingSummary: String {
-    var missing: [String] = []
-    if !pairingComplete { missing.append("Pairing") }
-    if !shortcutComplete { missing.append("Shortcut") }
-    if !automationsComplete { missing.append("Automations") }
-    if !screenTimeComplete { missing.append("Screen Time") }
-    if missing.isEmpty { return "Lock phone into child mode" }
-    return "Complete first: " + missing.joined(separator: ", ")
-  }
-
   public var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
@@ -125,9 +115,18 @@ public struct ChildDashboardView: View {
           screenTimeTile
           lockShortcutsTile
           lockAppsTile
-          finishTile
         }
         .padding(.top, 6)
+
+        Button {
+          showFinishConfirm = true
+        } label: {
+          Text("Finish setup")
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.blue)
+        .disabled(!canFinishSetup)
       }
       .padding(.top, 18)
       .padding(.horizontal, 18)
@@ -335,22 +334,6 @@ public struct ChildDashboardView: View {
       )
     }
     .buttonStyle(.plain)
-  }
-
-  private var finishTile: some View {
-    Button {
-      showFinishConfirm = true
-    } label: {
-      ShortcutTileCard(
-        color: canFinishSetup ? .blue : .gray,
-        systemIcon: "checkmark",
-        title: "Finish setup",
-        subtitle: canFinishSetup ? "Lock phone into child mode" : finishMissingSummary
-      )
-      .opacity(canFinishSetup ? 1.0 : 0.86)
-    }
-    .buttonStyle(.plain)
-    .disabled(!canFinishSetup)
   }
 
   private var lockAppsTile: some View {
