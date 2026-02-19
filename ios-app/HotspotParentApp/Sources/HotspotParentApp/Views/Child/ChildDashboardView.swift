@@ -16,8 +16,6 @@ public struct ChildDashboardView: View {
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
   #if canImport(FamilyControls)
-  @State private var requiredSelection = FamilyActivitySelection()
-  @State private var showingRequiredPicker = false
   @State private var quietSelection = FamilyActivitySelection()
   @State private var showingQuietPicker = false
   #endif
@@ -49,7 +47,7 @@ public struct ChildDashboardView: View {
           ZStack {
             RoundedRectangle(cornerRadius: 7)
               .fill(Color(red: 0.29, green: 0.41, blue: 1.00))
-            Image(systemName: "lock.shield.fill")
+            Image(systemName: "network")
               .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(.white)
           }
@@ -123,7 +121,6 @@ public struct ChildDashboardView: View {
           shortcutTile
           automationsTile
           screenTimeTile
-          lockSettingsTile
           lockAppsTile
           finishTile
         }
@@ -139,29 +136,8 @@ public struct ChildDashboardView: View {
     .onAppear { model.syncFromSharedDefaults() }
     #if canImport(FamilyControls)
     .onAppear {
-      if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
-        requiredSelection = savedRequired
-      }
       if let saved = ScreenTimeManager.shared.loadQuietSelection() {
         quietSelection = saved
-      }
-    }
-    .sheet(isPresented: $showingRequiredPicker) {
-      NavigationStack {
-        FamilyActivityPicker(selection: $requiredSelection)
-          .navigationTitle("Always Locked Apps")
-          .navigationBarTitleDisplayMode(.inline)
-          .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-              Button("Done") {
-                showingRequiredPicker = false
-                ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
-                Task {
-                  await model.reconcileScreenTimeProtection()
-                }
-              }
-            }
-          }
       }
     }
     .sheet(isPresented: $showingQuietPicker) {
@@ -215,6 +191,13 @@ public struct ChildDashboardView: View {
                 triggerIconColor: .blue,
                 triggerIconBackground: Color.blue.opacity(0.18),
                 title: "When joining your Wi‑Fi"
+              )
+              SettingsDivider()
+              AutomationRow(
+                triggerIcon: "arrow.up.right.square.fill",
+                triggerIconColor: .white.opacity(0.9),
+                triggerIconBackground: Color.white.opacity(0.12),
+                title: "When \"Settings\" is opened"
               )
               SettingsDivider()
               AutomationRow(
@@ -362,25 +345,6 @@ public struct ChildDashboardView: View {
         quietSelection = FamilyActivitySelection()
       }
       showingQuietPicker = true
-      #endif
-    }
-  }
-
-  private var lockSettingsTile: some View {
-    let ok = ScreenTimeManager.shared.selectionSummary().hasRequiredSelection
-    return ShortcutTile(
-      color: ok ? .pink : .gray,
-      systemIcon: ok ? "checkmark.shield" : "gearshape.fill",
-      title: "Lock Settings App",
-      subtitle: ok ? "Done" : "Pick Settings in Always Locked Apps"
-    ) {
-      #if canImport(FamilyControls)
-      if let saved = ScreenTimeManager.shared.loadRequiredSelection() {
-        requiredSelection = saved
-      } else {
-        requiredSelection = FamilyActivitySelection()
-      }
-      showingRequiredPicker = true
       #endif
     }
   }
