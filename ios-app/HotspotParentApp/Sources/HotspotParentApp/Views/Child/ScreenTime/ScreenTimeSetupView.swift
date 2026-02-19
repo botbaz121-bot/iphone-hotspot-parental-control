@@ -48,7 +48,7 @@ public struct ScreenTimeSetupView: View {
             title: "Grant Permissions",
             subtitle: model.screenTimeAuthorized
               ? "Done (\(model.screenTimeAuthorizationMode.title))"
-              : "Tap to auto-detect and grant Screen Time",
+              : "Tap to allow Screen Time protection",
             disabled: busy
           ) {
             Task { await requestAuthorization() }
