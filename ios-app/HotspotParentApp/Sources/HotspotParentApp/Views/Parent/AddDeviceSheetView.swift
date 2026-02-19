@@ -6,6 +6,7 @@ import SwiftUI
 public struct AddDeviceSheetView: View {
   @EnvironmentObject private var model: AppModel
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.colorScheme) private var colorScheme
 
   @State private var deviceName: String = ""
   @State private var pairingCode: String?
@@ -29,10 +30,10 @@ public struct AddDeviceSheetView: View {
                 .autocorrectionDisabled()
                 .padding(.vertical, 10)
                 .padding(.horizontal, 12)
-                .background(Color.white.opacity(0.04))
+                .background(fieldBackground)
                 .overlay(
                   RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(fieldStroke, lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
@@ -107,12 +108,20 @@ public struct AddDeviceSheetView: View {
         ToolbarItem(placement: .topBarTrailing) {
           Button("Done") { dismiss() }
             .buttonStyle(.bordered)
-            .tint(.white)
+            .tint(.blue)
             .controlSize(.small)
         }
       }
     }
     .presentationDetents([.medium, .large])
+  }
+
+  private var fieldBackground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.04)
+  }
+
+  private var fieldStroke: Color {
+    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
   }
 }
 

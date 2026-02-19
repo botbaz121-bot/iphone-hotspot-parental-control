@@ -161,6 +161,7 @@ public struct ShortcutTile: View {
 // MARK: - iOS Settings-like grouped list
 
 public struct SettingsGroup<Content: View>: View {
+  @Environment(\.colorScheme) private var colorScheme
   public let title: String
   @ViewBuilder public let content: Content
 
@@ -180,17 +181,26 @@ public struct SettingsGroup<Content: View>: View {
       VStack(spacing: 0) {
         content
       }
-      .background(Color.white.opacity(0.06))
+      .background(groupBackground)
       .overlay(
         RoundedRectangle(cornerRadius: 18)
-          .stroke(Color.white.opacity(0.10), lineWidth: 1)
+          .stroke(groupStroke, lineWidth: 1)
       )
       .clipShape(RoundedRectangle(cornerRadius: 18))
     }
   }
+
+  private var groupBackground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04)
+  }
+
+  private var groupStroke: Color {
+    colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+  }
 }
 
 public struct SettingsRow: View {
+  @Environment(\.colorScheme) private var colorScheme
   public let systemIcon: String
   public let title: String
   public let subtitle: String?
@@ -228,10 +238,10 @@ public struct SettingsRow: View {
     HStack(spacing: 12) {
       ZStack {
         RoundedRectangle(cornerRadius: 8)
-          .fill(Color.white.opacity(0.08))
+          .fill(iconBackground)
         Image(systemName: systemIcon)
           .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(.white.opacity(0.90))
+          .foregroundStyle(iconForeground)
       }
       .frame(width: 28, height: 28)
 
@@ -264,9 +274,18 @@ public struct SettingsRow: View {
     .padding(.vertical, 10)
     .padding(.horizontal, 12)
   }
+
+  private var iconBackground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
+  }
+
+  private var iconForeground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.90) : Color.primary
+  }
 }
 
 public struct SettingsToggleRow: View {
+  @Environment(\.colorScheme) private var colorScheme
   public let systemIcon: String
   public let title: String
   public let subtitle: String?
@@ -283,10 +302,10 @@ public struct SettingsToggleRow: View {
     HStack(spacing: 12) {
       ZStack {
         RoundedRectangle(cornerRadius: 8)
-          .fill(Color.white.opacity(0.08))
+          .fill(iconBackground)
         Image(systemName: systemIcon)
           .font(.system(size: 14, weight: .semibold))
-          .foregroundStyle(.white.opacity(0.90))
+          .foregroundStyle(iconForeground)
       }
       .frame(width: 28, height: 28)
 
@@ -310,13 +329,22 @@ public struct SettingsToggleRow: View {
     .padding(.vertical, 10)
     .padding(.horizontal, 12)
   }
+
+  private var iconBackground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
+  }
+
+  private var iconForeground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.90) : Color.primary
+  }
 }
 
 public struct SettingsDivider: View {
+  @Environment(\.colorScheme) private var colorScheme
   public init() {}
   public var body: some View {
     Divider()
-      .background(Color.white.opacity(0.08))
+      .background(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.10))
       .padding(.leading, 52)
   }
 }

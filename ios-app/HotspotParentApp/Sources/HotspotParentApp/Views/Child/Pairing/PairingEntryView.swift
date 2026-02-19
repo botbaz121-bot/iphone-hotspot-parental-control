@@ -5,6 +5,7 @@ import SwiftUI
 
 public struct PairingEntryView: View {
   @EnvironmentObject private var model: AppModel
+  @Environment(\.colorScheme) private var colorScheme
 
   @State private var code: String = ""
   @State private var busy = false
@@ -27,10 +28,10 @@ public struct PairingEntryView: View {
               .font(.system(.body, design: .monospaced))
               .padding(.vertical, 10)
               .padding(.horizontal, 12)
-              .background(Color.white.opacity(0.04))
+              .background(fieldBackground)
               .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                  .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                  .stroke(fieldStroke, lineWidth: 1)
               )
               .clipShape(RoundedRectangle(cornerRadius: 12))
 
@@ -100,6 +101,14 @@ public struct PairingEntryView: View {
     }
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
+  }
+
+  private var fieldBackground: Color {
+    colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.04)
+  }
+
+  private var fieldStroke: Color {
+    colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
   }
 }
 
