@@ -15,6 +15,7 @@ public struct ChildDashboardView: View {
   @EnvironmentObject private var model: AppModel
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
+  @State private var showShortcutsOpenFailed = false
   #if canImport(FamilyControls)
   @State private var requiredSelection = FamilyActivitySelection()
   @State private var showingRequiredPicker = false
@@ -197,6 +198,27 @@ public struct ChildDashboardView: View {
               .font(.system(size: 15))
               .foregroundStyle(.secondary)
 
+            Button {
+              openShortcutsApp()
+            } label: {
+              HStack(spacing: 8) {
+                if let shortcutsIcon {
+                  shortcutsIcon
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(.white)
+                } else {
+                  Image(systemName: "link")
+                    .font(.system(size: 14, weight: .semibold))
+                }
+                Text("Open Shortcuts")
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+
             VStack(spacing: 0) {
               AutomationRow(
                 triggerIcon: "clock.fill",
@@ -257,6 +279,11 @@ public struct ChildDashboardView: View {
               showAutomationsInfo = false
             }
           }
+        }
+        .alert("Could not open Shortcuts", isPresented: $showShortcutsOpenFailed) {
+          Button("OK", role: .cancel) {}
+        } message: {
+          Text("Please open the Shortcuts app manually.")
         }
       }
     }
@@ -395,6 +422,22 @@ public struct ChildDashboardView: View {
     guard let url = URL(string: s) else { return }
     #if canImport(UIKit)
     UIApplication.shared.open(url)
+    #endif
+  }
+
+  private func openShortcutsApp() {
+    #if canImport(UIKit)
+    guard let url = URL(string: "shortcuts://") else {
+      showShortcutsOpenFailed = true
+      return
+    }
+    UIApplication.shared.open(url, options: [:]) { success in
+      if !success {
+        showShortcutsOpenFailed = true
+      }
+    }
+    #else
+    showShortcutsOpenFailed = true
     #endif
   }
 
