@@ -113,7 +113,7 @@ public struct ShortcutTileCard: View {
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(.white.opacity(0.70))
             .multilineTextAlignment(.leading)
-            .lineLimit(2)
+            .lineLimit(4)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
