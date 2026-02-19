@@ -495,6 +495,7 @@ private struct PolicyEditorCard: View {
 
   @State private var saveTask: Task<Void, Never>?
   @State private var saving: Bool = false
+  @State private var copyAllSuccess: Bool = false
 
   init(device: DashboardDevice) {
     self.device = device
@@ -710,11 +711,20 @@ private struct PolicyEditorCard: View {
                 "sun": .init(start: s, end: e),
               ]
               scheduleSave()
+              copyAllSuccess = true
+              DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                copyAllSuccess = false
+              }
             } label: {
-              Text("Copy to all days")
-                .font(.system(size: 17, weight: .semibold))
+              HStack(spacing: 8) {
+                Image(systemName: copyAllSuccess ? "checkmark.circle.fill" : "doc.on.doc")
+                Text(copyAllSuccess ? "Copied" : "Copy to all days")
+              }
+              .font(.system(size: 16, weight: .semibold))
+              .padding(.horizontal, 2)
             }
-            .buttonStyle(CopyAllDaysButtonStyle())
+            .buttonStyle(.borderedProminent)
+            .tint(copyAllSuccess ? .green : .blue)
           }
 
         }
@@ -785,21 +795,6 @@ private struct PolicyEditorCard: View {
     df.timeZone = .current
     df.dateFormat = "HH:mm"
     return df.string(from: d)
-  }
-}
-
-private struct CopyAllDaysButtonStyle: ButtonStyle {
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .foregroundStyle(configuration.isPressed ? Color.white : Color.blue)
-      .padding(.horizontal, 10)
-      .padding(.vertical, 6)
-      .background(
-        RoundedRectangle(cornerRadius: 10)
-          .fill(configuration.isPressed ? Color.blue : Color.clear)
-      )
-      .scaleEffect(configuration.isPressed ? 1.06 : 1.0)
-      .animation(.spring(response: 0.2, dampingFraction: 0.65), value: configuration.isPressed)
   }
 }
 
