@@ -574,7 +574,7 @@ private struct PolicyEditorCard: View {
       // Schedule box (first)
       VStack(alignment: .leading, spacing: 10) {
         HStack {
-          Text("Schedule")
+          Text("Rules Schedule")
             .font(.headline)
           Spacer()
         }
@@ -583,7 +583,7 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Enforcement schedule")
               .font(.system(size: 16, weight: .semibold))
-            Text("Enforcement only active during this time. Will enforce at all times if off")
+            Text("Enforcement only active during this time. Will enforce at all times if off.")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
@@ -606,6 +606,12 @@ private struct PolicyEditorCard: View {
             ]
           }
           scheduleSave()
+        }
+
+        if !quiet && wifiOff && mobileDataOff {
+          Text("Warning: Wi-Fi Off + Mobile Data Off with no Rules Schedule may prevent this phone from fetching policy updates.")
+            .font(.system(size: 14))
+            .foregroundStyle(.orange)
         }
 
         if quiet {
