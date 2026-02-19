@@ -900,13 +900,14 @@ private struct PolicyEditorCard: View {
     defer { saving = false }
 
     do {
+      let tz = TimeZone.current.identifier
       try await model.updateSelectedDevicePolicy(
         activateProtection: activateProtection,
         setHotspotOff: hotspotOff,
         setWifiOff: wifiOff,
         setMobileDataOff: mobileDataOff,
         quietDays: quiet ? quietDays : nil,
-        tz: "Europe/Paris"
+        tz: tz
       )
     } catch {
       // Best-effort; errors are shown elsewhere in the sheet.
