@@ -93,7 +93,7 @@ public struct FetchHotspotPolicyIntent: AppIntent {
         if ts > 0 {
           obj["cachedAt"] = Int(ts * 1000)
         }
-        addScreenTimeAuthMode(to: &obj)
+        Self.addScreenTimeAuthMode(to: &obj)
 
         let out = (try? JSONSerialization.data(withJSONObject: obj, options: []))
           .flatMap { String(data: $0, encoding: .utf8) }
@@ -108,7 +108,7 @@ public struct FetchHotspotPolicyIntent: AppIntent {
         "detail": String(describing: error)
       ]
       var enriched = payload
-      addScreenTimeAuthMode(to: &enriched)
+      Self.addScreenTimeAuthMode(to: &enriched)
       let out = try JSONSerialization.data(withJSONObject: enriched, options: [.prettyPrinted])
       return .result(value: String(data: out, encoding: .utf8) ?? "{\"error\":\"offline_no_cache\"}")
     }
@@ -120,7 +120,7 @@ public struct FetchHotspotPolicyIntent: AppIntent {
     else {
       return nil
     }
-    addScreenTimeAuthMode(to: &obj)
+    Self.addScreenTimeAuthMode(to: &obj)
     guard let out = try? JSONSerialization.data(withJSONObject: obj, options: []) else { return nil }
     return String(data: out, encoding: .utf8)
   }
