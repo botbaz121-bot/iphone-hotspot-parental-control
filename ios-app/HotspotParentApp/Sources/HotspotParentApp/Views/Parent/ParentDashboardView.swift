@@ -67,6 +67,15 @@ public struct ParentDashboardView: View {
       }
       .task {
         await model.refreshParentDashboard()
+        if let openId = model.pendingOpenDeviceDetailsId {
+          detailsDeviceId = openId
+          model.pendingOpenDeviceDetailsId = nil
+        }
+      }
+      .onChange(of: model.pendingOpenDeviceDetailsId) { id in
+        guard let id else { return }
+        detailsDeviceId = id
+        model.pendingOpenDeviceDetailsId = nil
       }
     }
   }
@@ -496,6 +505,10 @@ private struct PolicyEditorCard: View {
   @State private var saveTask: Task<Void, Never>?
   @State private var saving: Bool = false
   @State private var copyAllSuccess: Bool = false
+  @State private var extraTimeMinutes: Int = 15
+  @State private var applyingExtraTime: Bool = false
+  @State private var extraTimeStatus: String?
+  @State private var didConsumePrefill: Bool = false
 
   init(device: DashboardDevice) {
     self.device = device
@@ -730,6 +743,52 @@ private struct PolicyEditorCard: View {
       .background(Color.primary.opacity(0.06))
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
+      VStack(alignment: .leading, spacing: 10) {
+        Text("Extra Time")
+          .font(.headline)
+
+        Text("Temporarily disable enforcement for this child.")
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+
+        HStack(spacing: 10) {
+          Text("Amount")
+            .font(.system(size: 16, weight: .semibold))
+          Spacer()
+          Picker("Minutes", selection: $extraTimeMinutes) {
+            ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
+              Text("\(m) min").tag(m)
+            }
+          }
+          .pickerStyle(.menu)
+        }
+
+        Button {
+          Task { await applyExtraTime() }
+        } label: {
+          HStack(spacing: 8) {
+            if applyingExtraTime { ProgressView() }
+            Text(applyingExtraTime ? "Applying..." : "Apply extra time")
+          }
+          .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(applyingExtraTime)
+
+        if let extraTimeStatus {
+          Text(extraTimeStatus)
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+            .italic()
+        }
+      }
+      .padding(18)
+      .background(Color.primary.opacity(0.06))
+      .clipShape(RoundedRectangle(cornerRadius: 22))
+
+    }
+    .onAppear {
+      consumePrefillIfNeeded()
     }
   }
 
@@ -764,6 +823,26 @@ private struct PolicyEditorCard: View {
     saveTask = Task {
       try? await Task.sleep(nanoseconds: 600_000_000) // debounce
       await saveNow()
+    }
+  }
+
+  private func consumePrefillIfNeeded() {
+    guard !didConsumePrefill else { return }
+    didConsumePrefill = true
+    if let prefilled = model.consumeExtraTimePrefill(deviceId: device.id) {
+      extraTimeMinutes = max(5, min(120, (prefilled / 5) * 5))
+    }
+  }
+
+  @MainActor
+  private func applyExtraTime() async {
+    applyingExtraTime = true
+    defer { applyingExtraTime = false }
+    do {
+      try await model.parentApplyExtraTime(deviceId: device.id, minutes: extraTimeMinutes)
+      extraTimeStatus = "Extra time applied."
+    } catch {
+      extraTimeStatus = "Failed to apply extra time."
     }
   }
 

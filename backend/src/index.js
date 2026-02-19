@@ -32,6 +32,12 @@ const SESSION_JWT_SECRET = env('SESSION_JWT_SECRET');
 // Apple identity tokens will have an audience of your app's bundle id (iOS) or service id (web).
 // Configure as comma-separated list: e.g. "com.bazapps.hotspotparent,com.bazapps.hotspotparent.dev".
 const APPLE_AUDIENCES = splitCsv(env('APPLE_AUDIENCES', env('APPLE_SERVICE_ID', '')));
+const APNS_TEAM_ID = env('APNS_TEAM_ID');
+const APNS_KEY_ID = env('APNS_KEY_ID');
+const APNS_PRIVATE_KEY = env('APNS_PRIVATE_KEY');
+const APNS_PRIVATE_KEY_PATH = env('APNS_PRIVATE_KEY_PATH');
+const APNS_TOPIC = env('APNS_TOPIC', 'com.bazapps.hotspotparent');
+const APNS_ENV = String(env('APNS_ENV', 'sandbox')).toLowerCase(); // sandbox | production
 
 const MAX_SKEW_MS = Number(env('MAX_SKEW_MS', String(5 * 60 * 1000)));
 const LOG_REQUEST_BODIES = env('LOG_REQUEST_BODIES', '0') === '1';
@@ -125,6 +131,16 @@ CREATE TABLE IF NOT EXISTS extra_time_requests (
   FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS parent_push_tokens (
+  token TEXT PRIMARY KEY,
+  parent_id TEXT NOT NULL,
+  platform TEXT NOT NULL DEFAULT 'ios',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at INTEGER,
+  FOREIGN KEY(parent_id) REFERENCES parents(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_devices_created ON devices(created_at);
 CREATE INDEX IF NOT EXISTS idx_device_events_device ON device_events(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
@@ -133,6 +149,7 @@ CREATE INDEX IF NOT EXISTS idx_pairing_codes_expires ON pairing_codes(expires_at
 CREATE INDEX IF NOT EXISTS idx_extra_time_device ON extra_time_requests(device_id);
 CREATE INDEX IF NOT EXISTS idx_extra_time_status ON extra_time_requests(status);
 CREATE INDEX IF NOT EXISTS idx_extra_time_ends ON extra_time_requests(ends_at);
+CREATE INDEX IF NOT EXISTS idx_parent_push_tokens_parent ON parent_push_tokens(parent_id);
 `);
 
 // Lightweight migration for existing DBs
@@ -356,6 +373,12 @@ function appleLoadPrivateKey() {
   return null;
 }
 
+function apnsLoadPrivateKey() {
+  if (APNS_PRIVATE_KEY) return APNS_PRIVATE_KEY;
+  if (APNS_PRIVATE_KEY_PATH) return fs.readFileSync(APNS_PRIVATE_KEY_PATH, 'utf8');
+  return null;
+}
+
 function appleMakeClientSecret() {
   if (!APPLE_TEAM_ID || !APPLE_KEY_ID || !APPLE_SERVICE_ID) {
     throw new Error('missing APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_SERVICE_ID');
@@ -385,6 +408,52 @@ function appleMakeClientSecret() {
   // Use ieee-p1363 so the signature is raw R||S as required by JWS.
   const signature = sign.sign({ key: keyPem, dsaEncoding: 'ieee-p1363' });
   return `${signingInput}.${base64url(signature)}`;
+}
+
+function apnsMakeProviderToken() {
+  if (!APNS_TEAM_ID || !APNS_KEY_ID) return null;
+  const keyPem = apnsLoadPrivateKey();
+  if (!keyPem) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'ES256', kid: APNS_KEY_ID, typ: 'JWT' };
+  const payload = { iss: APNS_TEAM_ID, iat: now };
+  const encodedHeader = base64url(JSON.stringify(header));
+  const encodedPayload = base64url(JSON.stringify(payload));
+  const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+  const sign = crypto.createSign('sha256');
+  sign.update(signingInput);
+  sign.end();
+  const signature = sign.sign({ key: keyPem, dsaEncoding: 'ieee-p1363' });
+  return `${signingInput}.${base64url(signature)}`;
+}
+
+async function apnsSendToToken(deviceToken, payload) {
+  const providerToken = apnsMakeProviderToken();
+  if (!providerToken) return { ok: false, skipped: 'missing_apns_config' };
+  if (!APNS_TOPIC) return { ok: false, skipped: 'missing_apns_topic' };
+
+  const host = APNS_ENV === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com';
+  const url = `https://${host}/3/device/${encodeURIComponent(deviceToken)}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      authorization: `bearer ${providerToken}`,
+      'apns-topic': APNS_TOPIC,
+      'apns-push-type': 'alert',
+      'apns-priority': '10',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    return { ok: false, status: res.status, body: txt };
+  }
+  return { ok: true };
 }
 
 async function appleTokenExchange(code) {
@@ -1128,6 +1197,14 @@ app.post('/extra-time/request', requireShortcutAuth, (req, res, next) => {
       `
     ).run(reqId, req.shortcut.deviceId, body.minutes, reason, now);
 
+    // Best-effort push notification to parent devices.
+    notifyParentExtraTimeRequest({
+      deviceId: req.shortcut.deviceId,
+      requestId: reqId,
+      requestedMinutes: body.minutes,
+      reason
+    }).catch(() => {});
+
     return res.status(201).json({ ok: true, requestId: reqId, status: 'pending' });
   } catch (e) {
     next(e);
@@ -1193,6 +1270,33 @@ app.post('/pair', (req, res, next) => {
 // Parent dashboard summary (scoped to parent).
 app.get('/api/me', requireParent, (req, res) => {
   return res.json({ ok: true, parent: { id: req.parent.id, email: req.parent.email || null, created_at: req.parent.created_at } });
+});
+
+app.post('/api/push/register', requireParent, (req, res, next) => {
+  try {
+    const schema = z.object({
+      deviceToken: z.string().min(16).max(512),
+      platform: z.enum(['ios']).optional().default('ios')
+    });
+    const body = schema.parse(req.body || {});
+    const token = String(body.deviceToken).trim();
+    if (!token) return res.status(400).json({ error: 'invalid_token' });
+
+    db.prepare(
+      `
+      INSERT INTO parent_push_tokens (token, parent_id, platform, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(token) DO UPDATE SET
+        parent_id = excluded.parent_id,
+        platform = excluded.platform,
+        updated_at = datetime('now')
+      `
+    ).run(token, req.parent.id, body.platform);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
 });
 
 app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
@@ -1519,6 +1623,51 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+    const device = req.parent
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
+    if (!device) return res.status(404).json({ error: 'not_found' });
+
+    const schema = z.object({
+      minutes: z.number().int().min(1).max(240),
+      reason: z.string().max(300).optional()
+    });
+    const body = schema.parse(req.body || {});
+    const now = Date.now();
+    const minutes = Number(body.minutes);
+    const endsAt = now + minutes * 60_000;
+
+    const requestId = id();
+    db.prepare(
+      `
+      INSERT INTO extra_time_requests (
+        id, device_id, requested_minutes, reason, status, requested_at,
+        resolved_at, resolved_by, granted_minutes, starts_at, ends_at
+      )
+      VALUES (?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?)
+      `
+    ).run(
+      requestId,
+      deviceId,
+      minutes,
+      body.reason ? String(body.reason).trim() : 'manual_grant',
+      now,
+      now,
+      req.parent ? req.parent.id : 'admin',
+      minutes,
+      now,
+      endsAt
+    );
+
+    return res.json({ ok: true, requestId, startsAt: now, endsAt, grantedMinutes: minutes });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get('/api/devices/:deviceId/events', requireParentOrAdmin, (req, res) => {
   const { deviceId } = req.params;
   const device = req.parent
@@ -1759,6 +1908,47 @@ function getActiveExtraTime(deviceId, nowMs = Date.now()) {
       `
     )
     .get(deviceId, nowMs, nowMs);
+}
+
+async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinutes, reason }) {
+  const device = db.prepare('SELECT id, parent_id, name FROM devices WHERE id = ?').get(deviceId);
+  if (!device || !device.parent_id) return { ok: false, skipped: 'no_parent' };
+
+  const tokens = db
+    .prepare('SELECT token FROM parent_push_tokens WHERE parent_id = ? ORDER BY updated_at DESC')
+    .all(device.parent_id);
+  if (!tokens.length) return { ok: false, skipped: 'no_tokens' };
+
+  const title = 'Extra time requested';
+  const body = `${device.name} requested ${requestedMinutes} more min`;
+  const payload = {
+    aps: { alert: { title, body }, sound: 'default' },
+    type: 'extra_time_request',
+    deviceId,
+    requestId,
+    requestedMinutes: Number(requestedMinutes || 0),
+    reason: reason || ''
+  };
+
+  let delivered = 0;
+  for (const t of tokens) {
+    const token = String(t.token || '').trim();
+    if (!token) continue;
+    try {
+      const out = await apnsSendToToken(token, payload);
+      if (out.ok) {
+        delivered += 1;
+        db.prepare("UPDATE parent_push_tokens SET last_used_at = ?, updated_at = datetime('now') WHERE token = ?").run(Date.now(), token);
+      } else if (out.status === 400 || out.status === 410) {
+        // Expired/invalid token, prune it.
+        db.prepare('DELETE FROM parent_push_tokens WHERE token = ?').run(token);
+      }
+    } catch {
+      // keep trying remaining tokens
+    }
+  }
+
+  return { ok: delivered > 0, delivered };
 }
 
 // Basic JSON error handler

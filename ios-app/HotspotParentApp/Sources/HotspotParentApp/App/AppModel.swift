@@ -30,6 +30,7 @@ public final class AppModel: ObservableObject {
   @Published public var parentDevices: [DashboardDevice] = []
   @Published public var parentLoading: Bool = false
   @Published public var parentLastError: String?
+  @Published public var pendingOpenDeviceDetailsId: String?
 
   // UI helpers
   @Published public var presentEnrollSheet: Bool = false
@@ -113,6 +114,9 @@ public final class AppModel: ObservableObject {
   @Published public var backendHealthOK: Bool?
   @Published public var backendLastError: String?
   @Published public var backendLastRefresh: Date?
+  @Published public var extraTimePrefillMinutesByDeviceId: [String: Int] = [:]
+  @Published public var extraTimePendingRequestIdByDeviceId: [String: String] = [:]
+  @Published public var lastRegisteredPushToken: String?
 
   // MARK: - Init
 
@@ -154,6 +158,7 @@ public final class AppModel: ObservableObject {
 
     self.apiBaseURL = AppDefaults.apiBaseURL
     self.adminToken = AppDefaults.adminToken ?? ""
+    self.lastRegisteredPushToken = AppDefaults.parentPushToken
   }
 
   // MARK: - Mode switching
@@ -205,6 +210,7 @@ public final class AppModel: ObservableObject {
 
     self.appleUserID = appleUserID
     AppDefaults.appleUserID = appleUserID
+    await syncPushRegistrationIfNeeded()
   }
 
   public func signOut() {
@@ -214,6 +220,9 @@ public final class AppModel: ObservableObject {
 
     appleUserID = nil
     AppDefaults.appleUserID = nil
+    pendingOpenDeviceDetailsId = nil
+    extraTimePrefillMinutesByDeviceId = [:]
+    extraTimePendingRequestIdByDeviceId = [:]
   }
 
   // MARK: - Child pairing
@@ -384,6 +393,73 @@ public final class AppModel: ObservableObject {
     }
   }
 
+  public func setExtraTimePrefill(deviceId: String, minutes: Int, requestId: String?) {
+    let clamped = max(5, min(240, (minutes / 5) * 5))
+    extraTimePrefillMinutesByDeviceId[deviceId] = clamped
+    if let requestId, !requestId.isEmpty {
+      extraTimePendingRequestIdByDeviceId[deviceId] = requestId
+    }
+    selectedDeviceId = deviceId
+    pendingOpenDeviceDetailsId = deviceId
+  }
+
+  public func consumeExtraTimePrefill(deviceId: String) -> Int? {
+    defer { extraTimePrefillMinutesByDeviceId.removeValue(forKey: deviceId) }
+    return extraTimePrefillMinutesByDeviceId[deviceId]
+  }
+
+  public func consumeExtraTimePendingRequestId(deviceId: String) -> String? {
+    defer { extraTimePendingRequestIdByDeviceId.removeValue(forKey: deviceId) }
+    return extraTimePendingRequestIdByDeviceId[deviceId]
+  }
+
+  public func registerParentPushTokenIfPossible(_ token: String) async {
+    let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !normalized.isEmpty else { return }
+    AppDefaults.parentPushToken = normalized
+    lastRegisteredPushToken = normalized
+
+    guard isSignedIn else { return }
+    guard let client = apiClient else { return }
+    do {
+      try await client.registerParentPushToken(normalized)
+    } catch {
+      // best-effort
+    }
+  }
+
+  public func syncPushRegistrationIfNeeded() async {
+    guard isSignedIn else { return }
+    let token = (lastRegisteredPushToken ?? AppDefaults.parentPushToken)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let token, !token.isEmpty else { return }
+    guard let client = apiClient else { return }
+    do {
+      try await client.registerParentPushToken(token)
+    } catch {
+      // best-effort
+    }
+  }
+
+  public func childRequestExtraTime(minutes: Int, reason: String? = nil) async throws {
+    let clamped = max(5, min(240, (minutes / 5) * 5))
+    guard let cfg = loadHotspotConfig() else { throw APIError.invalidResponse }
+    guard let url = URL(string: cfg.apiBaseURL) else { throw APIError.invalidResponse }
+    let client = HotspotAPIClient(api: API(baseURL: url))
+    _ = try await client.requestExtraTime(deviceSecret: cfg.deviceSecret, minutes: clamped, reason: reason)
+  }
+
+  public func parentApplyExtraTime(deviceId: String, minutes: Int) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let clamped = max(5, min(240, (minutes / 5) * 5))
+
+    if let requestId = consumeExtraTimePendingRequestId(deviceId: deviceId) {
+      _ = try await client.decideExtraTimeRequest(requestId: requestId, approve: true, grantedMinutes: clamped)
+    } else {
+      _ = try await client.grantExtraTime(deviceId: deviceId, minutes: clamped, reason: "parent_manual")
+    }
+    await refreshParentDashboard()
+  }
+
   public func updateSelectedDevicePolicy(
     activateProtection: Bool? = nil,
     setHotspotOff: Bool? = nil,
@@ -493,6 +569,10 @@ public final class AppModel: ObservableObject {
     backendHealthOK = nil
     backendLastError = nil
     backendLastRefresh = nil
+    pendingOpenDeviceDetailsId = nil
+    extraTimePrefillMinutesByDeviceId = [:]
+    extraTimePendingRequestIdByDeviceId = [:]
+    lastRegisteredPushToken = nil
   }
 }
 

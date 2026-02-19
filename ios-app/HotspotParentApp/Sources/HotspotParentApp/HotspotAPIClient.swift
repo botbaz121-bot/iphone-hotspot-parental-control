@@ -73,4 +73,26 @@ public final class HotspotAPIClient {
   public func events(deviceId: String) async throws -> EventsResponse {
     try await HTTP.getJSON(api.url("/api/devices/\(deviceId)/events"), headers: parentOrAdminHeaders())
   }
+
+  public func registerParentPushToken(_ deviceToken: String) async throws {
+    let req = PushRegisterRequest(deviceToken: deviceToken, platform: "ios")
+    let _: OkResponse = try await HTTP.postJSON(api.url("/api/push/register"), body: req, headers: parentHeaders())
+  }
+
+  public func requestExtraTime(deviceSecret: String, minutes: Int, reason: String?) async throws -> ExtraTimeCreateResponse {
+    var headers: [String: String] = ["Authorization": "Bearer \(deviceSecret)"]
+    headers["Content-Type"] = "application/json"
+    let req = ExtraTimeCreateRequest(minutes: minutes, reason: reason)
+    return try await HTTP.postJSON(api.url("/extra-time/request"), body: req, headers: headers)
+  }
+
+  public func grantExtraTime(deviceId: String, minutes: Int, reason: String? = nil) async throws -> ExtraTimeCreateResponse {
+    let req = ExtraTimeCreateRequest(minutes: minutes, reason: reason)
+    return try await HTTP.postJSON(api.url("/api/devices/\(deviceId)/extra-time/grant"), body: req, headers: parentOrAdminHeaders())
+  }
+
+  public func decideExtraTimeRequest(requestId: String, approve: Bool, grantedMinutes: Int?) async throws -> OkResponse {
+    let req = ExtraTimeDecisionRequest(decision: approve ? "approve" : "deny", grantedMinutes: grantedMinutes)
+    return try await HTTP.postJSON(api.url("/api/extra-time/requests/\(requestId)/decision"), body: req, headers: parentOrAdminHeaders())
+  }
 }

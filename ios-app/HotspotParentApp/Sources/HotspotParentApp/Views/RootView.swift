@@ -12,15 +12,42 @@ public struct RootView: View {
   public var body: some View {
     content
       .environmentObject(model)
+      .onReceive(NotificationCenter.default.publisher(for: PushEventNames.didRegisterDeviceToken)) { note in
+        let token = (note.userInfo?["token"] as? String) ?? ""
+        Task { await model.registerParentPushTokenIfPossible(token) }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: PushEventNames.didReceiveExtraTimeRequest)) { note in
+        guard let deviceId = note.userInfo?["deviceId"] as? String, !deviceId.isEmpty else { return }
+        let requestIdRaw = note.userInfo?["requestId"] as? String
+        let requestId = (requestIdRaw?.isEmpty ?? true) ? nil : requestIdRaw
+        let minutes = (note.userInfo?["requestedMinutes"] as? Int) ?? 15
+        model.setExtraTimePrefill(deviceId: deviceId, minutes: minutes, requestId: requestId)
+        model.startParentFlow()
+      }
       .onChange(of: scenePhase) { phase in
         if phase == .active {
           model.syncFromSharedDefaults()
-          Task { await model.reconcileScreenTimeProtection() }
+          consumePendingExtraTimePushIfPresent()
+          Task {
+            await model.reconcileScreenTimeProtection()
+            await model.syncPushRegistrationIfNeeded()
+          }
         }
       }
       .task {
+        consumePendingExtraTimePushIfPresent()
         await model.reconcileScreenTimeProtection()
+        await model.syncPushRegistrationIfNeeded()
       }
+  }
+
+  private func consumePendingExtraTimePushIfPresent() {
+    guard let deviceId = AppDefaults.pendingExtraTimeDeviceId, !deviceId.isEmpty else { return }
+    let requestId = AppDefaults.pendingExtraTimeRequestId
+    let minutes = AppDefaults.pendingExtraTimeMinutes
+    model.setExtraTimePrefill(deviceId: deviceId, minutes: minutes, requestId: requestId)
+    model.startParentFlow()
+    AppDefaults.clearPendingExtraTimeRequest()
   }
 
   @ViewBuilder

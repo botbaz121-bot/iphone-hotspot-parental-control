@@ -75,3 +75,39 @@ public struct DeviceEventRow: Decodable {
   public var result_errors: [String]
   public var created_at: String
 }
+
+public struct ExtraTimeCreateRequest: Encodable {
+  public var minutes: Int
+  public var reason: String?
+
+  public init(minutes: Int, reason: String? = nil) {
+    self.minutes = minutes
+    self.reason = reason
+  }
+}
+
+public struct ExtraTimeCreateResponse: Decodable {
+  public var ok: Bool
+  public var requestId: String
+  public var status: String?
+}
+
+public struct ExtraTimeDecisionRequest: Encodable {
+  public var decision: String
+  public var grantedMinutes: Int?
+
+  public init(decision: String, grantedMinutes: Int? = nil) {
+    self.decision = decision
+    self.grantedMinutes = grantedMinutes
+  }
+}
+
+public struct PushRegisterRequest: Encodable {
+  public var deviceToken: String
+  public var platform: String
+
+  public init(deviceToken: String, platform: String = "ios") {
+    self.deviceToken = deviceToken
+    self.platform = platform
+  }
+}

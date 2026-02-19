@@ -12,6 +12,10 @@ public enum AppDefaults {
     static let apiBaseURL = "hotspotParent.api.baseURL"
     static let adminToken = "hotspotParent.api.adminToken"
     static let parentSessionToken = "hotspotParent.parent.sessionToken"
+    static let parentPushToken = "hotspotParent.parent.pushToken"
+    static let pendingExtraTimeDeviceId = "hotspotParent.push.pendingExtraTime.deviceId"
+    static let pendingExtraTimeRequestId = "hotspotParent.push.pendingExtraTime.requestId"
+    static let pendingExtraTimeMinutes = "hotspotParent.push.pendingExtraTime.minutes"
     static let deviceId = "hotspotParent.device.id"
 
     static let adsRemoved = "spotcheck.iap.adsRemoved"
@@ -83,6 +87,44 @@ public enum AppDefaults {
     set { defaults.set(newValue, forKey: Key.parentSessionToken) }
   }
 
+  public static var parentPushToken: String? {
+    get {
+      let v = defaults.string(forKey: Key.parentPushToken)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { defaults.set(newValue, forKey: Key.parentPushToken) }
+  }
+
+  public static var pendingExtraTimeDeviceId: String? {
+    get {
+      let v = defaults.string(forKey: Key.pendingExtraTimeDeviceId)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { defaults.set(newValue, forKey: Key.pendingExtraTimeDeviceId) }
+  }
+
+  public static var pendingExtraTimeRequestId: String? {
+    get {
+      let v = defaults.string(forKey: Key.pendingExtraTimeRequestId)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { defaults.set(newValue, forKey: Key.pendingExtraTimeRequestId) }
+  }
+
+  public static var pendingExtraTimeMinutes: Int {
+    get {
+      let n = defaults.integer(forKey: Key.pendingExtraTimeMinutes)
+      return n > 0 ? n : 15
+    }
+    set { defaults.set(newValue, forKey: Key.pendingExtraTimeMinutes) }
+  }
+
+  public static func clearPendingExtraTimeRequest() {
+    defaults.removeObject(forKey: Key.pendingExtraTimeDeviceId)
+    defaults.removeObject(forKey: Key.pendingExtraTimeRequestId)
+    defaults.removeObject(forKey: Key.pendingExtraTimeMinutes)
+  }
+
   public static var deviceId: String? {
     get {
       let v = defaults.string(forKey: Key.deviceId)
@@ -107,6 +149,10 @@ public enum AppDefaults {
     defaults.removeObject(forKey: Key.apiBaseURL)
     defaults.removeObject(forKey: Key.adminToken)
     defaults.removeObject(forKey: Key.parentSessionToken)
+    defaults.removeObject(forKey: Key.parentPushToken)
+    defaults.removeObject(forKey: Key.pendingExtraTimeDeviceId)
+    defaults.removeObject(forKey: Key.pendingExtraTimeRequestId)
+    defaults.removeObject(forKey: Key.pendingExtraTimeMinutes)
     defaults.removeObject(forKey: Key.deviceId)
     defaults.removeObject(forKey: Key.adsRemoved)
   }

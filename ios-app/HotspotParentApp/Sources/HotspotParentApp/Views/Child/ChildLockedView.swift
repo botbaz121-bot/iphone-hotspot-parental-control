@@ -13,6 +13,9 @@ public struct ChildLockedView: View {
   @State private var showError = false
   @State private var policyBusy = false
   @State private var statusMessage: String = "Checking protection status..."
+  @State private var extraTimeMinutes: Int = 15
+  @State private var extraTimeBusy = false
+  @State private var extraTimeMessage: String?
 
   public init() {}
 
@@ -73,6 +76,43 @@ public struct ChildLockedView: View {
       }
       .buttonStyle(.bordered)
       .disabled(policyBusy)
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Need more time?")
+          .font(.system(size: 16, weight: .semibold))
+        Text("Request extra time from parent.")
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+
+        HStack(spacing: 10) {
+          Text("Amount")
+            .font(.system(size: 15, weight: .semibold))
+          Spacer()
+          Picker("Minutes", selection: $extraTimeMinutes) {
+            ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
+              Text("\(m) min").tag(m)
+            }
+          }
+          .pickerStyle(.menu)
+        }
+
+        Button {
+          Task { await requestExtraTime() }
+        } label: {
+          Label(extraTimeBusy ? "Requesting..." : "Request extra time", systemImage: "clock.badge.questionmark")
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(extraTimeBusy)
+
+        if let extraTimeMessage {
+          Text(extraTimeMessage)
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+            .italic()
+        }
+      }
+      .padding(.top, 6)
     }
     .padding(18)
     .background(.ultraThinMaterial)
@@ -120,6 +160,18 @@ public struct ChildLockedView: View {
     defer { policyBusy = false }
     await model.reconcileScreenTimeProtection()
     statusMessage = friendlyProtectionMessage()
+  }
+
+  @MainActor
+  private func requestExtraTime() async {
+    extraTimeBusy = true
+    defer { extraTimeBusy = false }
+    do {
+      try await model.childRequestExtraTime(minutes: extraTimeMinutes)
+      extraTimeMessage = "Request sent to parent."
+    } catch {
+      extraTimeMessage = "Could not send request."
+    }
   }
 
   private func friendlyProtectionMessage(now: Date = Date()) -> String {
