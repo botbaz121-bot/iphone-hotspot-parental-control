@@ -36,7 +36,7 @@ public struct ChildLockedView: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 6) {
-          Text("Setup complete")
+          Text("SpotChecker Complete")
             .font(.largeTitle.bold())
           Text("This screen stays on. To change anything, the parent must unlock.")
             .font(.system(size: 14))
