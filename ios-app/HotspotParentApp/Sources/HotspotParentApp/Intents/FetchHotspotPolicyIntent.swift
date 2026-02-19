@@ -35,11 +35,17 @@ public struct FetchHotspotPolicyIntent: AppIntent {
       ]
       let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted])
       let json = String(data: data, encoding: .utf8) ?? "{\"error\":\"missing_config\"}"
-      return .result(value: json)
+      let enriched = Self.appendScreenTimeAuthMode(json) ?? json
+      return .result(value: enriched)
     }
 
     guard let base = URL(string: cfg.apiBaseURL) else {
-      return .result(value: "{\"error\":\"invalid_base_url\"}")
+      let payload: [String: Any] = ["error": "invalid_base_url"]
+      let raw = (try? JSONSerialization.data(withJSONObject: payload, options: []))
+        .flatMap { String(data: $0, encoding: .utf8) }
+        ?? "{\"error\":\"invalid_base_url\"}"
+      let out = Self.appendScreenTimeAuthMode(raw) ?? raw
+      return .result(value: out)
     }
 
     let url = base.appendingPathComponent("policy")
@@ -72,7 +78,8 @@ public struct FetchHotspotPolicyIntent: AppIntent {
       SharedDefaults.suite.set(trimmed, forKey: Self.cacheKey)
       SharedDefaults.suite.set(Date().timeIntervalSince1970, forKey: Self.cacheTsKey)
 
-      return .result(value: trimmed)
+      let out = Self.appendScreenTimeAuthMode(trimmed) ?? trimmed
+      return .result(value: out)
     } catch {
       // Strict offline: fall back to cached policy if present.
       if let cached = SharedDefaults.suite.string(forKey: Self.cacheKey) {
@@ -86,6 +93,7 @@ public struct FetchHotspotPolicyIntent: AppIntent {
         if ts > 0 {
           obj["cachedAt"] = Int(ts * 1000)
         }
+        addScreenTimeAuthMode(to: &obj)
 
         let out = (try? JSONSerialization.data(withJSONObject: obj, options: []))
           .flatMap { String(data: $0, encoding: .utf8) }
@@ -99,9 +107,28 @@ public struct FetchHotspotPolicyIntent: AppIntent {
         "help": "No internet connection and no cached policy yet. Connect to the internet once to cache the policy.",
         "detail": String(describing: error)
       ]
-      let out = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted])
+      var enriched = payload
+      addScreenTimeAuthMode(to: &enriched)
+      let out = try JSONSerialization.data(withJSONObject: enriched, options: [.prettyPrinted])
       return .result(value: String(data: out, encoding: .utf8) ?? "{\"error\":\"offline_no_cache\"}")
     }
+  }
+
+  private static func appendScreenTimeAuthMode(_ rawJSON: String) -> String? {
+    guard let data = rawJSON.data(using: .utf8),
+          var obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      return nil
+    }
+    addScreenTimeAuthMode(to: &obj)
+    guard let out = try? JSONSerialization.data(withJSONObject: obj, options: []) else { return nil }
+    return String(data: out, encoding: .utf8)
+  }
+
+  private static func addScreenTimeAuthMode(to obj: inout [String: Any]) {
+    let mode = SharedDefaults.screenTimeAuthorizationModeRaw ?? "individual"
+    obj["screenTimeAuthorizationMode"] = mode
+    obj["screenTimeIsIndividualMode"] = (mode == "individual")
   }
 }
 

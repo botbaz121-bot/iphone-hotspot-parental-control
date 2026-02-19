@@ -19,6 +19,7 @@ public struct ScreenTimeSetupView: View {
   @State private var selectionSummary = ScreenTimeSelectionSummary()
   @State private var busy = false
   @State private var openedScreenTimeSettings = false
+  @State private var openedDeletionProtectionSettings = false
 
   public init() {}
 
@@ -59,6 +60,21 @@ public struct ScreenTimeSetupView: View {
           ) {
             openScreenTimeSettings()
           }
+
+          if model.screenTimeAuthorized && model.screenTimeAuthorizationMode == .individual {
+            ChecklistTile(
+              color: openedDeletionProtectionSettings ? .pink : .gray,
+              systemIcon: "trash.slash",
+              customIcon: nil,
+              title: "Prevent App Deletions",
+              subtitle: openedDeletionProtectionSettings
+                ? "Done"
+                : "Set Screen Time to disallow deleting apps.",
+              disabled: busy
+            ) {
+              openDeletionProtectionSettings()
+            }
+          }
         }
 
         if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
@@ -86,6 +102,7 @@ public struct ScreenTimeSetupView: View {
 
   private func loadSelectionAndRefresh() async {
     openedScreenTimeSettings = model.screenTimePasswordStepCompleted
+    openedDeletionProtectionSettings = model.screenTimeDeletionProtectionStepCompleted
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
     await refreshStatus()
   }
@@ -150,6 +167,45 @@ public struct ScreenTimeSetupView: View {
           openedScreenTimeSettings = true
           model.screenTimePasswordStepCompleted = true
           statusText = "Opened Screen Time settings."
+        } else {
+          tryOpen(index + 1)
+        }
+      }
+    }
+
+    tryOpen(0)
+    #else
+    statusText = "Settings shortcut unavailable on this build."
+    #endif
+  }
+
+  private func openDeletionProtectionSettings() {
+    #if canImport(UIKit)
+    let candidates = [
+      "App-prefs:root=SCREEN_TIME&path=CONTENT_PRIVACY",
+      "App-prefs:root=SCREEN_TIME&path=CONTENT_AND_PRIVACY",
+      "prefs:root=SCREEN_TIME&path=CONTENT_PRIVACY",
+      "prefs:root=SCREEN_TIME&path=CONTENT_AND_PRIVACY",
+      "App-prefs:root=SCREEN_TIME",
+      "prefs:root=SCREEN_TIME",
+    ]
+
+    func tryOpen(_ index: Int) {
+      guard index < candidates.count else {
+        statusText = "Could not open Screen Time restrictions."
+        return
+      }
+
+      guard let url = URL(string: candidates[index]) else {
+        tryOpen(index + 1)
+        return
+      }
+
+      UIApplication.shared.open(url, options: [:]) { success in
+        if success {
+          openedDeletionProtectionSettings = true
+          model.screenTimeDeletionProtectionStepCompleted = true
+          statusText = "Opened Screen Time restrictions."
         } else {
           tryOpen(index + 1)
         }

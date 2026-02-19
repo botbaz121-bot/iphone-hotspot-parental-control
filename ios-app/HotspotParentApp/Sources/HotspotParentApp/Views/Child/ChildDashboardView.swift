@@ -90,9 +90,11 @@ public struct ChildDashboardView: View {
   }
 
   private var screenTimeComplete: Bool {
-    model.screenTimeAuthorized
+    let deletionReady = model.screenTimeAuthorizationMode != .individual || model.screenTimeDeletionProtectionStepCompleted
+    return model.screenTimeAuthorized
       && model.screenTimeHasRequiredSelection
       && model.screenTimePasswordStepCompleted
+      && deletionReady
   }
 
   private var canFinishSetup: Bool {

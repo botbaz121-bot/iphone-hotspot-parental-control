@@ -84,6 +84,10 @@ public final class AppModel: ObservableObject {
     didSet { SharedDefaults.screenTimePasswordStepCompleted = screenTimePasswordStepCompleted }
   }
 
+  @Published public var screenTimeDeletionProtectionStepCompleted: Bool {
+    didSet { SharedDefaults.screenTimeDeletionProtectionStepCompleted = screenTimeDeletionProtectionStepCompleted }
+  }
+
   @Published public var screenTimeDegradedReason: String? {
     didSet { SharedDefaults.screenTimeDegradedReason = screenTimeDegradedReason }
   }
@@ -143,6 +147,7 @@ public final class AppModel: ObservableObject {
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
     self.screenTimePasswordStepCompleted = SharedDefaults.screenTimePasswordStepCompleted
+    self.screenTimeDeletionProtectionStepCompleted = SharedDefaults.screenTimeDeletionProtectionStepCompleted
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason
     self.screenTimeScheduleEnforcedNow = SharedDefaults.screenTimeScheduleEnforcedNow
     self.childUnlockRequested = SharedDefaults.childUnlockRequested
@@ -301,6 +306,7 @@ public final class AppModel: ObservableObject {
     self.shieldingApplied = SharedDefaults.shieldingApplied
     self.screenTimeHasRequiredSelection = SharedDefaults.screenTimeHasRequiredSelection
     self.screenTimePasswordStepCompleted = SharedDefaults.screenTimePasswordStepCompleted
+    self.screenTimeDeletionProtectionStepCompleted = SharedDefaults.screenTimeDeletionProtectionStepCompleted
     self.screenTimeDegradedReason = SharedDefaults.screenTimeDegradedReason
     self.screenTimeScheduleEnforcedNow = SharedDefaults.screenTimeScheduleEnforcedNow
 
@@ -473,6 +479,8 @@ public final class AppModel: ObservableObject {
     screenTimeAuthorized = false
     shieldingApplied = false
     screenTimeHasRequiredSelection = false
+    screenTimePasswordStepCompleted = false
+    screenTimeDeletionProtectionStepCompleted = false
     screenTimeDegradedReason = nil
     screenTimeScheduleEnforcedNow = false
     signOut()
