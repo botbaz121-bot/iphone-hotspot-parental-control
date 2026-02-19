@@ -20,13 +20,6 @@ public struct ScreenTimeSetupView: View {
   @State private var busy = false
   @State private var openedScreenTimeSettings = false
 
-  #if canImport(FamilyControls)
-  @State private var requiredSelection = FamilyActivitySelection()
-  @State private var showingRequiredPicker = false
-  #endif
-
-  private static let shortcutsIconBase64 = "iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD2UlEQVR4nO2ZS2hVRxzGf01qrBofWC2INmIQBNMWFdpCF1URdFe0ahBfCD6KqbTGjVmpqzYIFVwI6kJKTXTV1i6ki+6r+EBMjPHRbGwbbE2FkpgYX1cGvgN/LveeOY977skiHwxcznzzf9wz8//mzMA4xpEb6oBm4BxwBxgCChm3IfnqlG8XQyp8DvRVIXBf+wNYlySBGuCoMXQT+ApYDEwhe0wBmoCvgS4TR7tii4wgiafAF3EHVxg1wF7FEiQTeToFSSxn7GCFSWatj1xn1oR7E2MNLYrtPjAhjNhs1kSa6fQWcAC4Cgyrud+t6kuKWqBbMW4II54TyS3spHgf6A2pQL3iJMV+2ekII90VyVWnJNhidKZX/9ostY3AbfU9AbYm9NEkG05nymJQpPqYxt9UNQn+9R+AySV4blqdNrxTwMSYvqZqrIu1LAIHcTAP+N1UOlf7fdiut+LGXAcWxPRZ8MUZNxFXEh9qzAPg4xhjl5oKOQCsySORN4CDwAvxLwIziY/pwE+y8SqGclckkWkJnVfyTymkTaTRTIdHMaeDD87WI9nuk6+kcXoJv6j/CtBA5dEg287HhRRxegkD6ve9+kkplP1t88aTxukl3FB/Wwjng5TK3mbKcmaJNGuBO87JEhs3qw+llD1IcEi7AAtn66QpIuuzTAQFNCzeb8AMPZ8D/K3n32t6FcM9O2P8nNCOe4ZsFWTb+aiKjnwI9Jt/fqFR+W0Rxu8CRjT+snlT/bJdVWV/t0iZPyUelgF/GZ/OlrOZq7K7NgrsIDo2mbeSi7LPlPo63kvgEPCdGfutJ5gacQL+MeCwbBXyUvbVpm838Ex9P5Y5bZmsvoK4e4qUfcBMswV5Kvsq4LE491R93lFr1rOCOI5bjPlG2X/OW9kXAT0hgtgjjk/Z/81b2QO92K/SOqR2SR9dvi1Km3xcq6ayu0/cSqHqyr7ebEOssqfBVFMJR4DN1dKRJcCf5rAsbM770GhOV/qBj6qt7HM1jx3/P32/x8UnwD+y4Q6rXdWi2omgY6MLFVD2X/UJTV6JBNuVI2bscY+yl+K7o9A48MaZ9IDOYWeRspc7oDsvznPgywR+pmn8/1kemZZS9tlG2e97lD0K3otyZNopUpTTwqyU3YdW2Tkb5VqhK+VZVRplD4NbS7eiXCvU6eKxoOuusYZ9ZtqGXvSg29PgQDqJNmSFlSrxbvvyWdRB7SaZlgTlsZKo1ZsYVUzfxBlcU3Tf0a0535SwNMdFvapTq1kTr5REorW71pTMPNu9ONOpHCaoQnTo2CYQzSzboDaSZ+Xbu7DHMQ6ywWtk2y9Osdf+/AAAAABJRU5ErkJggg=="
-
   public init() {}
 
   public var body: some View {
@@ -52,21 +45,6 @@ public struct ScreenTimeSetupView: View {
             disabled: busy
           ) {
             Task { await requestAuthorization() }
-          }
-
-          ChecklistTile(
-            color: selectionSummary.hasRequiredSelection ? .pink : .gray,
-            systemIcon: selectionSummary.hasRequiredSelection ? nil : "link",
-            customIcon: shortcutsIcon,
-            title: "Lock Shortcuts",
-            subtitle: selectionSummary.hasRequiredSelection
-              ? "Done"
-              : "Pick Shortcuts app. Usually in Productivity & Finance.",
-            disabled: !model.screenTimeAuthorized || busy
-          ) {
-            #if canImport(FamilyControls)
-            showingRequiredPicker = true
-            #endif
           }
 
           ChecklistTile(
@@ -104,47 +82,9 @@ public struct ScreenTimeSetupView: View {
     .task {
       await loadSelectionAndRefresh()
     }
-    #if canImport(FamilyControls)
-    .onChange(of: requiredSelection) { newValue in
-      ScreenTimeManager.shared.saveRequiredSelection(newValue)
-      selectionSummary = ScreenTimeManager.shared.selectionSummary()
-    }
-    .sheet(isPresented: $showingRequiredPicker) {
-      NavigationStack {
-        FamilyActivityPicker(selection: $requiredSelection)
-          .navigationTitle("Always Locked Apps")
-          .navigationBarTitleDisplayMode(.inline)
-          .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-              Button("Done") {
-                showingRequiredPicker = false
-                ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
-                selectionSummary = ScreenTimeManager.shared.selectionSummary()
-                Task { await refreshStatus() }
-              }
-            }
-          }
-      }
-    }
-    #endif
-  }
-
-  private var shortcutsIcon: Image? {
-    #if canImport(UIKit)
-    guard let data = Data(base64Encoded: Self.shortcutsIconBase64),
-          let uiImage = UIImage(data: data) else { return nil }
-    return Image(uiImage: uiImage)
-    #else
-    return nil
-    #endif
   }
 
   private func loadSelectionAndRefresh() async {
-    #if canImport(FamilyControls)
-    if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
-      requiredSelection = savedRequired
-    }
-    #endif
     selectionSummary = ScreenTimeManager.shared.selectionSummary()
     await refreshStatus()
   }

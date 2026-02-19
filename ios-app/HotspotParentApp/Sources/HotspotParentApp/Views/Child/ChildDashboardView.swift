@@ -16,6 +16,8 @@ public struct ChildDashboardView: View {
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
   #if canImport(FamilyControls)
+  @State private var requiredSelection = FamilyActivitySelection()
+  @State private var showingRequiredPicker = false
   @State private var quietSelection = FamilyActivitySelection()
   @State private var showingQuietPicker = false
   #endif
@@ -121,6 +123,7 @@ public struct ChildDashboardView: View {
           shortcutTile
           automationsTile
           screenTimeTile
+          lockShortcutsTile
           lockAppsTile
           finishTile
         }
@@ -136,8 +139,29 @@ public struct ChildDashboardView: View {
     .onAppear { model.syncFromSharedDefaults() }
     #if canImport(FamilyControls)
     .onAppear {
+      if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
+        requiredSelection = savedRequired
+      }
       if let saved = ScreenTimeManager.shared.loadQuietSelection() {
         quietSelection = saved
+      }
+    }
+    .sheet(isPresented: $showingRequiredPicker) {
+      NavigationStack {
+        FamilyActivityPicker(selection: $requiredSelection)
+          .navigationTitle("Always Locked Apps")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Done") {
+                showingRequiredPicker = false
+                ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
+                Task {
+                  await model.reconcileScreenTimeProtection()
+                }
+              }
+            }
+          }
       }
     }
     .sheet(isPresented: $showingQuietPicker) {
@@ -348,6 +372,32 @@ public struct ChildDashboardView: View {
         systemIcon: "moon.stars",
         title: "Lock apps",
         subtitle: ok ? "Done" : "Choose apps for Enforcement Schedule"
+      )
+      .opacity(enabled ? 1.0 : 0.7)
+    }
+    .buttonStyle(.plain)
+    .disabled(!enabled)
+  }
+
+  private var lockShortcutsTile: some View {
+    let hasRequired = ScreenTimeManager.shared.selectionSummary().hasRequiredSelection
+    let enabled = model.screenTimeAuthorized
+    return Button {
+      #if canImport(FamilyControls)
+      if let saved = ScreenTimeManager.shared.loadRequiredSelection() {
+        requiredSelection = saved
+      } else {
+        requiredSelection = FamilyActivitySelection()
+      }
+      showingRequiredPicker = true
+      #endif
+    } label: {
+      ShortcutTileCard(
+        color: hasRequired ? .pink : .gray,
+        systemIcon: hasRequired ? "checkmark.shield" : "link",
+        customIcon: hasRequired ? shortcutsIcon : nil,
+        title: "Lock Shortcuts",
+        subtitle: hasRequired ? "Done" : "Pick Shortcuts in Always Locked Apps"
       )
       .opacity(enabled ? 1.0 : 0.7)
     }
