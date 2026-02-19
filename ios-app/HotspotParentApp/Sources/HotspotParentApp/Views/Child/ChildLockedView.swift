@@ -192,13 +192,13 @@ public struct ChildLockedView: View {
     let boundary = nextScheduleBoundary(after: now, protectionOnNow: model.screenTimeScheduleEnforcedNow)
     if model.screenTimeScheduleEnforcedNow {
       if let boundary {
-        return "Protection is currently on and scheduled to end at \(formatFriendlyTime(boundary))."
+        return "Protection is currently on and scheduled to end \(formatFriendlyBoundary(boundary, now: now))."
       }
       return "Protection is currently on."
     }
 
     if let boundary {
-      return "Protection is currently off and scheduled to start at \(formatFriendlyTime(boundary))."
+      return "Protection is currently off and scheduled to start \(formatFriendlyBoundary(boundary, now: now))."
     }
     return "Protection is currently off."
   }
@@ -275,6 +275,24 @@ public struct ChildLockedView: View {
     f.dateStyle = .none
     f.timeStyle = .short
     return f.string(from: date)
+  }
+
+  private func formatFriendlyBoundary(_ date: Date, now: Date) -> String {
+    let cal = Calendar.current
+    let time = formatFriendlyTime(date)
+
+    if cal.isDate(date, inSameDayAs: now) {
+      return "at \(time)"
+    }
+    if let tomorrow = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(date, inSameDayAs: tomorrow) {
+      return "tomorrow at \(time)"
+    }
+
+    let f = DateFormatter()
+    f.locale = .current
+    f.timeZone = .current
+    f.setLocalizedDateFormatFromTemplate("EEE d MMM")
+    return "on \(f.string(from: date)) at \(time)"
   }
 }
 
