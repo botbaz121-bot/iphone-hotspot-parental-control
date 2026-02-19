@@ -16,6 +16,8 @@ public struct ChildDashboardView: View {
   @State private var showAutomationsInfo = false
   @State private var showFinishConfirm = false
   #if canImport(FamilyControls)
+  @State private var requiredSelection = FamilyActivitySelection()
+  @State private var showingRequiredPicker = false
   @State private var quietSelection = FamilyActivitySelection()
   @State private var showingQuietPicker = false
   #endif
@@ -47,7 +49,7 @@ public struct ChildDashboardView: View {
           ZStack {
             RoundedRectangle(cornerRadius: 7)
               .fill(Color(red: 0.29, green: 0.41, blue: 1.00))
-            Image(systemName: "globe")
+            Image(systemName: "lock.shield.fill")
               .font(.system(size: 13, weight: .semibold))
               .foregroundStyle(.white)
           }
@@ -67,10 +69,6 @@ public struct ChildDashboardView: View {
         }
 
         Spacer(minLength: 0)
-
-        Image(systemName: "chevron.right")
-          .font(.system(size: 13, weight: .semibold))
-          .foregroundStyle(.secondary.opacity(0.8))
       }
       .padding(.vertical, 10)
       .padding(.horizontal, 12)
@@ -125,6 +123,7 @@ public struct ChildDashboardView: View {
           shortcutTile
           automationsTile
           screenTimeTile
+          lockSettingsTile
           lockAppsTile
           finishTile
         }
@@ -140,8 +139,29 @@ public struct ChildDashboardView: View {
     .onAppear { model.syncFromSharedDefaults() }
     #if canImport(FamilyControls)
     .onAppear {
+      if let savedRequired = ScreenTimeManager.shared.loadRequiredSelection() {
+        requiredSelection = savedRequired
+      }
       if let saved = ScreenTimeManager.shared.loadQuietSelection() {
         quietSelection = saved
+      }
+    }
+    .sheet(isPresented: $showingRequiredPicker) {
+      NavigationStack {
+        FamilyActivityPicker(selection: $requiredSelection)
+          .navigationTitle("Always Locked Apps")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+              Button("Done") {
+                showingRequiredPicker = false
+                ScreenTimeManager.shared.saveRequiredSelection(requiredSelection)
+                Task {
+                  await model.reconcileScreenTimeProtection()
+                }
+              }
+            }
+          }
       }
     }
     .sheet(isPresented: $showingQuietPicker) {
@@ -171,12 +191,23 @@ public struct ChildDashboardView: View {
               .font(.system(size: 34, weight: .bold))
               .padding(.top, 2)
 
+            Text("Set these automations up in Shortcuts exactly like this. Add multiple times per day, and add multiple battery levels. More triggers means policy checks run more often.")
+              .font(.system(size: 15))
+              .foregroundStyle(.secondary)
+
             VStack(spacing: 0) {
               AutomationRow(
                 triggerIcon: "clock.fill",
                 triggerIconColor: .orange,
                 triggerIconBackground: Color.orange.opacity(0.18),
-                title: "At a time, daily"
+                title: "At 16:00, daily"
+              )
+              SettingsDivider()
+              AutomationRow(
+                triggerIcon: "clock.fill",
+                triggerIconColor: .orange,
+                triggerIconBackground: Color.orange.opacity(0.18),
+                title: "At 21:00, daily"
               )
               SettingsDivider()
               AutomationRow(
@@ -187,17 +218,17 @@ public struct ChildDashboardView: View {
               )
               SettingsDivider()
               AutomationRow(
-                triggerIcon: "arrow.up.right.square.fill",
-                triggerIconColor: .white.opacity(0.9),
-                triggerIconBackground: Color.white.opacity(0.12),
-                title: "When \"Settings\" is opened"
-              )
-              SettingsDivider()
-              AutomationRow(
                 triggerIcon: "battery.50",
                 triggerIconColor: .white.opacity(0.9),
                 triggerIconBackground: Color.white.opacity(0.12),
                 title: "When battery level is 50%"
+              )
+              SettingsDivider()
+              AutomationRow(
+                triggerIcon: "battery.25",
+                triggerIconColor: .white.opacity(0.9),
+                triggerIconBackground: Color.white.opacity(0.12),
+                title: "When battery level is 20%"
               )
             }
             .background(Color.white.opacity(0.06))
@@ -331,6 +362,25 @@ public struct ChildDashboardView: View {
         quietSelection = FamilyActivitySelection()
       }
       showingQuietPicker = true
+      #endif
+    }
+  }
+
+  private var lockSettingsTile: some View {
+    let ok = ScreenTimeManager.shared.selectionSummary().hasRequiredSelection
+    return ShortcutTile(
+      color: ok ? .pink : .gray,
+      systemIcon: ok ? "checkmark.shield" : "gearshape.fill",
+      title: "Lock Settings App",
+      subtitle: ok ? "Done" : "Pick Settings in Always Locked Apps"
+    ) {
+      #if canImport(FamilyControls)
+      if let saved = ScreenTimeManager.shared.loadRequiredSelection() {
+        requiredSelection = saved
+      } else {
+        requiredSelection = FamilyActivitySelection()
+      }
+      showingRequiredPicker = true
       #endif
     }
   }
