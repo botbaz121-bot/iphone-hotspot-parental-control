@@ -761,7 +761,7 @@ private struct PolicyEditorCard: View {
             .font(.headline)
 
           Text(hasPendingExtraTimeRequest
-            ? "Pending child request. Choose minutes and approve."
+            ? "You have a pending request."
             : "Temporarily disable enforcement for this child.")
             .font(.system(size: 14))
             .foregroundStyle(.secondary)
@@ -771,7 +771,7 @@ private struct PolicyEditorCard: View {
               .font(.system(size: 16, weight: .semibold))
             Spacer()
             Picker("Minutes", selection: $extraTimeMinutes) {
-              ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
+              ForEach(Array(stride(from: 0, through: 120, by: 5)), id: \.self) { m in
                 Text("\(m) min").tag(m)
               }
             }
@@ -852,7 +852,7 @@ private struct PolicyEditorCard: View {
     guard !didConsumePrefill else { return }
     didConsumePrefill = true
     if let prefilled = model.consumeExtraTimePrefill(deviceId: device.id) {
-      extraTimeMinutes = max(5, min(120, (prefilled / 5) * 5))
+      extraTimeMinutes = max(0, min(120, (prefilled / 5) * 5))
     }
   }
 
@@ -861,7 +861,7 @@ private struct PolicyEditorCard: View {
     do {
       if let req = try await model.fetchLatestPendingExtraTimeRequest(deviceId: device.id) {
         model.stashExtraTimePendingRequest(deviceId: device.id, requestId: req.id, minutes: req.requestedMinutes)
-        extraTimeMinutes = max(5, min(120, (req.requestedMinutes / 5) * 5))
+        extraTimeMinutes = max(0, min(120, (req.requestedMinutes / 5) * 5))
         extraTimeStatus = "Pending request: \(req.requestedMinutes) min."
         hasPendingExtraTimeRequest = true
       } else if extraTimeStatus?.hasPrefix("Pending request:") == true {
@@ -882,7 +882,8 @@ private struct PolicyEditorCard: View {
     do {
       let endsAt = try await model.parentApplyExtraTime(deviceId: device.id, minutes: extraTimeMinutes)
       activeExtraTimeEndsAt = endsAt
-      extraTimeStatus = "Extra time applied."
+      hasPendingExtraTimeRequest = false
+      extraTimeStatus = extraTimeMinutes == 0 ? "Extra time cleared." : "Extra time applied."
     } catch {
       extraTimeStatus = "Failed to apply extra time."
     }

@@ -456,7 +456,7 @@ public final class AppModel: ObservableObject {
 
   public func parentApplyExtraTime(deviceId: String, minutes: Int) async throws -> Date? {
     guard let client = apiClient else { throw APIError.invalidResponse }
-    let clamped = max(5, min(240, (minutes / 5) * 5))
+    let clamped = max(0, min(240, (minutes / 5) * 5))
 
     if let requestId = consumeExtraTimePendingRequestId(deviceId: deviceId) {
       _ = try await client.decideExtraTimeRequest(requestId: requestId, approve: true, grantedMinutes: clamped)

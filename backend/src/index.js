@@ -1638,7 +1638,7 @@ app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, 
     if (!device) return res.status(404).json({ error: 'not_found' });
 
     const schema = z.object({
-      minutes: z.number().int().min(1).max(240),
+      minutes: z.number().int().min(0).max(240),
       reason: z.string().max(300).optional()
     });
     const body = schema.parse(req.body || {});
@@ -1778,7 +1778,7 @@ app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (
   try {
     const schema = z.object({
       decision: z.enum(['approve', 'deny']),
-      grantedMinutes: z.number().int().min(1).max(240).optional()
+      grantedMinutes: z.number().int().min(0).max(240).optional()
     });
     const { decision, grantedMinutes } = schema.parse(req.body || {});
 
