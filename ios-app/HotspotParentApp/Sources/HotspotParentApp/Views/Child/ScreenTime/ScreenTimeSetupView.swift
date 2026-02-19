@@ -176,32 +176,45 @@ public struct ScreenTimeSetupView: View {
 
   private func openScreenTimeSettings() {
     #if canImport(UIKit)
-    if let screenTimeURL = URL(string: "App-prefs:root=SCREEN_TIME") {
-      UIApplication.shared.open(screenTimeURL, options: [:]) { success in
-        if success {
-          openedScreenTimeSettings = true
-          statusText = "Opened Screen Time settings."
-        } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-          UIApplication.shared.open(settingsURL, options: [:]) { fallbackSuccess in
-            openedScreenTimeSettings = fallbackSuccess
-            statusText = fallbackSuccess
-              ? "Opened Settings. Go to Screen Time."
+    let candidates = [
+      "App-prefs:root=SCREEN_TIME",
+      "App-prefs:SCREEN_TIME",
+      "prefs:root=SCREEN_TIME",
+      "App-prefs:",
+      "prefs:root=General",
+    ]
+
+    func tryOpen(_ index: Int) {
+      guard index < candidates.count else {
+        if let appSettingsURL = URL(string: UIApplication.openSettingsURLString) {
+          UIApplication.shared.open(appSettingsURL, options: [:]) { success in
+            openedScreenTimeSettings = success
+            statusText = success
+              ? "Opened app settings. Go to Screen Time."
               : "Could not open Settings."
           }
         } else {
           statusText = "Could not open Settings."
         }
+        return
       }
-    } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-      UIApplication.shared.open(settingsURL, options: [:]) { success in
-        openedScreenTimeSettings = success
-        statusText = success
-          ? "Opened Settings. Go to Screen Time."
-          : "Could not open Settings."
+
+      guard let url = URL(string: candidates[index]) else {
+        tryOpen(index + 1)
+        return
       }
-    } else {
-      statusText = "Could not open Settings."
+
+      UIApplication.shared.open(url, options: [:]) { success in
+        if success {
+          openedScreenTimeSettings = true
+          statusText = "Opened Screen Time settings."
+        } else {
+          tryOpen(index + 1)
+        }
+      }
     }
+
+    tryOpen(0)
     #else
     statusText = "Settings shortcut unavailable on this build."
     #endif
