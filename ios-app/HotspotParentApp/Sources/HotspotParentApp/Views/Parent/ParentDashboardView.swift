@@ -513,6 +513,7 @@ private struct PolicyEditorCard: View {
   @State private var extraTimeStatus: String?
   @State private var didConsumePrefill: Bool = false
   @State private var activeExtraTimeEndsAt: Date?
+  @State private var hasPendingExtraTimeRequest: Bool = false
 
   init(device: DashboardDevice) {
     self.device = device
@@ -754,12 +755,14 @@ private struct PolicyEditorCard: View {
       .background(Color.primary.opacity(0.06))
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
-      if quiet {
+      if quiet || hasPendingExtraTimeRequest {
         VStack(alignment: .leading, spacing: 10) {
           Text("Extra Time")
             .font(.headline)
 
-          Text("Temporarily disable enforcement for this child.")
+          Text(hasPendingExtraTimeRequest
+            ? "Pending child request. Choose minutes and approve."
+            : "Temporarily disable enforcement for this child.")
             .font(.system(size: 14))
             .foregroundStyle(.secondary)
 
@@ -780,7 +783,7 @@ private struct PolicyEditorCard: View {
           } label: {
             HStack(spacing: 8) {
               if applyingExtraTime { ProgressView() }
-              Text(applyingExtraTime ? "Applying..." : "Apply extra time")
+              Text(applyingExtraTime ? "Applying..." : (hasPendingExtraTimeRequest ? "Approve request" : "Apply extra time"))
             }
             .frame(maxWidth: .infinity)
           }
@@ -807,9 +810,7 @@ private struct PolicyEditorCard: View {
       } else {
         activeExtraTimeEndsAt = nil
       }
-      if quiet {
-        Task { await loadPendingExtraTimeRequest() }
-      }
+      Task { await loadPendingExtraTimeRequest() }
     }
   }
 
@@ -862,8 +863,12 @@ private struct PolicyEditorCard: View {
         model.stashExtraTimePendingRequest(deviceId: device.id, requestId: req.id, minutes: req.requestedMinutes)
         extraTimeMinutes = max(5, min(120, (req.requestedMinutes / 5) * 5))
         extraTimeStatus = "Pending request: \(req.requestedMinutes) min."
+        hasPendingExtraTimeRequest = true
       } else if extraTimeStatus?.hasPrefix("Pending request:") == true {
         extraTimeStatus = nil
+        hasPendingExtraTimeRequest = false
+      } else {
+        hasPendingExtraTimeRequest = false
       }
     } catch {
       // best-effort
