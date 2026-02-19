@@ -1646,6 +1646,20 @@ app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, 
     const minutes = Number(body.minutes);
     const endsAt = now + minutes * 60_000;
 
+    // Parent latest decision should override any currently active window.
+    db.prepare(
+      `
+      UPDATE extra_time_requests
+      SET ends_at = ?
+      WHERE device_id = ?
+        AND status = 'approved'
+        AND starts_at IS NOT NULL
+        AND ends_at IS NOT NULL
+        AND starts_at <= ?
+        AND ends_at > ?
+      `
+    ).run(now, deviceId, now, now);
+
     const requestId = id();
     db.prepare(
       `
@@ -1818,6 +1832,20 @@ app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (
 
     const minutes = grantedMinutes != null ? grantedMinutes : Number(row.requested_minutes);
     const endsAt = now + minutes * 60_000;
+    // Parent latest decision should override any currently active window.
+    db.prepare(
+      `
+      UPDATE extra_time_requests
+      SET ends_at = ?
+      WHERE device_id = ?
+        AND status = 'approved'
+        AND starts_at IS NOT NULL
+        AND ends_at IS NOT NULL
+        AND starts_at <= ?
+        AND ends_at > ?
+      `
+    ).run(now, row.device_id, now, now);
+
     db.prepare(
       `
       UPDATE extra_time_requests
@@ -1926,7 +1954,7 @@ function getActiveExtraTime(deviceId, nowMs = Date.now()) {
         AND ends_at IS NOT NULL
         AND starts_at <= ?
         AND ends_at > ?
-      ORDER BY ends_at DESC
+      ORDER BY starts_at DESC, ends_at DESC
       LIMIT 1
       `
     )

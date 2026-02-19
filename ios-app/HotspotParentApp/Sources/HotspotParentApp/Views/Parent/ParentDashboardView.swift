@@ -207,7 +207,9 @@ private struct DeviceDetailsSheet: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-          PolicyEditorCard(device: device)
+          PolicyEditorCard(device: device) {
+            Task { await loadEvents() }
+          }
             .environmentObject(model)
 
           recentActivityCard
@@ -492,6 +494,7 @@ private struct PolicyEditorCard: View {
   @EnvironmentObject private var model: AppModel
 
   let device: DashboardDevice
+  let onExtraTimeApplied: () -> Void
 
   @State private var hotspotOff: Bool
   @State private var wifiOff: Bool
@@ -515,8 +518,9 @@ private struct PolicyEditorCard: View {
   @State private var activeExtraTimeEndsAt: Date?
   @State private var hasPendingExtraTimeRequest: Bool = false
 
-  init(device: DashboardDevice) {
+  init(device: DashboardDevice, onExtraTimeApplied: @escaping () -> Void = {}) {
     self.device = device
+    self.onExtraTimeApplied = onExtraTimeApplied
 
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
     _wifiOff = State(initialValue: device.actions.setWifiOff)
@@ -884,6 +888,7 @@ private struct PolicyEditorCard: View {
       activeExtraTimeEndsAt = endsAt
       hasPendingExtraTimeRequest = false
       extraTimeStatus = extraTimeMinutes == 0 ? "Extra time cleared." : "Extra time applied."
+      onExtraTimeApplied()
     } catch {
       extraTimeStatus = "Failed to apply extra time."
     }
