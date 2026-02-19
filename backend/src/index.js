@@ -110,11 +110,29 @@ CREATE TABLE IF NOT EXISTS pairing_codes (
   FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS extra_time_requests (
+  id TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  requested_minutes INTEGER NOT NULL,
+  reason TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  requested_at INTEGER NOT NULL,
+  resolved_at INTEGER,
+  resolved_by TEXT,
+  granted_minutes INTEGER,
+  starts_at INTEGER,
+  ends_at INTEGER,
+  FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_devices_created ON devices(created_at);
 CREATE INDEX IF NOT EXISTS idx_device_events_device ON device_events(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
 CREATE INDEX IF NOT EXISTS idx_pairing_codes_device ON pairing_codes(device_id);
 CREATE INDEX IF NOT EXISTS idx_pairing_codes_expires ON pairing_codes(expires_at);
+CREATE INDEX IF NOT EXISTS idx_extra_time_device ON extra_time_requests(device_id);
+CREATE INDEX IF NOT EXISTS idx_extra_time_status ON extra_time_requests(status);
+CREATE INDEX IF NOT EXISTS idx_extra_time_ends ON extra_time_requests(ends_at);
 `);
 
 // Lightweight migration for existing DBs
@@ -575,6 +593,7 @@ app.use((req, res, next) => {
     req.path === '/policy' ||
     req.path === '/events' ||
     req.path === '/pair' ||
+    req.path === '/extra-time/request' ||
     req.path.startsWith('/auth/apple')
   )
     return next();
@@ -665,6 +684,21 @@ app.get('/admin', (req, res) => {
     <tbody></tbody>
   </table>
 
+  <h3>Extra time requests</h3>
+  <div class="muted">Pending requests from child devices. Approve grants temporary unlock time.</div>
+  <table id="extraTbl">
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Requested</th>
+        <th>Reason</th>
+        <th>Requested at</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
   <h3>Device events</h3>
   <div class="muted">Select “Events” for a device to load last 200 entries.</div>
   <pre id="events"></pre>
@@ -713,8 +747,11 @@ app.get('/admin', (req, res) => {
     $('events').textContent='';
     const tbody = $('tbl').querySelector('tbody');
     tbody.innerHTML='';
+    const extraBody = $('extraTbl').querySelector('tbody');
+    extraBody.innerHTML='';
     try{
       const dash = await api('/api/dashboard');
+      const extra = await api('/api/extra-time/requests?status=pending');
 
       for(const d of dash.devices){
         const tr=document.createElement('tr');
@@ -851,6 +888,48 @@ app.get('/admin', (req, res) => {
         tbody.appendChild(tr);
       }
 
+      for (const r of (extra.requests || [])) {
+        const tr = document.createElement('tr');
+        const reason = String(r.reason || '').trim();
+        tr.innerHTML =
+          '<td>' + escapeHtml(r.deviceName || '') + '</td>' +
+          '<td>' + escapeHtml(String(r.requestedMinutes || 0)) + ' min</td>' +
+          '<td>' + (reason ? escapeHtml(reason) : '<span class="muted">none</span>') + '</td>' +
+          '<td>' + escapeHtml(r.requestedAt ? new Date(r.requestedAt).toISOString() : '') + '</td>' +
+          '<td>' +
+            '<button class="approveReq">Approve</button> ' +
+            '<button class="denyReq">Deny</button>' +
+          '</td>';
+
+        tr.querySelector('.approveReq').onclick = async ()=>{
+          tr.style.opacity = '0.6';
+          try{
+            await api('/api/extra-time/requests/' + r.id + '/decision', {
+              method:'POST',
+              body: JSON.stringify({ decision: 'approve' })
+            });
+          } finally {
+            tr.style.opacity = '1';
+          }
+          await refresh();
+        };
+
+        tr.querySelector('.denyReq').onclick = async ()=>{
+          tr.style.opacity = '0.6';
+          try{
+            await api('/api/extra-time/requests/' + r.id + '/decision', {
+              method:'POST',
+              body: JSON.stringify({ decision: 'deny' })
+            });
+          } finally {
+            tr.style.opacity = '1';
+          }
+          await refresh();
+        };
+
+        extraBody.appendChild(tr);
+      }
+
       $('status').textContent = 'Devices: ' + dash.devices.length;
     }catch(e){
       $('status').textContent = String(e);
@@ -958,7 +1037,8 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
     : true;
 
-  const enforce = wantsEnforcement && inScheduleWindow;
+  const activeExtraTime = getActiveExtraTime(deviceId);
+  const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
   const isQuietHours = inScheduleWindow;
 
   const out = {
@@ -971,7 +1051,15 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     quietDay: todayKey,
     quietHours: schedule,
     // isQuietHours tells the Shortcut whether enforcement is active right now (schedule is evaluated server-side).
-    isQuietHours
+    isQuietHours,
+    activeExtraTime: activeExtraTime
+      ? {
+          requestId: activeExtraTime.id,
+          startsAt: Number(activeExtraTime.starts_at),
+          endsAt: Number(activeExtraTime.ends_at),
+          grantedMinutes: Number(activeExtraTime.granted_minutes || activeExtraTime.requested_minutes || 0)
+        }
+      : null
   };
 
   res.json(out);
@@ -1015,6 +1103,32 @@ app.post('/events', requireShortcutAuth, (req, res, next) => {
     );
 
     res.status(201).json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Child device requests temporary extra time (e.g. pause enforcement for N minutes).
+app.post('/extra-time/request', requireShortcutAuth, (req, res, next) => {
+  try {
+    const schema = z.object({
+      minutes: z.number().int().min(1).max(240),
+      reason: z.string().max(300).optional()
+    });
+    const body = schema.parse(req.body || {});
+
+    const reqId = id();
+    const now = Date.now();
+    const reason = body.reason ? String(body.reason).trim() : null;
+
+    db.prepare(
+      `
+      INSERT INTO extra_time_requests (id, device_id, requested_minutes, reason, status, requested_at)
+      VALUES (?, ?, ?, ?, 'pending', ?)
+      `
+    ).run(reqId, req.shortcut.deviceId, body.minutes, reason, now);
+
+    return res.status(201).json({ ok: true, requestId: reqId, status: 'pending' });
   } catch (e) {
     next(e);
   }
@@ -1146,7 +1260,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
       : true;
 
-    const enforce = wantsEnforcement && inScheduleWindow;
+    const activeExtraTime = getActiveExtraTime(r.id, now);
+    const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
     const inQuiet = inScheduleWindow;
 
     // New semantics: "inQuietHours" means within the enforcement schedule.
@@ -1168,6 +1283,14 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       quietDay: todayKey,
       quietHours: schedule,
       inQuietHours: inQuiet,
+      activeExtraTime: activeExtraTime
+        ? {
+            requestId: activeExtraTime.id,
+            startsAt: Number(activeExtraTime.starts_at),
+            endsAt: Number(activeExtraTime.ends_at),
+            grantedMinutes: Number(activeExtraTime.granted_minutes || activeExtraTime.requested_minutes || 0)
+          }
+        : null,
       shouldBeRunning,
       gapMs,
       gap
@@ -1423,6 +1546,126 @@ app.get('/api/devices/:deviceId/events', requireParentOrAdmin, (req, res) => {
   res.json({ events });
 });
 
+app.get('/api/extra-time/requests', requireParentOrAdmin, (req, res) => {
+  const schema = z.object({
+    status: z.enum(['pending', 'approved', 'denied', 'all']).optional(),
+    deviceId: z.string().uuid().optional()
+  });
+  const q = schema.parse(req.query || {});
+
+  const where = [];
+  const values = [];
+
+  if (req.parent) {
+    where.push('d.parent_id = ?');
+    values.push(req.parent.id);
+  }
+  if (q.deviceId) {
+    where.push('r.device_id = ?');
+    values.push(q.deviceId);
+  }
+  if (q.status && q.status !== 'all') {
+    where.push('r.status = ?');
+    values.push(q.status);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const requests = db
+    .prepare(
+      `
+      SELECT
+        r.id,
+        r.device_id,
+        d.name AS device_name,
+        r.requested_minutes,
+        r.reason,
+        r.status,
+        r.requested_at,
+        r.resolved_at,
+        r.resolved_by,
+        r.granted_minutes,
+        r.starts_at,
+        r.ends_at
+      FROM extra_time_requests r
+      JOIN devices d ON d.id = r.device_id
+      ${whereSql}
+      ORDER BY r.requested_at DESC
+      LIMIT 500
+      `
+    )
+    .all(...values)
+    .map(r => ({
+      id: r.id,
+      deviceId: r.device_id,
+      deviceName: r.device_name,
+      requestedMinutes: Number(r.requested_minutes),
+      reason: r.reason || null,
+      status: r.status,
+      requestedAt: Number(r.requested_at),
+      resolvedAt: r.resolved_at != null ? Number(r.resolved_at) : null,
+      resolvedBy: r.resolved_by || null,
+      grantedMinutes: r.granted_minutes != null ? Number(r.granted_minutes) : null,
+      startsAt: r.starts_at != null ? Number(r.starts_at) : null,
+      endsAt: r.ends_at != null ? Number(r.ends_at) : null
+    }));
+
+  res.json({ requests });
+});
+
+app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (req, res, next) => {
+  try {
+    const schema = z.object({
+      decision: z.enum(['approve', 'deny']),
+      grantedMinutes: z.number().int().min(1).max(240).optional()
+    });
+    const { decision, grantedMinutes } = schema.parse(req.body || {});
+
+    const row = req.parent
+      ? db
+          .prepare(
+            `
+            SELECT r.id, r.device_id, r.requested_minutes, r.status
+            FROM extra_time_requests r
+            JOIN devices d ON d.id = r.device_id
+            WHERE r.id = ? AND d.parent_id = ?
+            `
+          )
+          .get(req.params.requestId, req.parent.id)
+      : db.prepare('SELECT id, device_id, requested_minutes, status FROM extra_time_requests WHERE id = ?').get(req.params.requestId);
+
+    if (!row) return res.status(404).json({ error: 'not_found' });
+    if (String(row.status) !== 'pending') return res.status(409).json({ error: 'already_resolved' });
+
+    const now = Date.now();
+
+    if (decision === 'deny') {
+      db.prepare(
+        `
+        UPDATE extra_time_requests
+        SET status = 'denied', resolved_at = ?, resolved_by = ?, granted_minutes = NULL, starts_at = NULL, ends_at = NULL
+        WHERE id = ?
+        `
+      ).run(now, req.parent ? req.parent.id : 'admin', row.id);
+      return res.json({ ok: true, status: 'denied' });
+    }
+
+    const minutes = grantedMinutes != null ? grantedMinutes : Number(row.requested_minutes);
+    const endsAt = now + minutes * 60_000;
+    db.prepare(
+      `
+      UPDATE extra_time_requests
+      SET status = 'approved', resolved_at = ?, resolved_by = ?, granted_minutes = ?, starts_at = ?, ends_at = ?
+      WHERE id = ?
+      `
+    ).run(now, req.parent ? req.parent.id : 'admin', minutes, now, endsAt, row.id);
+
+    return res.json({ ok: true, status: 'approved', startsAt: now, endsAt, grantedMinutes: minutes });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // --- Admin endpoints (temporary, for parent app / dashboard prototyping) ---
 function parseHHMM(s) {
   if (s == null) return null;
@@ -1497,6 +1740,25 @@ function parseQuietDaysJSON(raw) {
   } catch {
     return null;
   }
+}
+
+function getActiveExtraTime(deviceId, nowMs = Date.now()) {
+  return db
+    .prepare(
+      `
+      SELECT id, requested_minutes, granted_minutes, starts_at, ends_at
+      FROM extra_time_requests
+      WHERE device_id = ?
+        AND status = 'approved'
+        AND starts_at IS NOT NULL
+        AND ends_at IS NOT NULL
+        AND starts_at <= ?
+        AND ends_at > ?
+      ORDER BY ends_at DESC
+      LIMIT 1
+      `
+    )
+    .get(deviceId, nowMs, nowMs);
 }
 
 // Basic JSON error handler
