@@ -332,12 +332,8 @@ public struct ChildDashboardView: View {
   private var lockAppsTile: some View {
     let quietCount = ScreenTimeManager.shared.selectionSummary().quietSelectionsSelected
     let ok = quietCount > 0
-    return ShortcutTile(
-      color: ok ? .pink : .gray,
-      systemIcon: "moon.stars",
-      title: "Lock apps",
-      subtitle: ok ? "Done" : "Choose apps for Enforcement Schedule"
-    ) {
+    let enabled = model.screenTimeAuthorized
+    return Button {
       #if canImport(FamilyControls)
       if let saved = ScreenTimeManager.shared.loadQuietSelection() {
         quietSelection = saved
@@ -346,7 +342,17 @@ public struct ChildDashboardView: View {
       }
       showingQuietPicker = true
       #endif
+    } label: {
+      ShortcutTileCard(
+        color: ok ? .pink : .gray,
+        systemIcon: "moon.stars",
+        title: "Lock apps",
+        subtitle: ok ? "Done" : "Choose apps for Enforcement Schedule"
+      )
+      .opacity(enabled ? 1.0 : 0.7)
     }
+    .buttonStyle(.plain)
+    .disabled(!enabled)
   }
 
   private func openURL(_ s: String) {
