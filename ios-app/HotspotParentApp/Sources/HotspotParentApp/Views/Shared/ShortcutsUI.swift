@@ -49,6 +49,7 @@ public enum ShortcutTileColor {
 }
 
 public struct ShortcutTileCard: View {
+  @Environment(\.colorScheme) private var colorScheme
   public let color: ShortcutTileColor
   public let systemIcon: String
   public let customIcon: Image?
@@ -72,7 +73,7 @@ public struct ShortcutTileCard: View {
   public var body: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 22)
-        .fill(color.gradient)
+        .fill(tileGradient)
 
       VStack(alignment: .leading, spacing: 10) {
         if let customIcon {
@@ -121,6 +122,17 @@ public struct ShortcutTileCard: View {
     }
     // Allow the card to grow with text to avoid overlap in grids.
     .frame(minHeight: 118)
+  }
+
+  private var tileGradient: LinearGradient {
+    if color == .gray, colorScheme == .light {
+      return LinearGradient(
+        colors: [Color(red: 0.83, green: 0.84, blue: 0.87), Color(red: 0.73, green: 0.75, blue: 0.79)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+    }
+    return color.gradient
   }
 }
 

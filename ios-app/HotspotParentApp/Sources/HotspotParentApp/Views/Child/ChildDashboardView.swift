@@ -309,7 +309,7 @@ public struct ChildDashboardView: View {
         title: "Finish setup",
         subtitle: canFinishSetup ? "Lock phone into child mode" : finishMissingSummary
       )
-      .opacity(canFinishSetup ? 1.0 : 0.7)
+      .opacity(canFinishSetup ? 1.0 : 0.86)
     }
     .buttonStyle(.plain)
     .disabled(!canFinishSetup)
