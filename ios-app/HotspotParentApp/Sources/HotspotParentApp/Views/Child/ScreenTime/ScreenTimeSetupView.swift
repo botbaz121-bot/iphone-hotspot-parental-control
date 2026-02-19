@@ -8,20 +8,11 @@ import SwiftUI
 import FamilyControls
 #endif
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
 #if canImport(SwiftUI)
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
   @State private var statusText: String?
-  @State private var selectionSummary = ScreenTimeSelectionSummary()
   @State private var busy = false
-  @State private var openedScreenTimeSettings = false
-  @State private var openedDeletionProtectionSettings = false
-  @State private var showPasswordConfirm = false
-  @State private var showDeletionConfirm = false
 
   public init() {}
 
@@ -51,30 +42,30 @@ public struct ScreenTimeSetupView: View {
           }
 
           ChecklistTile(
-            color: openedScreenTimeSettings ? .pink : .gray,
+            color: model.screenTimePasswordStepCompleted ? .pink : .gray,
             systemIcon: "lock.shield",
             customIcon: nil,
             title: "Screen Time Password",
-            subtitle: openedScreenTimeSettings
+            subtitle: model.screenTimePasswordStepCompleted
               ? "Done"
-              : "Set a Screen Time passcode and lock Screen Time settings.",
+              : "Open Settings > Screen Time and set a password. Click to mark completed.",
             disabled: busy
           ) {
-            openScreenTimeSettings()
+            model.screenTimePasswordStepCompleted.toggle()
           }
 
           if model.screenTimeAuthorized && model.screenTimeAuthorizationMode == .individual {
             ChecklistTile(
-              color: openedDeletionProtectionSettings ? .pink : .gray,
+              color: model.screenTimeDeletionProtectionStepCompleted ? .pink : .gray,
               systemIcon: "trash.slash",
               customIcon: nil,
               title: "Prevent App Deletions",
-              subtitle: openedDeletionProtectionSettings
+              subtitle: model.screenTimeDeletionProtectionStepCompleted
                 ? "Done"
-                : "Set Screen Time to disallow deleting apps.",
+                : "In Screen Time set Deleting Apps to Don't Allow. Click to mark completed.",
               disabled: busy
             ) {
-              openDeletionProtectionSettings()
+              model.screenTimeDeletionProtectionStepCompleted.toggle()
             }
           }
         }
@@ -97,33 +88,12 @@ public struct ScreenTimeSetupView: View {
     }
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
-    .alert("Did you set a Screen Time passcode?", isPresented: $showPasswordConfirm) {
-      Button("Not yet", role: .cancel) {}
-      Button("Yes, mark done") {
-        openedScreenTimeSettings = true
-        model.screenTimePasswordStepCompleted = true
-      }
-    } message: {
-      Text("After setting the passcode and locking Screen Time settings, tap Yes.")
-    }
-    .alert("Did you disable app deletion?", isPresented: $showDeletionConfirm) {
-      Button("Not yet", role: .cancel) {}
-      Button("Yes, mark done") {
-        openedDeletionProtectionSettings = true
-        model.screenTimeDeletionProtectionStepCompleted = true
-      }
-    } message: {
-      Text("After setting Deleting Apps to Don't Allow, tap Yes.")
-    }
     .task {
       await loadSelectionAndRefresh()
     }
   }
 
   private func loadSelectionAndRefresh() async {
-    openedScreenTimeSettings = model.screenTimePasswordStepCompleted
-    openedDeletionProtectionSettings = model.screenTimeDeletionProtectionStepCompleted
-    selectionSummary = ScreenTimeManager.shared.selectionSummary()
     await refreshStatus()
   }
 
@@ -149,92 +119,8 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeHasRequiredSelection = status.hasRequiredSelection
     model.screenTimeScheduleEnforcedNow = status.scheduleEnforcedNow
     model.screenTimeDegradedReason = status.degradedReason
-    selectionSummary = ScreenTimeManager.shared.selectionSummary()
   }
 
-  private func openScreenTimeSettings() {
-    #if canImport(UIKit)
-    let candidates = [
-      "App-prefs:root=SCREEN_TIME",
-      "App-prefs:SCREEN_TIME",
-      "prefs:root=SCREEN_TIME",
-      "App-prefs:",
-      "prefs:root=General",
-    ]
-
-    func tryOpen(_ index: Int) {
-      guard index < candidates.count else {
-        if let appSettingsURL = URL(string: UIApplication.openSettingsURLString) {
-          UIApplication.shared.open(appSettingsURL, options: [:]) { success in
-            openedScreenTimeSettings = success
-            statusText = success
-              ? "Opened app settings. Go to Screen Time."
-              : "Could not open Settings."
-          }
-        } else {
-          statusText = "Could not open Settings."
-        }
-        return
-      }
-
-      guard let url = URL(string: candidates[index]) else {
-        tryOpen(index + 1)
-        return
-      }
-
-      UIApplication.shared.open(url, options: [:]) { success in
-        if success {
-          statusText = "Opened Settings. Set a Screen Time passcode, then confirm."
-          showPasswordConfirm = true
-        } else {
-          tryOpen(index + 1)
-        }
-      }
-    }
-
-    tryOpen(0)
-    #else
-    statusText = "Settings shortcut unavailable on this build."
-    #endif
-  }
-
-  private func openDeletionProtectionSettings() {
-    #if canImport(UIKit)
-    let candidates = [
-      "App-prefs:root=SCREEN_TIME&path=CONTENT_PRIVACY",
-      "App-prefs:root=SCREEN_TIME&path=CONTENT_AND_PRIVACY",
-      "prefs:root=SCREEN_TIME&path=CONTENT_PRIVACY",
-      "prefs:root=SCREEN_TIME&path=CONTENT_AND_PRIVACY",
-      "App-prefs:root=SCREEN_TIME",
-      "prefs:root=SCREEN_TIME",
-    ]
-
-    func tryOpen(_ index: Int) {
-      guard index < candidates.count else {
-        statusText = "Could not open Screen Time restrictions."
-        return
-      }
-
-      guard let url = URL(string: candidates[index]) else {
-        tryOpen(index + 1)
-        return
-      }
-
-      UIApplication.shared.open(url, options: [:]) { success in
-        if success {
-          statusText = "Opened Settings. Set Deleting Apps to Don't Allow, then confirm."
-          showDeletionConfirm = true
-        } else {
-          tryOpen(index + 1)
-        }
-      }
-    }
-
-    tryOpen(0)
-    #else
-    statusText = "Settings shortcut unavailable on this build."
-    #endif
-  }
 }
 
 private struct ChecklistTile: View {
