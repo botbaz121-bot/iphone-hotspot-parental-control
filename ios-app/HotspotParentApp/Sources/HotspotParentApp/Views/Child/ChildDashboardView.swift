@@ -304,7 +304,7 @@ public struct ChildDashboardView: View {
       showFinishConfirm = true
     } label: {
       ShortcutTileCard(
-        color: canFinishSetup ? .pink : .gray,
+        color: canFinishSetup ? .blue : .gray,
         systemIcon: "checkmark",
         title: "Finish setup",
         subtitle: canFinishSetup ? "Lock phone into child mode" : finishMissingSummary
