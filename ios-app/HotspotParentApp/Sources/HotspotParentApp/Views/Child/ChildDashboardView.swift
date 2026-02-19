@@ -50,8 +50,11 @@ public struct ChildDashboardView: View {
           ZStack {
             RoundedRectangle(cornerRadius: 7)
               .fill(Color(red: 0.29, green: 0.41, blue: 1.00))
-            Image(systemName: "network")
-              .font(.system(size: 15, weight: .regular))
+            Image("VPNPortalIcon")
+              .renderingMode(.template)
+              .resizable()
+              .scaledToFit()
+              .frame(width: 13, height: 17)
               .foregroundStyle(.white)
           }
           .frame(width: 24, height: 24)
