@@ -838,14 +838,18 @@ app.get('/admin', (req, res) => {
         const activateProtection = d.actions && d.actions.activateProtection == null ? true : !!(d.actions && d.actions.activateProtection);
         const quietStartDisplay = d.quietHours && d.quietHours.start ? d.quietHours.start : '';
         const quietEndDisplay = d.quietHours && d.quietHours.end ? d.quietHours.end : '';
+        const inScheduleWindow = !!d.inQuietHours;
+        const hasSchedule = !!(quietStartDisplay && quietEndDisplay);
+        const hasActiveExtraTime = !!(d.activeExtraTime && d.activeExtraTime.endsAt && d.activeExtraTime.endsAt > Date.now());
         const protectionStatus = (() => {
           if (!activateProtection) return 'Protection is currently off. Parent disabled protection.';
-          if (d.enforce) {
-            if (quietEndDisplay) return 'Protection is currently on and scheduled to end at ' + quietEndDisplay + '.';
-            return 'Protection is currently on.';
+          if (hasActiveExtraTime) {
+            const t = new Date(d.activeExtraTime.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return 'Protection is currently off for extra time and scheduled to resume at ' + t + '.';
           }
-          if (quietStartDisplay) return 'Protection is currently off and scheduled to start at ' + quietStartDisplay + '.';
-          return 'Protection is currently off.';
+          if (!hasSchedule) return 'Protection is currently on.';
+          if (inScheduleWindow) return 'Protection is currently on and scheduled to end at ' + quietEndDisplay + '.';
+          return 'Protection is currently off and scheduled to start at ' + quietStartDisplay + '.';
         })();
 
         tr.innerHTML =
