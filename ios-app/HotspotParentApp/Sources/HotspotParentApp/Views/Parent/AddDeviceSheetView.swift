@@ -25,7 +25,7 @@ public struct AddDeviceSheetView: View {
         VStack(alignment: .leading, spacing: 18) {
           SettingsGroup("Device name") {
             VStack(alignment: .leading, spacing: 10) {
-              TextField("Required", text: $deviceName)
+              TextField("Enter your child's name", text: $deviceName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .padding(.vertical, 10)
