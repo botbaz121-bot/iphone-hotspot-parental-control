@@ -656,6 +656,7 @@ app.get('/admin', (req, res) => {
         <th>Turn Mobile Data Off</th>
         <th>Rotate password</th>
         <th>Last event</th>
+        <th>Protection status</th>
         <th>Gap?</th>
         <th>Actions</th>
         <th>Pairing</th>
@@ -729,6 +730,17 @@ app.get('/admin', (req, res) => {
         const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;
         const rotatePassword = d.actions && d.actions.rotatePassword ? true : false;
         const activateProtection = d.actions && d.actions.activateProtection == null ? true : !!(d.actions && d.actions.activateProtection);
+        const quietStartDisplay = d.quietHours && d.quietHours.start ? d.quietHours.start : '';
+        const quietEndDisplay = d.quietHours && d.quietHours.end ? d.quietHours.end : '';
+        const protectionStatus = (() => {
+          if (!activateProtection) return 'Protection is currently off. Parent disabled protection.';
+          if (d.enforce) {
+            if (quietEndDisplay) return 'Protection is currently on and scheduled to end at ' + quietEndDisplay + '.';
+            return 'Protection is currently on.';
+          }
+          if (quietStartDisplay) return 'Protection is currently off and scheduled to start at ' + quietStartDisplay + '.';
+          return 'Protection is currently off.';
+        })();
 
         tr.innerHTML =
           '<td>' + escapeHtml(d.name||'') + '</td>' +
@@ -754,6 +766,7 @@ app.get('/admin', (req, res) => {
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' >Turn Mobile Data Off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="rotatePassword" ' + (rotatePassword ? 'checked' : '') + ' />Rotate password</label></td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
+          '<td>' + escapeHtml(protectionStatus) + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
           '<td>' +
             '<button class="saveRow">Save</button> ' +
