@@ -1,0 +1,356 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		053211C0464E4E499B1FD1FD /* HotspotParentApp in Frameworks */ = {isa = PBXBuildFile; productRef = 454EAA94AC84079685C90D08 /* HotspotParentApp */; };
+		09B2F6BE199238C0B7A58E31 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A201EB36B362757C37E92963 /* Assets.xcassets */; };
+		EAD5E8556D2FCA3DF3506223 /* HotspotParentApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765B029B45080F45F2680F66 /* HotspotParentApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0C1F87D293D463C7C877FFA6 /* HotspotParent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HotspotParent.entitlements; sourceTree = "<group>"; };
+		45EAF2BABCD7980990147C66 /* HotspotParentApp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HotspotParentApp; path = ../HotspotParentApp; sourceTree = SOURCE_ROOT; };
+		67F4299585F7A19F3212111D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		73B531C63D8FC01AEFDF956D /* HotspotParent.Release.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HotspotParent.Release.entitlements; sourceTree = "<group>"; };
+		765B029B45080F45F2680F66 /* HotspotParentApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotspotParentApp.swift; sourceTree = "<group>"; };
+		A201EB36B362757C37E92963 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF9F49791FC99548796BD71F /* HotspotParent.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HotspotParent.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CFAF3AA14EDF8C964DC8D0FD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				053211C0464E4E499B1FD1FD /* HotspotParentApp in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D65B05928D40C4E7BFD8983 /* HotspotParentiOS */ = {
+			isa = PBXGroup;
+			children = (
+				A201EB36B362757C37E92963 /* Assets.xcassets */,
+				0C1F87D293D463C7C877FFA6 /* HotspotParent.entitlements */,
+				73B531C63D8FC01AEFDF956D /* HotspotParent.Release.entitlements */,
+				765B029B45080F45F2680F66 /* HotspotParentApp.swift */,
+				67F4299585F7A19F3212111D /* Info.plist */,
+			);
+			path = HotspotParentiOS;
+			sourceTree = "<group>";
+		};
+		91F69F0D4FF72D756AFB9F9C /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				45EAF2BABCD7980990147C66 /* HotspotParentApp */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		B8F128901B53681EE8B1C23A = {
+			isa = PBXGroup;
+			children = (
+				4D65B05928D40C4E7BFD8983 /* HotspotParentiOS */,
+				91F69F0D4FF72D756AFB9F9C /* Packages */,
+				D27DFE84BC7B59B900413516 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D27DFE84BC7B59B900413516 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BF9F49791FC99548796BD71F /* HotspotParent.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AE2862E67E969595747E367E /* HotspotParent */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CDD14FB37169B27F494360AE /* Build configuration list for PBXNativeTarget "HotspotParent" */;
+			buildPhases = (
+				EEFC390108F6AA73CB247EE2 /* Sources */,
+				A2645AB33EE4B949E20C4C37 /* Resources */,
+				CFAF3AA14EDF8C964DC8D0FD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HotspotParent;
+			packageProductDependencies = (
+				454EAA94AC84079685C90D08 /* HotspotParentApp */,
+			);
+			productName = HotspotParent;
+			productReference = BF9F49791FC99548796BD71F /* HotspotParent.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FC133C95722160F0412FD989 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					AE2862E67E969595747E367E = {
+						DevelopmentTeam = 3SJ44B3Q7Y;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 13BEF216C8DBDC382585F32B /* Build configuration list for PBXProject "HotspotParent" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B8F128901B53681EE8B1C23A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A9125569A3867AFEF753E5F6 /* XCLocalSwiftPackageReference "../HotspotParentApp" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AE2862E67E969595747E367E /* HotspotParent */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A2645AB33EE4B949E20C4C37 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09B2F6BE199238C0B7A58E31 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EEFC390108F6AA73CB247EE2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EAD5E8556D2FCA3DF3506223 /* HotspotParentApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		543492AF7FB2FE8B1734C69E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = HotspotParentiOS/HotspotParent.Release.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SJ44B3Q7Y;
+				INFOPLIST_FILE = HotspotParentiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bazapps.hotspotparent;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		73020BE381934DEE7AC3918F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		816DEF9B5922FF7632CD280C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = HotspotParentiOS/HotspotParent.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3SJ44B3Q7Y;
+				INFOPLIST_FILE = HotspotParentiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bazapps.hotspotparent;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B0FC72CA5111F54A5B011ECD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		13BEF216C8DBDC382585F32B /* Build configuration list for PBXProject "HotspotParent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0FC72CA5111F54A5B011ECD /* Debug */,
+				73020BE381934DEE7AC3918F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CDD14FB37169B27F494360AE /* Build configuration list for PBXNativeTarget "HotspotParent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				816DEF9B5922FF7632CD280C /* Debug */,
+				543492AF7FB2FE8B1734C69E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A9125569A3867AFEF753E5F6 /* XCLocalSwiftPackageReference "../HotspotParentApp" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../HotspotParentApp;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		454EAA94AC84079685C90D08 /* HotspotParentApp */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HotspotParentApp;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = FC133C95722160F0412FD989 /* Project object */;
+}
