@@ -480,6 +480,9 @@ private struct DeviceDetailsSheet: View {
   private static func formatTrigger(_ t: String) -> String {
     switch t {
       case "policy_fetch": return "Phone online"
+      case "extra_time_requested": return "Extra time requested"
+      case "extra_time_applied": return "Extra time applied"
+      case "extra_time_denied": return "Extra time denied"
       default: return t.replacingOccurrences(of: "_", with: " ")
     }
   }
@@ -509,6 +512,7 @@ private struct PolicyEditorCard: View {
   @State private var applyingExtraTime: Bool = false
   @State private var extraTimeStatus: String?
   @State private var didConsumePrefill: Bool = false
+  @State private var activeExtraTimeEndsAt: Date?
 
   init(device: DashboardDevice) {
     self.device = device
@@ -536,6 +540,7 @@ private struct PolicyEditorCard: View {
     let end = qd[initialDay]?.end ?? "07:00"
     _startDate = State(initialValue: Self.parseTime(start) ?? Date())
     _endDate = State(initialValue: Self.parseTime(end) ?? Date())
+    _activeExtraTimeEndsAt = State(initialValue: Self.dateFromMillis(device.activeExtraTime?.endsAt))
   }
 
   var body: some View {
@@ -743,52 +748,59 @@ private struct PolicyEditorCard: View {
       .background(Color.primary.opacity(0.06))
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
-      VStack(alignment: .leading, spacing: 10) {
-        Text("Extra Time")
-          .font(.headline)
+      if quiet {
+        VStack(alignment: .leading, spacing: 10) {
+          Text("Extra Time")
+            .font(.headline)
 
-        Text("Temporarily disable enforcement for this child.")
-          .font(.system(size: 14))
-          .foregroundStyle(.secondary)
-
-        HStack(spacing: 10) {
-          Text("Amount")
-            .font(.system(size: 16, weight: .semibold))
-          Spacer()
-          Picker("Minutes", selection: $extraTimeMinutes) {
-            ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
-              Text("\(m) min").tag(m)
-            }
-          }
-          .pickerStyle(.menu)
-        }
-
-        Button {
-          Task { await applyExtraTime() }
-        } label: {
-          HStack(spacing: 8) {
-            if applyingExtraTime { ProgressView() }
-            Text(applyingExtraTime ? "Applying..." : "Apply extra time")
-          }
-          .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(applyingExtraTime)
-
-        if let extraTimeStatus {
-          Text(extraTimeStatus)
+          Text("Temporarily disable enforcement for this child.")
             .font(.system(size: 14))
             .foregroundStyle(.secondary)
-            .italic()
+
+          HStack(spacing: 10) {
+            Text("Amount")
+              .font(.system(size: 16, weight: .semibold))
+            Spacer()
+            Picker("Minutes", selection: $extraTimeMinutes) {
+              ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
+                Text("\(m) min").tag(m)
+              }
+            }
+            .pickerStyle(.menu)
+          }
+
+          Button {
+            Task { await applyExtraTime() }
+          } label: {
+            HStack(spacing: 8) {
+              if applyingExtraTime { ProgressView() }
+              Text(applyingExtraTime ? "Applying..." : "Apply extra time")
+            }
+            .frame(maxWidth: .infinity)
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(applyingExtraTime)
+
+          if let text = extraTimeStatusText {
+            Text(text)
+              .font(.system(size: 14))
+              .foregroundStyle(.secondary)
+              .italic()
+          }
         }
+        .padding(18)
+        .background(Color.primary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
       }
-      .padding(18)
-      .background(Color.primary.opacity(0.06))
-      .clipShape(RoundedRectangle(cornerRadius: 22))
 
     }
     .onAppear {
       consumePrefillIfNeeded()
+      if let d = Self.dateFromMillis(device.activeExtraTime?.endsAt), d > Date() {
+        activeExtraTimeEndsAt = d
+      } else {
+        activeExtraTimeEndsAt = nil
+      }
     }
   }
 
@@ -839,7 +851,8 @@ private struct PolicyEditorCard: View {
     applyingExtraTime = true
     defer { applyingExtraTime = false }
     do {
-      try await model.parentApplyExtraTime(deviceId: device.id, minutes: extraTimeMinutes)
+      let endsAt = try await model.parentApplyExtraTime(deviceId: device.id, minutes: extraTimeMinutes)
+      activeExtraTimeEndsAt = endsAt
       extraTimeStatus = "Extra time applied."
     } catch {
       extraTimeStatus = "Failed to apply extra time."
@@ -871,6 +884,32 @@ private struct PolicyEditorCard: View {
     df.timeZone = .current
     df.dateFormat = "HH:mm"
     return df.string(from: d)
+  }
+
+  private var extraTimeStatusText: String? {
+    if let extraTimeStatus, !extraTimeStatus.isEmpty {
+      if extraTimeStatus == "Failed to apply extra time." {
+        return extraTimeStatus
+      }
+    }
+    if let end = activeExtraTimeEndsAt, end > Date() {
+      return "Extra time active until \(Self.formatClock(end))."
+    }
+    return extraTimeStatus
+  }
+
+  private static func formatClock(_ d: Date) -> String {
+    let f = DateFormatter()
+    f.locale = .current
+    f.timeZone = .current
+    f.dateStyle = .none
+    f.timeStyle = .short
+    return f.string(from: d)
+  }
+
+  private static func dateFromMillis(_ ms: Int?) -> Date? {
+    guard let ms, ms > 0 else { return nil }
+    return Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0)
   }
 }
 

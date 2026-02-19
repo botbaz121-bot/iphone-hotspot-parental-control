@@ -23,6 +23,7 @@ public struct ChildLockedView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         headerCard
+        extraTimeCard
       }
       .padding(.top, 22)
       .padding(.horizontal, 18)
@@ -77,42 +78,47 @@ public struct ChildLockedView: View {
       .buttonStyle(.bordered)
       .disabled(policyBusy)
 
-      VStack(alignment: .leading, spacing: 8) {
-        Text("Need more time?")
-          .font(.system(size: 16, weight: .semibold))
-        Text("Request extra time from parent.")
+    }
+    .padding(18)
+    .background(.ultraThinMaterial)
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var extraTimeCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Need more time?")
+        .font(.system(size: 16, weight: .semibold))
+      Text("Request extra time from parent.")
+        .font(.system(size: 14))
+        .foregroundStyle(.secondary)
+
+      HStack(spacing: 10) {
+        Text("Amount")
+          .font(.system(size: 15, weight: .semibold))
+        Spacer()
+        Picker("Minutes", selection: $extraTimeMinutes) {
+          ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
+            Text("\(m) min").tag(m)
+          }
+        }
+        .pickerStyle(.menu)
+      }
+
+      Button {
+        Task { await requestExtraTime() }
+      } label: {
+        Label(extraTimeBusy ? "Requesting..." : "Request extra time", systemImage: "clock.badge.questionmark")
+          .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.borderedProminent)
+      .disabled(extraTimeBusy)
+
+      if let extraTimeMessage {
+        Text(extraTimeMessage)
           .font(.system(size: 14))
           .foregroundStyle(.secondary)
-
-        HStack(spacing: 10) {
-          Text("Amount")
-            .font(.system(size: 15, weight: .semibold))
-          Spacer()
-          Picker("Minutes", selection: $extraTimeMinutes) {
-            ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { m in
-              Text("\(m) min").tag(m)
-            }
-          }
-          .pickerStyle(.menu)
-        }
-
-        Button {
-          Task { await requestExtraTime() }
-        } label: {
-          Label(extraTimeBusy ? "Requesting..." : "Request extra time", systemImage: "clock.badge.questionmark")
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(extraTimeBusy)
-
-        if let extraTimeMessage {
-          Text(extraTimeMessage)
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-            .italic()
-        }
+          .italic()
       }
-      .padding(.top, 6)
     }
     .padding(18)
     .background(.ultraThinMaterial)

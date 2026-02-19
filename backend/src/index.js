@@ -1197,6 +1197,12 @@ app.post('/extra-time/request', requireShortcutAuth, (req, res, next) => {
       `
     ).run(reqId, req.shortcut.deviceId, body.minutes, reason, now);
 
+    insertDeviceEvent({
+      deviceId: req.shortcut.deviceId,
+      trigger: 'extra_time_requested',
+      actionsAttempted: ['request_extra_time']
+    });
+
     // Best-effort push notification to parent devices.
     notifyParentExtraTimeRequest({
       deviceId: req.shortcut.deviceId,
@@ -1662,6 +1668,12 @@ app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, 
       endsAt
     );
 
+    insertDeviceEvent({
+      deviceId,
+      trigger: 'extra_time_applied',
+      actionsAttempted: ['grant_extra_time']
+    });
+
     return res.json({ ok: true, requestId, startsAt: now, endsAt, grantedMinutes: minutes });
   } catch (e) {
     next(e);
@@ -1796,6 +1808,11 @@ app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (
         WHERE id = ?
         `
       ).run(now, req.parent ? req.parent.id : 'admin', row.id);
+      insertDeviceEvent({
+        deviceId: row.device_id,
+        trigger: 'extra_time_denied',
+        actionsAttempted: ['deny_extra_time']
+      });
       return res.json({ ok: true, status: 'denied' });
     }
 
@@ -1808,6 +1825,12 @@ app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (
       WHERE id = ?
       `
     ).run(now, req.parent ? req.parent.id : 'admin', minutes, now, endsAt, row.id);
+
+    insertDeviceEvent({
+      deviceId: row.device_id,
+      trigger: 'extra_time_applied',
+      actionsAttempted: ['approve_extra_time']
+    });
 
     return res.json({ ok: true, status: 'approved', startsAt: now, endsAt, grantedMinutes: minutes });
   } catch (e) {
@@ -1908,6 +1931,32 @@ function getActiveExtraTime(deviceId, nowMs = Date.now()) {
       `
     )
     .get(deviceId, nowMs, nowMs);
+}
+
+function insertDeviceEvent({
+  deviceId,
+  trigger,
+  shortcutVersion = null,
+  actionsAttempted = [],
+  resultOk = true,
+  resultErrors = [],
+  ts = Date.now()
+}) {
+  db.prepare(
+    `
+    INSERT INTO device_events (id, device_id, ts, trigger, shortcut_version, actions_attempted, result_ok, result_errors)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    id(),
+    deviceId,
+    ts,
+    trigger,
+    shortcutVersion,
+    JSON.stringify(actionsAttempted || []),
+    resultOk ? 1 : 0,
+    JSON.stringify(resultErrors || [])
+  );
 }
 
 async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinutes, reason }) {

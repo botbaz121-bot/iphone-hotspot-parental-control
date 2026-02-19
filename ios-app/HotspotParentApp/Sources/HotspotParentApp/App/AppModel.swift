@@ -448,7 +448,7 @@ public final class AppModel: ObservableObject {
     _ = try await client.requestExtraTime(deviceSecret: cfg.deviceSecret, minutes: clamped, reason: reason)
   }
 
-  public func parentApplyExtraTime(deviceId: String, minutes: Int) async throws {
+  public func parentApplyExtraTime(deviceId: String, minutes: Int) async throws -> Date? {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let clamped = max(5, min(240, (minutes / 5) * 5))
 
@@ -458,6 +458,11 @@ public final class AppModel: ObservableObject {
       _ = try await client.grantExtraTime(deviceId: deviceId, minutes: clamped, reason: "parent_manual")
     }
     await refreshParentDashboard()
+    if let device = parentDevices.first(where: { $0.id == deviceId }),
+       let endsAt = device.activeExtraTime?.endsAt {
+      return Date(timeIntervalSince1970: TimeInterval(endsAt) / 1000.0)
+    }
+    return nil
   }
 
   public func updateSelectedDevicePolicy(

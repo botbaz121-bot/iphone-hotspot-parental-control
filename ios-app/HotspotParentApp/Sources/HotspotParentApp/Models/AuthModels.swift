@@ -63,4 +63,12 @@ public struct DashboardDevice: Decodable {
     public var end: String?
     public var tz: String?
   }
+
+  public var activeExtraTime: ActiveExtraTime?
+  public struct ActiveExtraTime: Decodable {
+    public var requestId: String
+    public var startsAt: Int
+    public var endsAt: Int
+    public var grantedMinutes: Int
+  }
 }
