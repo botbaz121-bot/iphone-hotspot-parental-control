@@ -836,19 +836,23 @@ app.get('/admin', (req, res) => {
         const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;
         const rotatePassword = d.actions && d.actions.rotatePassword ? true : false;
         const activateProtection = d.actions && d.actions.activateProtection == null ? true : !!(d.actions && d.actions.activateProtection);
+        const wantsEnforcement = !!(setHotspotOff || setWifiOff || setMobileDataOff);
         const quietStartDisplay = d.quietHours && d.quietHours.start ? d.quietHours.start : '';
         const quietEndDisplay = d.quietHours && d.quietHours.end ? d.quietHours.end : '';
-        const inScheduleWindow = !!d.inQuietHours;
         const hasSchedule = !!(quietStartDisplay && quietEndDisplay);
         const hasActiveExtraTime = !!(d.activeExtraTime && d.activeExtraTime.endsAt && d.activeExtraTime.endsAt > Date.now());
         const protectionStatus = (() => {
           if (!activateProtection) return 'Protection is currently off. Parent disabled protection.';
+          if (!wantsEnforcement) return 'Protection is currently off. No lock actions are enabled.';
           if (hasActiveExtraTime) {
             const t = new Date(d.activeExtraTime.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return 'Protection is currently off for extra time and scheduled to resume at ' + t + '.';
           }
-          if (!hasSchedule) return 'Protection is currently on.';
-          if (inScheduleWindow) return 'Protection is currently on and scheduled to end at ' + quietEndDisplay + '.';
+          if (d.enforce) {
+            if (hasSchedule) return 'Protection is currently on and scheduled to end at ' + quietEndDisplay + '.';
+            return 'Protection is currently on.';
+          }
+          if (!hasSchedule) return 'Protection is currently off.';
           return 'Protection is currently off and scheduled to start at ' + quietStartDisplay + '.';
         })();
 
@@ -1115,8 +1119,9 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const isQuietHours = inScheduleWindow;
   const statusMessage = buildPolicyStatusMessage({
     activateProtection: actions.activateProtection,
+    wantsEnforcement,
+    enforce,
     schedule,
-    inScheduleWindow,
     activeExtraTime,
     tz
   });
@@ -1992,14 +1997,18 @@ function formatTimeInTz(date, tz) {
   return `${h}:${m}`;
 }
 
-function buildPolicyStatusMessage({ activateProtection, schedule, inScheduleWindow, activeExtraTime, tz }) {
+function buildPolicyStatusMessage({ activateProtection, wantsEnforcement, enforce, schedule, activeExtraTime, tz }) {
   if (!activateProtection) return 'Protection is currently off. Parent disabled protection.';
+  if (!wantsEnforcement) return 'Protection is currently off. No lock actions are enabled.';
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
     return `Protection is currently off for extra time and scheduled to resume at ${resume}.`;
   }
-  if (!schedule || !schedule.start || !schedule.end) return 'Protection is currently on.';
-  if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}.`;
+  if (enforce) {
+    if (!schedule || !schedule.start || !schedule.end) return 'Protection is currently on.';
+    return `Protection is currently on and scheduled to end at ${schedule.end}.`;
+  }
+  if (!schedule || !schedule.start || !schedule.end) return 'Protection is currently off.';
   return `Protection is currently off and scheduled to start at ${schedule.start}.`;
 }
 
