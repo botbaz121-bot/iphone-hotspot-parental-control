@@ -16,6 +16,10 @@ backend/deploy/*.service
 # OS
 .DS_Store
 
+# Xcode local user state
+**/xcuserdata/
+**/*.xcuserstate
+
 # Local notes that may contain secrets
 **/render-postgres.local.md
 
