@@ -286,8 +286,9 @@ public final class ScreenTimeManager {
     var activateProtection: Bool
     var quietHoursConfigured: Bool
     var inQuietHours: Bool
+    var enforceNow: Bool
 
-    static let `default` = PolicyWindow(activateProtection: true, quietHoursConfigured: false, inQuietHours: false)
+    static let `default` = PolicyWindow(activateProtection: true, quietHoursConfigured: false, inQuietHours: false, enforceNow: false)
   }
 
   private func applyPolicyDrivenShielding(
@@ -308,10 +309,8 @@ public final class ScreenTimeManager {
       )
     }
 
-    // Backend already evaluates schedule semantics:
-    // - schedule set: true only inside schedule window
-    // - schedule unset: true (always enforce)
-    let shieldOtherAppsNow = policy.inQuietHours
+    // Backend computes effective enforcement in `enforce` (includes schedule and current overrides).
+    let shieldOtherAppsNow = policy.enforceNow
 
     var appsToShield = Set(requiredSelection.applicationTokens)
     let quietApps = Set(quietSelection?.applicationTokens ?? [])
@@ -390,10 +389,12 @@ public final class ScreenTimeManager {
     let activateProtection = (obj["activateProtection"] as? Bool) ?? (actions?["activateProtection"] as? Bool) ?? true
     let quietHoursConfigured = (obj["quietHours"] as? [String: Any]) != nil
     let inQuietHours = (obj["isQuietHours"] as? Bool) ?? false
+    let enforceNow = (obj["enforce"] as? Bool) ?? inQuietHours
     return PolicyWindow(
       activateProtection: activateProtection,
       quietHoursConfigured: quietHoursConfigured,
-      inQuietHours: inQuietHours
+      inQuietHours: inQuietHours,
+      enforceNow: enforceNow
     )
   }
   #endif
