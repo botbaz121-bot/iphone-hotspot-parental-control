@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2 (3) - 2026-02-19
+- Fixed parent pending extra-time request lookup to reliably match by device in-app.
+- Added explicit `Approval` card in parent child settings with `Accept` / `Deny` actions.
+- Added pending-request debug details in parent child settings to diagnose request visibility issues.
+- Fixed extra-time reduction/clear precedence so latest parent decision overrides active windows.
+- Added immediate recent-activity refresh after parent apply/deny from child settings.
+- Corrected child enforcement state handling to follow backend effective `enforce` flag.
+- Fixed backend/admin protection status logic to avoid schedule-state mismatches.
+- Switched child lock screen to backend `statusMessage` as authoritative source (with fallback).
+- Expanded protection status messaging to include configured protections (Apps/Hotspot/Wi-Fi/Mobile Data).
+- Updated rules schedule save to use current device timezone identifier.
+
 ## 0.1.1 (2) - 2026-02-19
 - Added child extra-time request flow from locked screen with 5-minute interval picker.
 - Added parent-side Extra Time approval/apply controls in child settings.
