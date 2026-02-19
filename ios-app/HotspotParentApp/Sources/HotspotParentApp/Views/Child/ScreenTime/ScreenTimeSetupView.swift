@@ -20,6 +20,8 @@ public struct ScreenTimeSetupView: View {
   @State private var busy = false
   @State private var openedScreenTimeSettings = false
   @State private var openedDeletionProtectionSettings = false
+  @State private var showPasswordConfirm = false
+  @State private var showDeletionConfirm = false
 
   public init() {}
 
@@ -95,6 +97,24 @@ public struct ScreenTimeSetupView: View {
     }
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
+    .alert("Did you set a Screen Time passcode?", isPresented: $showPasswordConfirm) {
+      Button("Not yet", role: .cancel) {}
+      Button("Yes, mark done") {
+        openedScreenTimeSettings = true
+        model.screenTimePasswordStepCompleted = true
+      }
+    } message: {
+      Text("After setting the passcode and locking Screen Time settings, tap Yes.")
+    }
+    .alert("Did you disable app deletion?", isPresented: $showDeletionConfirm) {
+      Button("Not yet", role: .cancel) {}
+      Button("Yes, mark done") {
+        openedDeletionProtectionSettings = true
+        model.screenTimeDeletionProtectionStepCompleted = true
+      }
+    } message: {
+      Text("After setting Deleting Apps to Don't Allow, tap Yes.")
+    }
     .task {
       await loadSelectionAndRefresh()
     }
@@ -164,9 +184,8 @@ public struct ScreenTimeSetupView: View {
 
       UIApplication.shared.open(url, options: [:]) { success in
         if success {
-          openedScreenTimeSettings = true
-          model.screenTimePasswordStepCompleted = true
-          statusText = "Opened Screen Time settings."
+          statusText = "Opened Settings. Set a Screen Time passcode, then confirm."
+          showPasswordConfirm = true
         } else {
           tryOpen(index + 1)
         }
@@ -203,9 +222,8 @@ public struct ScreenTimeSetupView: View {
 
       UIApplication.shared.open(url, options: [:]) { success in
         if success {
-          openedDeletionProtectionSettings = true
-          model.screenTimeDeletionProtectionStepCompleted = true
-          statusText = "Opened Screen Time restrictions."
+          statusText = "Opened Settings. Set Deleting Apps to Don't Allow, then confirm."
+          showDeletionConfirm = true
         } else {
           tryOpen(index + 1)
         }
