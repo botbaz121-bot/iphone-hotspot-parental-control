@@ -473,8 +473,8 @@ public final class AppModel: ObservableObject {
 
   public func fetchLatestPendingExtraTimeRequest(deviceId: String) async throws -> ExtraTimeRequestRow? {
     guard let client = apiClient else { throw APIError.invalidResponse }
-    let out = try await client.extraTimeRequests(status: "pending", deviceId: deviceId)
-    return out.requests.first
+    let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
+    return out.requests.first(where: { $0.deviceId == deviceId })
   }
 
   public func updateSelectedDevicePolicy(
