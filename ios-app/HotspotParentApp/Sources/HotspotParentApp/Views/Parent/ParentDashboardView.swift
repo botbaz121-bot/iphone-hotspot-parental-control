@@ -934,8 +934,31 @@ private struct PolicyEditorCard: View {
         pendingDebugText = "deviceId=\(device.id) no pending request"
       }
     } catch {
-      pendingDebugText = "deviceId=\(device.id) pending fetch error"
+      pendingDebugText = "deviceId=\(device.id) pending fetch error: \(Self.describePendingFetchError(error))"
     }
+  }
+
+  private static func describePendingFetchError(_ error: Error) -> String {
+    if let apiError = error as? APIError {
+      switch apiError {
+        case .invalidResponse:
+          return "invalidResponse"
+        case .httpStatus(let code, let body):
+          let compactBody = body
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+          let trimmed = compactBody.count > 140 ? String(compactBody.prefix(140)) + "..." : compactBody
+          return "http \(code) body=\(trimmed)"
+      }
+    }
+
+    if let urlError = error as? URLError {
+      return "urlError \(urlError.code.rawValue) \(urlError.localizedDescription)"
+    }
+
+    let desc = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+    return desc.isEmpty ? String(describing: error) : desc
   }
 
   @MainActor

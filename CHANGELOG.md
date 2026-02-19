@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4 (5) - 2026-02-19
+- Expanded parent pending-request debug output to include exact pending-fetch failure details (HTTP status/body, URL error, or localized error text).
+
 ## 0.1.3 (4) - 2026-02-19
 - Made parent child-settings pending-request debug line always visible (not gated by pending state).
 - Expanded debug line with device id, pending flag, request id, and minutes to diagnose missing Approval box cases.
