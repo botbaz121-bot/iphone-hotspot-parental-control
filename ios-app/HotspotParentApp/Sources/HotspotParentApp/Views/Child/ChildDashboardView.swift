@@ -124,8 +124,7 @@ public struct ChildDashboardView: View {
           Text("Finish setup")
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.blue)
+        .primaryActionButton()
         .disabled(!canFinishSetup)
       }
       .padding(.top, 18)

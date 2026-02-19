@@ -58,8 +58,7 @@ public struct PairingEntryView: View {
               Text(busy ? "Pairing…" : "Pair")
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
+            .primaryActionButton()
             .disabled(busy || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
           }
           .padding(.vertical, 10)
