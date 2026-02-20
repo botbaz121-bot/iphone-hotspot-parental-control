@@ -197,21 +197,21 @@ public struct ChildLockedView: View {
     }
 
     if let backend = backendStatusMessage(), !backend.isEmpty {
-      return backend
+      return appendDailyLimitUsage(to: backend)
     }
 
     let boundary = nextScheduleBoundary(after: now, protectionOnNow: model.screenTimeScheduleEnforcedNow)
     if model.screenTimeScheduleEnforcedNow {
       if let boundary {
-        return "Protection is currently on and scheduled to end \(formatFriendlyBoundary(boundary, now: now))."
+        return appendDailyLimitUsage(to: "Protection is currently on and scheduled to end \(formatFriendlyBoundary(boundary, now: now)).")
       }
-      return "Protection is currently on."
+      return appendDailyLimitUsage(to: "Protection is currently on.")
     }
 
     if let boundary {
-      return "Protection is currently off and scheduled to start \(formatFriendlyBoundary(boundary, now: now))."
+      return appendDailyLimitUsage(to: "Protection is currently off and scheduled to start \(formatFriendlyBoundary(boundary, now: now)).")
     }
-    return "Protection is currently off."
+    return appendDailyLimitUsage(to: "Protection is currently off.")
   }
 
   private func backendStatusMessage() -> String? {
@@ -223,6 +223,38 @@ public struct ChildLockedView: View {
     }
     let text = (obj["statusMessage"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
     return (text?.isEmpty ?? true) ? nil : text
+  }
+
+  private func appendDailyLimitUsage(to message: String) -> String {
+    guard let usage = dailyLimitUsageText(), !usage.isEmpty else { return message }
+    let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.isEmpty { return usage }
+    let separator = trimmed.hasSuffix(".") ? " " : ". "
+    return trimmed + separator + usage
+  }
+
+  private func dailyLimitUsageText() -> String? {
+    guard let raw = SharedDefaults.suite.string(forKey: "last_policy_json"),
+          let data = raw.data(using: .utf8),
+          let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+          let dailyLimit = obj["dailyLimit"] as? [String: Any]
+    else {
+      return nil
+    }
+
+    let limitMinutes = (dailyLimit["limitMinutes"] as? Int) ?? Int(dailyLimit["limitMinutes"] as? Double ?? -1)
+    let usedMinutes = (dailyLimit["usedMinutes"] as? Int) ?? Int(dailyLimit["usedMinutes"] as? Double ?? -1)
+    guard limitMinutes > 0, usedMinutes >= 0 else { return nil }
+    return "Used \(formatMinutesHM(usedMinutes)) of \(formatMinutesHM(limitMinutes)) today."
+  }
+
+  private func formatMinutesHM(_ minutes: Int) -> String {
+    let clamped = max(0, minutes)
+    let h = clamped / 60
+    let m = clamped % 60
+    if h == 0 { return "\(m)m" }
+    if m == 0 { return "\(h)h" }
+    return "\(h)h \(m)m"
   }
 
   private var isProtectionCurrentlyOn: Bool {

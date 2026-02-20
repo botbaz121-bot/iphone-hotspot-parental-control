@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.44 (45) - 2026-02-20
+- Child lock screen protection status now appends daily-limit usage text when configured (e.g. used X of Y today).
+- Parent `Total daily limit` picker now shows values in `h/m` format and is capped at 8 hours.
+- Added 5-minute remaining child warning notification via `FetchHotspotPolicyIntent` (deduped to once per child/day when daily limit is active).
+
 ## 0.1.43 (44) - 2026-02-20
 - Added per-day `Total daily limit` control (15-minute intervals) under schedule start/end in parent child settings.
 - Extended per-day schedule payload (`quietDays`) to persist `dailyLimitMinutes`.

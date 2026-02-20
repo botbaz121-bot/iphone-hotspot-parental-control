@@ -601,7 +601,7 @@ private struct PolicyEditorCard: View {
     // Pickers show the selected day values (or defaults)
     let start = qd[initialDay]?.start ?? "22:00"
     let end = qd[initialDay]?.end ?? "07:00"
-    let dailyLimit = max(0, ((qd[initialDay]?.dailyLimitMinutes ?? 0) / 15) * 15)
+    let dailyLimit = Self.clampDailyLimitMinutes(qd[initialDay]?.dailyLimitMinutes ?? 0)
     _startDate = State(initialValue: Self.parseTime(start) ?? Date())
     _endDate = State(initialValue: Self.parseTime(end) ?? Date())
     _dailyLimitMinutes = State(initialValue: dailyLimit)
@@ -681,7 +681,7 @@ private struct PolicyEditorCard: View {
             // seed all days with current picker values
             let s = Self.formatTime(startDate)
             let e = Self.formatTime(endDate)
-            let limit = max(0, (dailyLimitMinutes / 15) * 15)
+            let limit = Self.clampDailyLimitMinutes(dailyLimitMinutes)
             quietDays = [
               "mon": .init(start: s, end: e, dailyLimitMinutes: limit),
               "tue": .init(start: s, end: e, dailyLimitMinutes: limit),
@@ -715,7 +715,7 @@ private struct PolicyEditorCard: View {
                   let end = quietDays[d]?.end ?? "07:00"
                   startDate = Self.parseTime(start) ?? startDate
                   endDate = Self.parseTime(end) ?? endDate
-                  dailyLimitMinutes = max(0, ((quietDays[d]?.dailyLimitMinutes ?? 0) / 15) * 15)
+                  dailyLimitMinutes = Self.clampDailyLimitMinutes(quietDays[d]?.dailyLimitMinutes ?? 0)
                 } label: {
                   Text(Self.dayLabel(d))
                     .font(.system(size: 13, weight: .semibold))
@@ -750,7 +750,7 @@ private struct PolicyEditorCard: View {
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: startDate) { _ in
-                    let currentLimit = max(0, ((quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes) / 15) * 15)
+                    let currentLimit = Self.clampDailyLimitMinutes(quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes)
                     quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate), dailyLimitMinutes: currentLimit)
                     scheduleSave()
                   }
@@ -770,7 +770,7 @@ private struct PolicyEditorCard: View {
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: endDate) { _ in
-                    let currentLimit = max(0, ((quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes) / 15) * 15)
+                    let currentLimit = Self.clampDailyLimitMinutes(quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes)
                     quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate), dailyLimitMinutes: currentLimit)
                     scheduleSave()
                   }
@@ -792,13 +792,13 @@ private struct PolicyEditorCard: View {
             Spacer()
             Picker("Total daily limit", selection: $dailyLimitMinutes) {
               Text("Off").tag(0)
-              ForEach(Array(stride(from: 15, through: 12 * 60, by: 15)), id: \.self) { m in
-                Text("\(m) min").tag(m)
+              ForEach(Array(stride(from: 15, through: 8 * 60, by: 15)), id: \.self) { m in
+                Text(Self.formatDurationHM(m)).tag(m)
               }
             }
             .pickerStyle(.menu)
             .onChange(of: dailyLimitMinutes) { v in
-              let rounded = max(0, (v / 15) * 15)
+              let rounded = Self.clampDailyLimitMinutes(v)
               quietDays[selectedDay] = .init(
                 start: Self.formatTime(startDate),
                 end: Self.formatTime(endDate),
@@ -812,7 +812,7 @@ private struct PolicyEditorCard: View {
             Button {
               let s = Self.formatTime(startDate)
               let e = Self.formatTime(endDate)
-              let limit = max(0, (dailyLimitMinutes / 15) * 15)
+              let limit = Self.clampDailyLimitMinutes(dailyLimitMinutes)
               quietDays = [
                 "mon": .init(start: s, end: e, dailyLimitMinutes: limit),
                 "tue": .init(start: s, end: e, dailyLimitMinutes: limit),
@@ -1098,6 +1098,20 @@ private struct PolicyEditorCard: View {
     f.dateStyle = .none
     f.timeStyle = .short
     return f.string(from: d)
+  }
+
+  private static func formatDurationHM(_ minutes: Int) -> String {
+    let clamped = max(0, minutes)
+    let h = clamped / 60
+    let m = clamped % 60
+    if h == 0 { return "\(m)m" }
+    if m == 0 { return "\(h)h" }
+    return "\(h)h \(m)m"
+  }
+
+  private static func clampDailyLimitMinutes(_ minutes: Int) -> Int {
+    let clamped = max(0, min(8 * 60, minutes))
+    return clamped - (clamped % 15)
   }
 
   private static func dateFromMillis(_ ms: Int?) -> Date? {
