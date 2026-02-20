@@ -2169,7 +2169,7 @@ async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinu
   if (!tokens.length) return { ok: false, skipped: 'no_tokens' };
 
   const title = 'Extra time requested';
-  const body = `${device.name} requested ${requestedMinutes} more min`;
+  const body = `${device.name} requested ${requestedMinutes} more mins`;
   const payload = {
     aps: { alert: { title, body }, sound: 'default' },
     type: 'extra_time_request',

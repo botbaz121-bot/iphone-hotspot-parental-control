@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.34 (35) - 2026-02-20
+- Updated extra-time push notification copy to use plural `mins`.
+
 ## 0.1.33 (34) - 2026-02-20
 - Removed remaining debug/status text from the child Screen Time protection screen (degraded reason and transient permission status line).
 
