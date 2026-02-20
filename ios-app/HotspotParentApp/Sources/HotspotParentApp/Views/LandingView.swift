@@ -102,7 +102,7 @@ public struct LandingView: View {
       if raw.contains("AuthorizationError") && raw.contains("Code=1001") {
         return "\n\nIt looks like you cancelled the Sign in with Apple prompt."
       }
-      return "\n\nTechnical details: \(raw)"
+      return "\n\nSign in could not be completed. Please try again."
     }()
 
     return base + detail

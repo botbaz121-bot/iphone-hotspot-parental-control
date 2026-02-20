@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.31 (32) - 2026-02-20
+- Replaced remaining raw user-facing error strings with friendly messages across:
+- Landing sign-in alert, Add Device pairing generation, Child unlock alert, and Parent child-details action alerts.
+
 ## 0.1.30 (31) - 2026-02-20
 - Increased Screen Time protection checklist subtitle line limit from 4 to 5 lines.
 - Removed debug detail text from Screen Time permission result messages.

@@ -370,7 +370,7 @@ private struct DeviceDetailsSheet: View {
             #endif
           }
         } catch {
-          actionError = String(describing: error)
+          actionError = friendlyActionError(error)
         }
       }
     }
@@ -386,7 +386,7 @@ private struct DeviceDetailsSheet: View {
             try await model.deleteDevice(deviceId: device.id)
             dismiss()
           } catch {
-            actionError = String(describing: error)
+            actionError = friendlyActionError(error)
           }
         }
       }
@@ -422,7 +422,7 @@ private struct DeviceDetailsSheet: View {
             guard !t.isEmpty else { return }
             try await model.renameDevice(deviceId: device.id, name: t)
           } catch {
-            actionError = String(describing: error)
+            actionError = friendlyActionError(error)
           }
         }
       }
@@ -505,8 +505,15 @@ private struct DeviceDetailsSheet: View {
       pairingCodeText = "\(out.code)\nExpires at \(Self.formatEventTime(Int(expires.timeIntervalSince1970 * 1000)))."
       showPairingCodePopup = true
     } catch {
-      actionError = String(describing: error)
+      actionError = friendlyActionError(error)
     }
+  }
+
+  private func friendlyActionError(_ error: Error) -> String {
+    if let apiErr = error as? APIError {
+      return apiErr.userMessage
+    }
+    return "That action couldn't be completed. Please try again."
   }
 
   private static func formatEventTime(_ ts: Int) -> String {

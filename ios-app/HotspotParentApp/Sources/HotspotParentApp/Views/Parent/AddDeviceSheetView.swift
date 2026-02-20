@@ -47,7 +47,11 @@ public struct AddDeviceSheetView: View {
                     let out = try await model.createDeviceAndPairingCode(name: trimmedDeviceName)
                     pairingCode = out.code
                   } catch {
-                    status = String(describing: error)
+                    if let apiErr = error as? APIError {
+                      status = apiErr.userMessage
+                    } else {
+                      status = "Could not create pairing code. Please try again."
+                    }
                   }
                 }
               } label: {

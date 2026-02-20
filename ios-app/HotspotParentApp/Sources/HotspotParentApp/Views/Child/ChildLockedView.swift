@@ -158,7 +158,11 @@ public struct ChildLockedView: View {
 
       model.unlockChildSetup()
     } catch {
-      signInError = String(describing: error)
+      if let apiErr = error as? APIError {
+        signInError = apiErr.userMessage
+      } else {
+        signInError = "Could not unlock right now. Please try again."
+      }
       showError = true
     }
     #else
