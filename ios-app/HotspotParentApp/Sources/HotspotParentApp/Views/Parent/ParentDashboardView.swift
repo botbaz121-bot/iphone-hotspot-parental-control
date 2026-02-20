@@ -677,7 +677,7 @@ private struct PolicyEditorCard: View {
         }
 
         if !quiet && wifiOff && mobileDataOff {
-          Text("Warning: Wi-Fi Off + Mobile Data Off with no Rules Schedule may prevent this phone from fetching policy updates.")
+          Text("Warning: Wi-Fi Off + Mobile Data Off with no Rules Schedule may prevent child phone from fetching policy updates.")
             .font(.system(size: 14))
             .foregroundStyle(.orange)
         }

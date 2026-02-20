@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.15 (16) - 2026-02-20
+- Updated Rules Schedule warning copy from "may prevent this phone" to "may prevent child phone".
+
 ## 0.1.14 (15) - 2026-02-20
 - Reduced Rules Schedule time wheel picker touch area height to lower accidental time changes while scrolling.
 
