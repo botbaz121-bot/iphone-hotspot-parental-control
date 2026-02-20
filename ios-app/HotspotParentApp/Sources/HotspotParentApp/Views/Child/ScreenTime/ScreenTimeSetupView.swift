@@ -160,7 +160,7 @@ private struct ChecklistTile: View {
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(.white.opacity(0.80))
             .multilineTextAlignment(.leading)
-            .lineLimit(5)
+            .lineLimit(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
