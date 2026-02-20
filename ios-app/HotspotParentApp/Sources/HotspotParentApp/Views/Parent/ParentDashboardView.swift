@@ -622,7 +622,7 @@ private struct PolicyEditorCard: View {
           VStack(alignment: .leading, spacing: 2) {
             Text("Lock Apps")
               .font(.system(size: 16, weight: .semibold))
-            Text("Block certain apps. Set list on child phone")
+            Text("Block certain apps. Set list on child phone.")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }

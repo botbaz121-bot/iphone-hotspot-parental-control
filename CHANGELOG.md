@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.38 (39) - 2026-02-20
+- Added missing full stop in parent Lock Apps subtitle (`Set list on child phone.`).
+
 ## 0.1.37 (38) - 2026-02-20
 - `Lock Shortcuts` tile now shows the Shortcuts icon in both incomplete and complete states.
 - Updated incomplete subtitle to: `Pick Productivity & Finance > Shortcuts to lock`.
