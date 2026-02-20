@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8 (9) - 2026-02-20
+- Updated backend protection status messaging for extra time:
+- Clarified active state text to "approved extra time".
+- Added pending-request status messaging so pending requests do not read as active approved extra time.
+
 ## 0.1.7 (8) - 2026-02-19
 - Removed parent child-settings pending-request debug text from the UI.
 - Updated backend policy status wording to consistently use "Protection is currently on/off..." phrasing.

@@ -1096,9 +1096,10 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     : true;
 
   const activeExtraTime = getActiveExtraTime(deviceId);
+  const pendingExtraTime = getPendingExtraTime(deviceId);
   const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
   const isQuietHours = inScheduleWindow;
-  const statusMessage = buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, tz, actions });
+  const statusMessage = buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions });
 
   const out = {
     enforce,
@@ -1362,12 +1363,14 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       : true;
 
     const activeExtraTime = getActiveExtraTime(r.id, now);
+    const pendingExtraTime = getPendingExtraTime(r.id);
     const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
     const inQuiet = inScheduleWindow;
     const statusMessage = buildPolicyStatusMessage({
       schedule,
       inScheduleWindow,
       activeExtraTime,
+      pendingExtraTime,
       tz,
       actions
     });
@@ -1960,6 +1963,21 @@ function getActiveExtraTime(deviceId, nowMs = Date.now()) {
     .get(deviceId, nowMs, nowMs);
 }
 
+function getPendingExtraTime(deviceId) {
+  return db
+    .prepare(
+      `
+      SELECT id, requested_minutes, requested_at
+      FROM extra_time_requests
+      WHERE device_id = ?
+        AND status = 'pending'
+      ORDER BY requested_at DESC
+      LIMIT 1
+      `
+    )
+    .get(deviceId);
+}
+
 function formatTimeInTz(date, tz) {
   try {
     const parts = new Intl.DateTimeFormat('en-GB', {
@@ -2001,14 +2019,21 @@ function scheduleStartSuffix({ start, end, tz }) {
   return `at ${start}`;
 }
 
-function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, tz, actions }) {
+function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions }) {
   const details = formatProtectedActions(actions);
+  const hasSchedule = !!(schedule && schedule.start && schedule.end);
+
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
-    return `Protection is currently off for extra time and scheduled to resume at ${resume}. ${details}`;
+    return `Protection is currently off for approved extra time and scheduled to resume at ${resume}. ${details}`;
   }
 
-  const hasSchedule = !!(schedule && schedule.start && schedule.end);
+  if (pendingExtraTime) {
+    if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}`;
+    if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}`;
+    return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}`;
+  }
+
   if (!hasSchedule) return `Protection is currently on. ${details}`;
   if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}`;
   return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}`;
