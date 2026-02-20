@@ -23,7 +23,6 @@ public struct ChildDashboardView: View {
   @State private var showingQuietPicker = false
   #endif
 
-  private static let shortcutsIconBase64 = "iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAECklEQVR4nO2ZR2gWQRiGHxMTe8EGYsMgCEZFBRU8aCRgbmINYkOwYcEYL3pSTyqCggdBPYgYE0+2g3jwrmJBjCXRmIsl2EESu2Y9zLfMRv9/Zmd213jIC3P55/3a7uz3zj8DXehCp6EYqATqgEagDQgyHm0Sq1ZiFyctYhHQ/A8St42nwEKfAgqAgxFH94BtwASgj49DR/QBSoEqoD6SxwHJLTbCIr4CG12NU0YBsElyCYuJhUXoIuZkkpofytDFLLCRi9HfxMYss/LEZlRuTUCRiViJ/iaSLKeewA7gFvBZxi2gWuZ8UQjclxyXmIh1QtqWINgkoIH8HahBOL7YLn7OmEiPhTTBM8gKtM40oJ7aEBlLgUcy9wlY6RmjVHw0mkitQurr6Lw7qpuET/000DsHrydwIsI7DvRwjNVPbFtNpDCAC0YC19CdriqGzWrUWwmAO8BYx5jWPF0LKQNeic0zYKaD7VR0h3wHVDjYplZIN2An8FP4l4FBDomEGACcFx/txFfuVArp7xk8H3weSuJCStDL4S1uy8GGCvEZSIwSAzdxIZdk/iYw2inNeBgtvgPgooGXuJB3Mm979b3wV/bB6Dfum6eVcFfmdxk4k0mm7LvQbdk3TyuhEvWBB8Ax/t64RfUhl7KHBbahdgFRFInPsIkszrIQJKHPwrsKDJTfhwMv5fdTqOX1J3oBJyNxjqJ23APFVyC+l1pySE1HpgMt6Cc/Tn4fCayKYb8O+CL2N9BvqkV825Cqso+iozLPjmkXYhrwIhKzWXzGQWbKHgDfgDUxEwFYhn4rnaLsg1DqGwC/gN3AoYjtfksyBcIJ+YeBPeKr05R9XmRuPfBd5s6R+7Slt8wFwt0QmatA61Qz5h1x5speDnwQzhNU9xkmo1J+C4RTnsN+DFrZLyTIMxVlHw88jPj6czwUTj6Eyv4mQZ6pKDsovdiOaq1tMq6j/nTZtiihst9OkKezsne3JOWCf67si9HbkKiyJ0E/dCf8Aiy38FPTkSnAc+E2YV7zNpSgT1dagBkxbFJV9hGodRwA71H/310xC3gtPupRXSsOUi0E1LHRRZIr+xXUX+i4SL0QUNuVvRHbI5iVPRe/0DGmNU/fAzqAtXRU9nwHdGeF8wPY4hGnv9h/NJGSHpnmUvahaGVvwqzscTBRfBiPTGuFVOUZBJIruw3V4qfGRAqvFepJdlaVRNlNKAQeSI7Ga4Vi1MVjgLru+t+wFb1sjRc9oG5PA9SBdFmmablhLqrFtwPz4xqFVwRfUdddru0xTRSi3sQ3yWmfi3EBHe877qPWfCl+rdkVfVHdqRr9TbSjivD6dhegW2Znjic4LKd8KEJ1iDOoY5tQNLMcraiNZI3Etn7YXehCRvgNZNsvTgtbGykAAAAASUVORK5CYII="
 
   private struct AutomationRow: View {
     let triggerIcon: String
@@ -444,13 +443,7 @@ public struct ChildDashboardView: View {
   }
 
   private var shortcutsIcon: Image? {
-    #if canImport(UIKit)
-    guard let data = Data(base64Encoded: Self.shortcutsIconBase64),
-          let uiImage = UIImage(data: data) else { return nil }
-    return Image(uiImage: uiImage)
-    #else
-    return nil
-    #endif
+    Image("ShortcutsIcon")
   }
 }
 

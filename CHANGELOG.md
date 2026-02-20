@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.22 (23) - 2026-02-20
+- Replaced the old embedded Shortcuts icon with a new vector asset (`ShortcutsIcon`) using the provided SVG.
+- Updated child setup/automation Shortcuts icon rendering to use the shared asset.
+
 ## 0.1.21 (22) - 2026-02-20
 - Clarified `Prevent App Deletions` checklist subtitle with explicit Settings navigation path and final action (`Deleting Apps: Don't Allow`).
 
