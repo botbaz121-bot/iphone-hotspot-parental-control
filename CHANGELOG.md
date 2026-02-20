@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.14 (15) - 2026-02-20
+- Reduced Rules Schedule time wheel picker touch area height to lower accidental time changes while scrolling.
+
 ## 0.1.13 (14) - 2026-02-20
 - Added save warning in parent child settings when policy updates fail.
 - Shows explicit offline warning (`No internet connection. Couldn't save settings.`) for likely network failures.

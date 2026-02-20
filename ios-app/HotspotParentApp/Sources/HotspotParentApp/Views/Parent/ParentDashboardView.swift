@@ -723,7 +723,7 @@ private struct PolicyEditorCard: View {
                   .labelsHidden()
                   .datePickerStyle(.wheel)
                   .environment(\.locale, Locale(identifier: "en_GB"))
-                  .frame(width: colW, height: 150)
+                  .frame(width: colW, height: 118)
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: startDate) { _ in
@@ -742,7 +742,7 @@ private struct PolicyEditorCard: View {
                   .labelsHidden()
                   .datePickerStyle(.wheel)
                   .environment(\.locale, Locale(identifier: "en_GB"))
-                  .frame(width: colW, height: 150)
+                  .frame(width: colW, height: 118)
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: endDate) { _ in
@@ -753,7 +753,7 @@ private struct PolicyEditorCard: View {
               .frame(width: colW)
             }
           }
-          .frame(height: 170)
+          .frame(height: 138)
           .padding(10)
           .background(Color.white.opacity(0.04))
           .clipShape(RoundedRectangle(cornerRadius: 16))
