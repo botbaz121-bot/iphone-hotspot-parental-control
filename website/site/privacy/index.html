@@ -4,6 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SpotChecker — Privacy Policy</title>
+  <meta name="description" content="SpotChecker privacy policy for pairing, policy checks, event logs, and optional push notifications for extra-time requests." />
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <link rel="canonical" href="https://spotchecker.app/privacy/" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SpotChecker" />
+  <meta property="og:title" content="SpotChecker Privacy Policy" />
+  <meta property="og:description" content="How SpotChecker handles account, device, policy, and notification data." />
+  <meta property="og:url" content="https://spotchecker.app/privacy/" />
+  <meta property="og:image" content="https://spotchecker.app/assets/logo-512.png" />
   <style>
     :root {
       color-scheme: light dark;
@@ -61,7 +75,7 @@
       width: 34px;
       height: 34px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      object-fit: cover;
       box-shadow: 0 12px 30px rgba(0,0,0,0.28);
     }
 
@@ -94,7 +108,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <img class="logo" src="/assets/logo-192.png" alt="SpotChecker logo" />
         <div>SpotChecker</div>
       </div>
       <div class="nav">
@@ -105,7 +119,7 @@
 
     <div class="card">
       <h1>Privacy Policy</h1>
-      <p class="muted">Last updated: 2026-02-15</p>
+      <p class="muted">Last updated: 2026-02-20</p>
 
       <h2>Summary</h2>
       <p>SpotChecker is designed to help parents enforce device rules using Shortcuts automations and optional Screen Time controls. We aim to collect as little data as possible.</p>
@@ -114,7 +128,8 @@
     <ul>
       <li><b>Account</b>: Sign in with Apple identifier (used to create a parent account).</li>
       <li><b>Device enrollment</b>: a device identifier and a pairing token/secret to authenticate policy checks.</li>
-      <li><b>Policy events</b>: basic timestamps indicating when a device checked its status (e.g. “Checked status”).</li>
+      <li><b>Policy events</b>: timestamps and basic action results for policy checks and extra-time actions.</li>
+      <li><b>Push token</b>: parent push token to deliver extra-time request notifications.</li>
     </ul>
 
     <h2>Data we do not collect</h2>

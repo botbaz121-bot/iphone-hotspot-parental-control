@@ -4,6 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SpotChecker — Support</title>
+  <meta name="description" content="SpotChecker support: setup help for pairing, automations, Rules Enforcement Schedule, Screen Time lock setup, and extra-time request approvals." />
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <link rel="canonical" href="https://spotchecker.app/support/" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SpotChecker" />
+  <meta property="og:title" content="SpotChecker Support" />
+  <meta property="og:description" content="Support and troubleshooting for SpotChecker setup and policy enforcement." />
+  <meta property="og:url" content="https://spotchecker.app/support/" />
+  <meta property="og:image" content="https://spotchecker.app/assets/logo-512.png" />
   <style>
     :root {
       color-scheme: light dark;
@@ -61,7 +75,7 @@
       width: 34px;
       height: 34px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      object-fit: cover;
       box-shadow: 0 12px 30px rgba(0,0,0,0.28);
     }
 
@@ -94,7 +108,7 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <img class="logo" src="/assets/logo-192.png" alt="SpotChecker logo" />
         <div>SpotChecker</div>
       </div>
       <div class="nav">
@@ -109,8 +123,10 @@
     <h2>Quick troubleshooting</h2>
     <ul>
       <li><b>Policy not applying?</b> Ensure the child phone has the Shortcut installed and automations enabled.</li>
-      <li><b>Pairing code invalid/expired?</b> Generate a new pairing code from the parent phone and try again.</li>
-      <li><b>No internet?</b> The Shortcut can use the last cached policy if previously fetched.</li>
+      <li><b>No extra-time approval card?</b> Tap Refresh Status on child, then open parent child settings and check the Extra Time section.</li>
+      <li><b>Screen Time setup not complete?</b> Follow the checklist: Grant Permissions, Screen Time password, Prevent App Deletions, and Lock Shortcuts.</li>
+      <li><b>Pairing code invalid/expired?</b> Open parent child settings and tap View Pairing Code to generate a fresh code.</li>
+      <li><b>No internet?</b> Policy updates require connectivity; the child may continue using the last fetched state until refreshed.</li>
     </ul>
 
     <h2>Contact</h2>

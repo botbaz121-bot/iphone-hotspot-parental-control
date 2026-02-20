@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.40 (41) - 2026-02-20
+- Updated `spotchecker.app` pages with current product capabilities and onboarding flow:
+- Rules Enforcement Schedule, app lock setup guidance, extra-time request/approval flow, and push notification support.
+- Replaced gradient placeholder brand block with the new SpotChecker logo image site-wide.
+- Added favicon and app-icon assets (`favicon.ico`, PNG sizes, Apple touch icon).
+- Improved on-page SEO across homepage/support/privacy:
+- richer page titles and descriptions, canonical URLs, robots directives, Open Graph/Twitter metadata, and SoftwareApplication structured data on homepage.
+
 ## 0.1.39 (40) - 2026-02-20
 - Removed duplicate `Rules Schedule` heading in parent child settings.
 - Renamed toggle title from `Enforcement schedule` to `Rules Enforcement Schedule`.

@@ -3,8 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SpotChecker</title>
-  <meta name="description" content="SpotChecker helps parents enforce hotspot rules using Apple Shortcuts and optional Screen Time / Family Controls." />
+  <title>SpotChecker | iPhone Parental Controls for Hotspot, Wi-Fi, Mobile Data and App Locks</title>
+  <meta name="description" content="SpotChecker helps parents control hotspot, Wi-Fi and mobile data with Apple Shortcuts automations, Rules Enforcement Schedule, Screen Time lock guidance, and extra-time requests with parent approval." />
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <link rel="canonical" href="https://spotchecker.app/" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SpotChecker" />
+  <meta property="og:title" content="SpotChecker | iPhone Parental Controls for Hotspot and App Locks" />
+  <meta property="og:description" content="Enforce hotspot, Wi-Fi, mobile data and app-lock rules with automations, Screen Time setup, and parent-approved extra time." />
+  <meta property="og:url" content="https://spotchecker.app/" />
+  <meta property="og:image" content="https://spotchecker.app/assets/logo-512.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SpotChecker | iPhone Parental Controls" />
+  <meta name="twitter:description" content="Parent-managed hotspot and app-lock enforcement with automations, scheduling, and extra-time requests." />
+  <meta name="twitter:image" content="https://spotchecker.app/assets/logo-512.png" />
 
   <style>
     :root {
@@ -67,7 +85,7 @@
       width: 34px;
       height: 34px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      object-fit: cover;
       box-shadow: 0 12px 30px rgba(0,0,0,0.28);
     }
 
@@ -178,13 +196,30 @@
 
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "SpotChecker",
+    "applicationCategory": "ParentalControlApplication",
+    "operatingSystem": "iOS",
+    "url": "https://spotchecker.app/",
+    "description": "SpotChecker helps parents enforce hotspot, Wi-Fi, mobile data, and app-lock rules on child iPhones using automations and Screen Time guidance.",
+    "image": "https://spotchecker.app/assets/logo-512.png",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
 </head>
 
 <body>
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <img class="logo" src="/assets/logo-192.png" alt="SpotChecker logo" />
         <div>SpotChecker</div>
       </div>
       <div class="nav">
@@ -195,17 +230,20 @@
 
     <div class="hero">
       <h1>Parental controls for hotspot rules.</h1>
-      <p class="subtitle">SpotChecker helps parents enforce connectivity rules using Apple Shortcuts automations and (optionally) Apple Screen Time / Family Controls.</p>
+      <p class="subtitle">SpotChecker helps parents enforce hotspot, Wi‑Fi, mobile data and app-lock rules with automations, Rules Enforcement Schedule, and parent-approved extra time.</p>
     </div>
 
     <div class="grid">
       <div class="card half">
-        <h2>What it does</h2>
+        <h2>What SpotChecker Does</h2>
         <ul>
-          <li>Parent enrolls a child device and configures rules + an enforcement schedule.</li>
-          <li>Parent installs the Shortcut on the child phone and enables automations to regularly check status and enforce policies at the right times.</li>
-          <li>We integrate with Apple Shortcuts to apply actions decided by the parent (such as turning off Personal Hotspot, Wi‑Fi, or Mobile Data).</li>
-          <li>Optionally, we use Apple Screen Time / Family Controls to help block selected apps and reduce tampering.</li>
+          <li>Pair child phones with a parent dashboard and manage settings per child.</li>
+          <li>Apply rules for Lock Apps, Turn Hotspot off, Turn Wi‑Fi Off, and Turn Mobile Data Off.</li>
+          <li>Set a Rules Enforcement Schedule, or enforce rules at all times.</li>
+          <li>Guide setup for Screen Time permission, Screen Time password, and prevent app deletions.</li>
+          <li>Use automation guidance to run checks at multiple times, triggers, and battery levels.</li>
+          <li>Child can request extra time from lock screen; parent can approve/deny from child settings.</li>
+          <li>Push notifications alert parent when extra time is requested.</li>
         </ul>
       </div>
 
@@ -220,6 +258,16 @@
           <a class="shot" href="/screens/setup-complete.jpg?v=20260215"><img alt="Setup complete" src="/screens/setup-complete.jpg?v=20260215" /></a>
         </div>
         <p class="muted" style="margin-top: 12px;">Images shown are from a development/TestFlight build.</p>
+      </div>
+
+      <div class="card">
+        <h2>Frequently Asked Questions</h2>
+        <ul>
+          <li><b>Does it require Apple Shortcuts?</b> Yes. SpotChecker uses automations to fetch policy and enforce actions reliably.</li>
+          <li><b>Can I lock apps?</b> Yes. Configure Lock Apps and use the Screen Time setup checklist on the child phone.</li>
+          <li><b>Can my child request more time?</b> Yes. Requests appear in parent child settings and can be approved or denied.</li>
+          <li><b>Does schedule have to be on?</b> No. If schedule is off, protections can enforce at all times.</li>
+        </ul>
       </div>
 
       <div class="card">
