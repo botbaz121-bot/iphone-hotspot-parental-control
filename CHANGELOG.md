@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.42 (43) - 2026-02-20
+- Full rewrite of website copy across homepage, support, and privacy pages with clearer value proposition and tighter parent-focused language.
+- Strengthened SEO-facing metadata copy (title/description/OG/Twitter) for homepage and support/privacy pages.
+- Refined homepage sections (`hero`, controls list, FAQs) to be more direct and conversion-focused.
+
+## 0.1.41 (42) - 2026-02-20
+- Rewrote website copy across homepage, support, and privacy pages with clearer parent-facing messaging and tighter language.
+- Refined homepage hero, feature value bullets, and FAQ wording.
+- Improved support troubleshooting wording and privacy-policy plain-language clarity.
+
 ## 0.1.40 (41) - 2026-02-20
 - Updated `spotchecker.app` pages with current product capabilities and onboarding flow:
 - Rules Enforcement Schedule, app lock setup guidance, extra-time request/approval flow, and push notification support.

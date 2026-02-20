@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SpotChecker — Privacy Policy</title>
-  <meta name="description" content="SpotChecker privacy policy for pairing, policy checks, event logs, and optional push notifications for extra-time requests." />
+  <title>SpotChecker Privacy Policy</title>
+  <meta name="description" content="SpotChecker privacy policy for Sign in with Apple, child pairing, rule checks, activity logs, and optional parent push notifications." />
   <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
   <link rel="canonical" href="https://spotchecker.app/privacy/" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -15,7 +15,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SpotChecker" />
   <meta property="og:title" content="SpotChecker Privacy Policy" />
-  <meta property="og:description" content="How SpotChecker handles account, device, policy, and notification data." />
+  <meta property="og:description" content="How SpotChecker handles sign-in, child pairing, enforcement checks, and notifications." />
   <meta property="og:url" content="https://spotchecker.app/privacy/" />
   <meta property="og:image" content="https://spotchecker.app/assets/logo-512.png" />
   <style>
@@ -122,31 +122,32 @@
       <p class="muted">Last updated: 2026-02-20</p>
 
       <h2>Summary</h2>
-      <p>SpotChecker is designed to help parents enforce device rules using Shortcuts automations and optional Screen Time controls. We aim to collect as little data as possible.</p>
+      <p>SpotChecker helps parents manage child phone rules. We collect only the data needed to pair devices, deliver enforcement updates, and show activity history.</p>
 
     <h2>Data we collect</h2>
     <ul>
-      <li><b>Account</b>: Sign in with Apple identifier (used to create a parent account).</li>
-      <li><b>Device enrollment</b>: a device identifier and a pairing token/secret to authenticate policy checks.</li>
-      <li><b>Policy events</b>: timestamps and basic action results for policy checks and extra-time actions.</li>
-      <li><b>Push token</b>: parent push token to deliver extra-time request notifications.</li>
+      <li><b>Account data</b>: Sign in with Apple identifier used to create and secure a parent account.</li>
+      <li><b>Pairing data</b>: device identifier and pairing credentials used to connect parent and child devices.</li>
+      <li><b>Rule activity</b>: timestamps and outcome data for enforcement checks and extra-time actions.</li>
+      <li><b>Notification token</b>: parent push token used for extra-time request alerts.</li>
     </ul>
 
     <h2>Data we do not collect</h2>
     <ul>
-      <li>We do not read your messages, photos, contacts, browsing history, or the content of apps.</li>
-      <li>We do not track precise location.</li>
+      <li>We do not access message content, photos, contacts, browsing content, or app content.</li>
+      <li>We do not collect precise location for SpotChecker policy logic.</li>
     </ul>
 
     <h2>How we use data</h2>
     <ul>
-      <li>To link a parent to enrolled child devices.</li>
-      <li>To deliver the latest policy when the Shortcut/App Intent requests it.</li>
-      <li>To show basic recent activity to the parent (status checks).</li>
+      <li>To link parent and child devices securely.</li>
+      <li>To return the current rule policy when child automations check in.</li>
+      <li>To show recent activity and extra-time actions in the parent dashboard.</li>
+      <li>To send parent notifications when extra time is requested.</li>
     </ul>
 
     <h2>Sharing</h2>
-    <p>We do not sell your data. We only share data with service providers necessary to run the app (e.g. hosting).</p>
+    <p>We do not sell personal data. Data is shared only with infrastructure providers required to operate SpotChecker.</p>
 
       <h2>Contact</h2>
       <p>If you have questions, email <a href="mailto:support@spotchecker.app">support@spotchecker.app</a>.</p>
