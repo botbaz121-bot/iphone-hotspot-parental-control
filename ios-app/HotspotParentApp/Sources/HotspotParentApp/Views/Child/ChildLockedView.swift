@@ -50,7 +50,7 @@ public struct ChildLockedView: View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 6) {
-          Text("SpotChecker Complete")
+          Text("SpotChecker")
             .font(.largeTitle.bold())
           Text(statusMessage)
             .font(.system(size: 14))
@@ -79,7 +79,7 @@ public struct ChildLockedView: View {
       Button {
         Task { await refreshPolicy() }
       } label: {
-        Label(policyBusy ? "Updating…" : "Update", systemImage: "arrow.clockwise")
+        Label(policyBusy ? "Refreshing Status…" : "Refresh Status", systemImage: "arrow.clockwise")
           .frame(maxWidth: .infinity)
       }
       .buttonStyle(.bordered)

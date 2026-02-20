@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.28 (29) - 2026-02-20
+- Child lock screen title changed from `SpotChecker Complete` to `SpotChecker`.
+- Child lock screen button label changed from `Update` to `Refresh Status` (busy: `Refreshing Status…`).
+
 ## 0.1.27 (28) - 2026-02-20
 - Renamed parent child-details menu item from `View Pairing` to `View Pairing Code`.
 
