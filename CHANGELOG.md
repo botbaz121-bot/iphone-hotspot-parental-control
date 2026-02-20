@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.27 (28) - 2026-02-20
+- Renamed parent child-details menu item from `View Pairing` to `View Pairing Code`.
+
 ## 0.1.26 (27) - 2026-02-20
 - Child lock screen now shows `Need more time?` only when protection is currently on and protections are configured.
 - Hides extra-time request card when protection is off or no protections are enabled.

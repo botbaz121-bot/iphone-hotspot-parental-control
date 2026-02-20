@@ -296,7 +296,7 @@ private struct DeviceDetailsSheet: View {
       Button {
         Task { await loadPairingCodePopup() }
       } label: {
-        Label(pairingCodeBusy ? "Loading pairing..." : "View Pairing", systemImage: "qrcode")
+        Label(pairingCodeBusy ? "Loading pairing..." : "View Pairing Code", systemImage: "qrcode")
       }
       .disabled(pairingCodeBusy)
 
