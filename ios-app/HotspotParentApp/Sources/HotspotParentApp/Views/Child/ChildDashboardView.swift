@@ -191,10 +191,6 @@ public struct ChildDashboardView: View {
       NavigationStack {
         ScrollView {
           VStack(alignment: .leading, spacing: 12) {
-            Text("Personal")
-              .font(.system(size: 34, weight: .bold))
-              .padding(.top, 2)
-
             Text("Set these automations up in Shortcuts exactly like this. Add multiple times per day, and add multiple battery levels. More triggers means policy checks run more often.")
               .font(.system(size: 15))
               .foregroundStyle(.secondary)
@@ -241,6 +237,41 @@ public struct ChildDashboardView: View {
                 triggerIconBackground: Color.white.opacity(0.12),
                 title: "When battery level is 20%"
               )
+            }
+            .background(Color.white.opacity(0.06))
+            .overlay(
+              RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+
+            VStack(spacing: 0) {
+              HStack {
+                Text("Automation")
+                  .font(.system(size: 17, weight: .medium))
+                Spacer()
+                Text("Run Immediately")
+                  .font(.system(size: 17))
+                  .foregroundStyle(.secondary)
+                Image(systemName: "chevron.up.chevron.down")
+                  .font(.system(size: 13, weight: .semibold))
+                  .foregroundStyle(.secondary.opacity(0.8))
+              }
+              .padding(.vertical, 14)
+              .padding(.horizontal, 14)
+
+              SettingsDivider()
+
+              HStack {
+                Text("Notify When Run")
+                  .font(.system(size: 17, weight: .medium))
+                Spacer()
+                Text("Off")
+                  .font(.system(size: 17))
+                  .foregroundStyle(.secondary)
+              }
+              .padding(.vertical, 14)
+              .padding(.horizontal, 14)
             }
             .background(Color.white.opacity(0.06))
             .overlay(

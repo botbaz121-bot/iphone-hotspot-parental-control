@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.32 (33) - 2026-02-20
+- Child Automations sheet updated:
+- Removed the `Personal` heading.
+- Added a second settings-style box showing `Automation / Run Immediately` and `Notify When Run / Off`.
+
 ## 0.1.31 (32) - 2026-02-20
 - Replaced remaining raw user-facing error strings with friendly messages across:
 - Landing sign-in alert, Add Device pairing generation, Child unlock alert, and Parent child-details action alerts.
