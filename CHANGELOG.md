@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.20 (21) - 2026-02-20
+- Updated iOS app display name to `SpotChecker`.
+- Rebuilt full iOS `AppIcon` asset set from `/home/ubuntu/codex_images/icon.png` (1024x1024 source).
+
 ## 0.1.19 (20) - 2026-02-20
 - Parent child-details sheet now auto-scrolls to `Extra Time` when opened from a push/request prefill.
 - `Extra Time` section is force-shown when prefill exists so the target anchor is always available.
