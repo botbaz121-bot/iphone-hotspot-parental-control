@@ -15,7 +15,13 @@ public struct API {
     if path.hasPrefix("http://") || path.hasPrefix("https://") {
       return URL(string: path)!
     }
-    return baseURL.appendingPathComponent(path.hasPrefix("/") ? String(path.dropFirst()) : path)
+    let normalized = path.hasPrefix("/") ? String(path.dropFirst()) : path
+    // Keep query strings intact (appendingPathComponent would escape "?" to "%3F").
+    if normalized.contains("?") {
+      let base = baseURL.absoluteString.hasSuffix("/") ? baseURL.absoluteString : baseURL.absoluteString + "/"
+      return URL(string: base + normalized)!
+    }
+    return baseURL.appendingPathComponent(normalized)
   }
 }
 

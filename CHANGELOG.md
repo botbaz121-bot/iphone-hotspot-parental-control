@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5 (6) - 2026-02-19
+- Fixed API URL building for query endpoints so `?` is no longer escaped to `%3F` (this fixes `Cannot GET /api/extra-time/requests%3F...` and restores pending-request fetch/approval visibility).
+
 ## 0.1.4 (5) - 2026-02-19
 - Expanded parent pending-request debug output to include exact pending-fetch failure details (HTTP status/body, URL error, or localized error text).
 
