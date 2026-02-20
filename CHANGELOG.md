@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.13 (14) - 2026-02-20
+- Added save warning in parent child settings when policy updates fail.
+- Shows explicit offline warning (`No internet connection. Couldn't save settings.`) for likely network failures.
+
 ## 0.1.12 (13) - 2026-02-20
 - Added `View Pairing` action in parent child details menu (under photo actions) to open the current pairing code in a popup.
 - Added `AppModel.createPairingCode(deviceId:)` so pairing popup fetch does not depend on selected-device state.

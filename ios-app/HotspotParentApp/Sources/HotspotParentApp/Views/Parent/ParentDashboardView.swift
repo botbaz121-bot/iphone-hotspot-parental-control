@@ -539,6 +539,7 @@ private struct PolicyEditorCard: View {
 
   @State private var saveTask: Task<Void, Never>?
   @State private var saving: Bool = false
+  @State private var saveWarning: String?
   @State private var copyAllSuccess: Bool = false
   @State private var extraTimeMinutes: Int = 15
   @State private var applyingExtraTime: Bool = false
@@ -582,6 +583,12 @@ private struct PolicyEditorCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
+      if let saveWarning, !saveWarning.isEmpty {
+        Text(saveWarning)
+          .font(.system(size: 14))
+          .foregroundStyle(.orange)
+      }
+
       // Rules box (second)
       VStack(alignment: .leading, spacing: 10) {
         Text("Rules")
@@ -992,9 +999,27 @@ private struct PolicyEditorCard: View {
         quietDays: quiet ? quietDays : nil,
         tz: tz
       )
+      saveWarning = nil
     } catch {
-      // Best-effort; errors are shown elsewhere in the sheet.
+      saveWarning = Self.isLikelyOffline(error)
+        ? "No internet connection. Couldn't save settings."
+        : "Could not save settings. Please try again."
     }
+  }
+
+  private static func isLikelyOffline(_ error: Error) -> Bool {
+    if let urlError = error as? URLError {
+      switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed, .timedOut:
+          return true
+        default:
+          break
+      }
+    }
+    if let apiError = error as? APIError {
+      if case .invalidResponse = apiError { return true }
+    }
+    return false
   }
 
   private static func formatTime(_ d: Date) -> String {
