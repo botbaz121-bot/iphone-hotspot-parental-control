@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.21 (22) - 2026-02-20
+- Clarified `Prevent App Deletions` checklist subtitle with explicit Settings navigation path and final action (`Deleting Apps: Don't Allow`).
+
 ## 0.1.20 (21) - 2026-02-20
 - Updated iOS app display name to `SpotChecker`.
 - Rebuilt full iOS `AppIcon` asset set from `/home/ubuntu/codex_images/icon.png` (1024x1024 source).

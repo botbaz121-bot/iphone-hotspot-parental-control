@@ -62,7 +62,7 @@ public struct ScreenTimeSetupView: View {
               title: "Prevent App Deletions",
               subtitle: model.screenTimeDeletionProtectionStepCompleted
                 ? "Done"
-                : "In Screen Time set Deleting Apps to Don't Allow. Click to mark completed.",
+                : "Settings > Screen Time > Content & Privacy > iTunes & App Store Purchases > Deleting Apps: Don't Allow. Tap to mark completed.",
               disabled: busy
             ) {
               model.screenTimeDeletionProtectionStepCompleted.toggle()
