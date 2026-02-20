@@ -836,6 +836,7 @@ app.get('/admin', (req, res) => {
         const tz = d.quietHours && d.quietHours.tz ? d.quietHours.tz : '';
         const quietDays = d.quietDays || null;
 
+        const activateProtection = d.actions && d.actions.activateProtection ? true : false;
         const setHotspotOff = d.actions && d.actions.setHotspotOff ? true : false;
         const setWifiOff = d.actions && d.actions.setWifiOff ? true : false;
         const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;

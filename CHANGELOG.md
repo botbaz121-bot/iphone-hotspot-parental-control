@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10 (11) - 2026-02-20
+- Fixed `/admin` JavaScript `ReferenceError: activateProtection is not defined` by restoring the missing `activateProtection` row variable.
+
 ## 0.1.9 (10) - 2026-02-20
 - Added `/admin` backend build stamp under the page title (version, commit hash, boot timestamp, APNS env) to confirm which deployment is live.
 
