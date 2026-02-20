@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.24 (25) - 2026-02-20
+- Fixed backend protection status messaging so it never reports “Protection is currently on” when no protections are configured.
+
 ## 0.1.23 (24) - 2026-02-20
 - `Prevent App Deletions` now remains visible in Screen Time setup for `This Device` mode even before `Grant Permissions` is completed.
 

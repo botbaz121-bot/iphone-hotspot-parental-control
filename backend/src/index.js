@@ -2091,6 +2091,10 @@ function formatProtectedActions({ activateProtection, setHotspotOff, setWifiOff,
   return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]} are protected.`;
 }
 
+function hasConfiguredProtection({ activateProtection, setHotspotOff, setWifiOff, setMobileDataOff }) {
+  return !!(activateProtection || setHotspotOff || setWifiOff || setMobileDataOff);
+}
+
 function scheduleStartSuffix({ start, end, tz }) {
   const s = parseHHMM(start);
   const e = parseHHMM(end);
@@ -2103,6 +2107,12 @@ function scheduleStartSuffix({ start, end, tz }) {
 function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions }) {
   const details = formatProtectedActions(actions);
   const hasSchedule = !!(schedule && schedule.start && schedule.end);
+  const hasConfigured = hasConfiguredProtection(actions);
+
+  if (!hasConfigured) {
+    if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval. ${details}`;
+    return `Protection is currently off. ${details}`;
+  }
 
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
