@@ -242,6 +242,9 @@ private struct DeviceDetailsSheet: View {
   @State private var renameText: String = ""
   @State private var showDeleteConfirm = false
   @State private var actionError: String?
+  @State private var showPairingCodePopup = false
+  @State private var pairingCodeText: String = ""
+  @State private var pairingCodeBusy = false
 
   #if canImport(PhotosUI)
   @State private var pickedPhoto: PhotosPickerItem?
@@ -275,6 +278,13 @@ private struct DeviceDetailsSheet: View {
         Label("Choose photo", systemImage: "photo")
       }
       #endif
+
+      Button {
+        Task { await loadPairingCodePopup() }
+      } label: {
+        Label(pairingCodeBusy ? "Loading pairing..." : "View Pairing", systemImage: "qrcode")
+      }
+      .disabled(pairingCodeBusy)
 
       Divider()
 
@@ -404,6 +414,11 @@ private struct DeviceDetailsSheet: View {
       }
       Button("Cancel", role: .cancel) {}
     }
+    .alert("Pairing code", isPresented: $showPairingCodePopup) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(pairingCodeText)
+    }
   }
 
   @State private var events: [DeviceEventRow] = []
@@ -463,6 +478,20 @@ private struct DeviceDetailsSheet: View {
     } catch {
       // best-effort; don't block details view
       events = []
+    }
+  }
+
+  @MainActor
+  private func loadPairingCodePopup() async {
+    pairingCodeBusy = true
+    defer { pairingCodeBusy = false }
+    do {
+      let out = try await model.createPairingCode(deviceId: device.id)
+      let expires = Date(timeIntervalSince1970: TimeInterval(out.expiresAt) / 1000.0)
+      pairingCodeText = "\(out.code)\nExpires at \(Self.formatEventTime(Int(expires.timeIntervalSince1970 * 1000)))."
+      showPairingCodePopup = true
+    } catch {
+      actionError = String(describing: error)
     }
   }
 

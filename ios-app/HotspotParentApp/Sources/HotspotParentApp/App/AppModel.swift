@@ -537,6 +537,10 @@ public final class AppModel: ObservableObject {
 
   public func createPairingCodeForSelectedDevice(ttlMinutes: Int = 10) async throws -> PairingCodeResponse {
     guard let deviceId = selectedDeviceId else { throw APIError.invalidResponse }
+    return try await createPairingCode(deviceId: deviceId)
+  }
+
+  public func createPairingCode(deviceId: String) async throws -> PairingCodeResponse {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let out = try await client.createPairingCode(deviceId: deviceId)
     return out

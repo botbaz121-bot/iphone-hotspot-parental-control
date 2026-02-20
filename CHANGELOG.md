@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.12 (13) - 2026-02-20
+- Added `View Pairing` action in parent child details menu (under photo actions) to open the current pairing code in a popup.
+- Added `AppModel.createPairingCode(deviceId:)` so pairing popup fetch does not depend on selected-device state.
+
 ## 0.1.11 (12) - 2026-02-20
 - Fixed parent approve/deny flow so pending extra-time requests are always resolved from backend by `requestId` before action.
 - Prevented accidental manual grant fallback from leaving pending requests uncleared.
