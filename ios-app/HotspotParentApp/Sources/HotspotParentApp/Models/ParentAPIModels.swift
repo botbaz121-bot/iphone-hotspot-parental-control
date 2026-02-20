@@ -15,10 +15,12 @@ public struct UpdatePolicyRequest: Encodable {
   public struct QuietDayWindow: Encodable {
     public var start: String
     public var end: String
+    public var dailyLimitMinutes: Int?
 
-    public init(start: String, end: String) {
+    public init(start: String, end: String, dailyLimitMinutes: Int? = nil) {
       self.start = start
       self.end = end
+      self.dailyLimitMinutes = dailyLimitMinutes
     }
   }
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.43 (44) - 2026-02-20
+- Added per-day `Total daily limit` control (15-minute intervals) under schedule start/end in parent child settings.
+- Extended per-day schedule payload (`quietDays`) to persist `dailyLimitMinutes`.
+- Added backend daily usage tracking (`device_daily_usage`) and limit-aware enforcement:
+- once the daily limit is reached, `enforce` becomes true (same effective behavior as schedule enforcement).
+- Added `dailyLimit` status payload in `/policy` and `/api/dashboard` (`limitMinutes`, `usedMinutes`, `remainingMinutes`, `reached`).
+- Updated protection status messaging to reflect daily-limit reached and remaining-time states.
+- Updated `/admin` row-save behavior to preserve extra day fields in `quietDays` when editing times.
+
 ## 0.1.42 (43) - 2026-02-20
 - Full rewrite of website copy across homepage, support, and privacy pages with clearer value proposition and tighter parent-focused language.
 - Strengthened SEO-facing metadata copy (title/description/OG/Twitter) for homepage and support/privacy pages.

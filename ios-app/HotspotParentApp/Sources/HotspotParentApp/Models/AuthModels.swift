@@ -53,6 +53,7 @@ public struct DashboardDevice: Decodable {
   public struct QuietDay: Decodable {
     public var start: String
     public var end: String
+    public var dailyLimitMinutes: Int?
   }
 
   public var quietDay: String?

@@ -145,6 +145,16 @@ CREATE TABLE IF NOT EXISTS parent_push_tokens (
   FOREIGN KEY(parent_id) REFERENCES parents(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS device_daily_usage (
+  device_id TEXT PRIMARY KEY,
+  day_key TEXT NOT NULL,
+  used_ms INTEGER NOT NULL DEFAULT 0,
+  last_fetch_ms INTEGER,
+  last_effective_enforce INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_devices_created ON devices(created_at);
 CREATE INDEX IF NOT EXISTS idx_device_events_device ON device_events(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
@@ -154,6 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_extra_time_device ON extra_time_requests(device_i
 CREATE INDEX IF NOT EXISTS idx_extra_time_status ON extra_time_requests(status);
 CREATE INDEX IF NOT EXISTS idx_extra_time_ends ON extra_time_requests(ends_at);
 CREATE INDEX IF NOT EXISTS idx_parent_push_tokens_parent ON parent_push_tokens(parent_id);
+CREATE INDEX IF NOT EXISTS idx_device_daily_usage_day ON device_daily_usage(day_key);
 `);
 
 // Lightweight migration for existing DBs
@@ -970,7 +981,13 @@ app.get('/admin', (req, res) => {
 
           // write current day back into the model
           const k = getSelDay();
-          if (quietStartVal && quietEndVal) quietDaysModel[k] = { start: quietStartVal, end: quietEndVal };
+          if (quietStartVal && quietEndVal) {
+            quietDaysModel[k] = {
+              ...(quietDaysModel[k] || {}),
+              start: quietStartVal,
+              end: quietEndVal
+            };
+          }
           else delete quietDaysModel[k];
 
           const patch = { activateProtection, setHotspotOff, setWifiOff, setMobileDataOff, rotatePassword };
@@ -1154,6 +1171,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const todayKey = weekdayKeyNow(tz);
   const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
   const hasDaySchedule = todays && todays.start && todays.end;
+  const dailyLimitMinutes = normalizeDailyLimitMinutes(todays?.dailyLimitMinutes);
 
   const schedule = quietDays ? todays : legacySchedule;
   const hasSchedule = schedule && schedule.start && schedule.end;
@@ -1178,9 +1196,26 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
 
   const activeExtraTime = getActiveExtraTime(deviceId);
   const pendingExtraTime = getPendingExtraTime(deviceId);
-  const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+  const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+  const dailyLimit = upsertDailyUsageAndCompute({
+    deviceId,
+    tz,
+    dailyLimitMinutes,
+    enforceWithoutLimit
+  });
+  const enforce = enforceWithoutLimit || (!!dailyLimit.reached && wantsEnforcement && !activeExtraTime);
   const isQuietHours = inScheduleWindow;
-  const statusMessage = buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions, enforce, wantsEnforcement });
+  const statusMessage = buildPolicyStatusMessage({
+    schedule,
+    inScheduleWindow,
+    activeExtraTime,
+    pendingExtraTime,
+    tz,
+    actions,
+    enforce,
+    wantsEnforcement,
+    dailyLimit
+  });
 
   const out = {
     enforce,
@@ -1194,6 +1229,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     // isQuietHours tells the Shortcut whether enforcement is active right now (schedule is evaluated server-side).
     isQuietHours,
     statusMessage,
+    dailyLimit,
     activeExtraTime: activeExtraTime
       ? {
           requestId: activeExtraTime.id,
@@ -1433,6 +1469,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const todayKey = weekdayKeyNow(tz);
     const todays = quietDays && quietDays[todayKey] ? quietDays[todayKey] : null;
     const hasDaySchedule = todays && todays.start && todays.end;
+    const dailyLimitMinutes = normalizeDailyLimitMinutes(todays?.dailyLimitMinutes);
 
     const schedule = quietDays
       ? (hasDaySchedule ? { start: todays.start, end: todays.end, tz } : null)
@@ -1445,7 +1482,16 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
 
     const activeExtraTime = getActiveExtraTime(r.id, now);
     const pendingExtraTime = getPendingExtraTime(r.id);
-    const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+    const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+    const dailyLimit = upsertDailyUsageAndCompute({
+      deviceId: r.id,
+      tz,
+      dailyLimitMinutes,
+      enforceWithoutLimit,
+      nowMs: now,
+      accrue: false
+    });
+    const enforce = enforceWithoutLimit || (!!dailyLimit.reached && wantsEnforcement && !activeExtraTime);
     const inQuiet = inScheduleWindow;
     const statusMessage = buildPolicyStatusMessage({
       schedule,
@@ -1455,7 +1501,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       tz,
       actions,
       enforce,
-      wantsEnforcement
+      wantsEnforcement,
+      dailyLimit
     });
 
     // New semantics: "inQuietHours" means within the enforcement schedule.
@@ -1478,6 +1525,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       quietHours: schedule,
       inQuietHours: inQuiet,
       statusMessage,
+      dailyLimit,
       activeExtraTime: activeExtraTime
         ? {
             requestId: activeExtraTime.id,
@@ -1646,7 +1694,17 @@ app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
     rotatePassword: z.boolean().optional(),
     quietStart: z.string().max(20).nullable().optional(),
     quietEnd: z.string().max(20).nullable().optional(),
-    quietDays: z.record(z.string(), z.object({ start: z.string().max(20), end: z.string().max(20) })).nullable().optional(),
+    quietDays: z
+      .record(
+        z.string(),
+        z.object({
+          start: z.string().max(20),
+          end: z.string().max(20),
+          dailyLimitMinutes: z.number().int().min(0).max(24 * 60).refine(v => v % 15 === 0, 'dailyLimitMinutes must be in 15-minute steps').optional()
+        })
+      )
+      .nullable()
+      .optional(),
     tz: z.string().max(60).nullable().optional(),
     gapMs: z.number().int().min(60_000).max(7 * 24 * 60 * 60 * 1000).optional(),
     gapMinutes: z.number().int().min(1).max(7 * 24 * 60).optional()
@@ -2014,6 +2072,20 @@ function weekdayKeyNow(tz) {
   return map[wd] || 'mon';
 }
 
+function localDateKeyNow(tz) {
+  try {
+    // "en-CA" yields YYYY-MM-DD reliably.
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz || 'Europe/Paris',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
 function parseQuietDaysJSON(raw) {
   if (raw == null) return null;
   try {
@@ -2025,6 +2097,98 @@ function parseQuietDaysJSON(raw) {
   } catch {
     return null;
   }
+}
+
+function normalizeDailyLimitMinutes(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const clamped = Math.max(0, Math.min(24 * 60, Math.floor(n)));
+  return clamped - (clamped % 15);
+}
+
+function upsertDailyUsageAndCompute({
+  deviceId,
+  tz,
+  dailyLimitMinutes,
+  enforceWithoutLimit,
+  nowMs = Date.now(),
+  accrue = true
+}) {
+  const dayKey = localDateKeyNow(tz);
+  const limitMs = dailyLimitMinutes != null ? Number(dailyLimitMinutes) * 60_000 : null;
+  const MAX_DELTA_MS = 15 * 60_000;
+
+  let row = db
+    .prepare(
+      `
+      SELECT device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce
+      FROM device_daily_usage
+      WHERE device_id = ?
+      `
+    )
+    .get(deviceId);
+
+  if (!row && !accrue) {
+    return {
+      dayKey,
+      limitMinutes: dailyLimitMinutes,
+      usedMinutes: 0,
+      remainingMinutes: limitMs == null ? null : Math.ceil(limitMs / 60_000),
+      reached: false
+    };
+  }
+
+  if (!row) {
+    db.prepare(
+      `
+      INSERT INTO device_daily_usage (device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce)
+      VALUES (?, ?, 0, ?, ?)
+      `
+    ).run(deviceId, dayKey, nowMs, enforceWithoutLimit ? 1 : 0);
+    row = { day_key: dayKey, used_ms: 0, last_fetch_ms: nowMs, last_effective_enforce: enforceWithoutLimit ? 1 : 0 };
+  }
+
+  let usedMs = Number(row.used_ms || 0);
+  let lastFetchMs = row.last_fetch_ms != null ? Number(row.last_fetch_ms) : null;
+  let lastEffectiveEnforce = !!row.last_effective_enforce;
+
+  // Reset accumulator on local day rollover.
+  if (String(row.day_key) !== dayKey) {
+    usedMs = 0;
+    lastFetchMs = nowMs;
+    lastEffectiveEnforce = false;
+  } else if (accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
+    // Only accrue "allowed" time while enforcement was off. Cap delta to avoid giant jumps from sparse check-ins.
+    usedMs += Math.min(nowMs - lastFetchMs, MAX_DELTA_MS);
+  }
+
+  const reached = limitMs != null ? usedMs >= limitMs : false;
+  const effectiveEnforce = !!(enforceWithoutLimit || reached);
+  const usedMinutes = Math.max(0, Math.floor(usedMs / 60_000));
+  const remainingMinutes = limitMs == null ? null : Math.max(0, Math.ceil((limitMs - usedMs) / 60_000));
+
+  if (accrue) {
+    db.prepare(
+      `
+      INSERT INTO device_daily_usage (device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(device_id) DO UPDATE SET
+        day_key = excluded.day_key,
+        used_ms = excluded.used_ms,
+        last_fetch_ms = excluded.last_fetch_ms,
+        last_effective_enforce = excluded.last_effective_enforce,
+        updated_at = datetime('now')
+      `
+    ).run(deviceId, dayKey, usedMs, nowMs, effectiveEnforce ? 1 : 0);
+  }
+
+  return {
+    dayKey,
+    limitMinutes: dailyLimitMinutes,
+    usedMinutes,
+    remainingMinutes,
+    reached
+  };
 }
 
 function getActiveExtraTime(deviceId, nowMs = Date.now()) {
@@ -2102,35 +2266,45 @@ function scheduleStartSuffix({ start, end, tz }) {
   return `at ${start}`;
 }
 
-function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions, enforce, wantsEnforcement }) {
+function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions, enforce, wantsEnforcement, dailyLimit }) {
   const details = formatProtectedActions(actions);
   const hasSchedule = !!(schedule && schedule.start && schedule.end);
+  const hasDailyLimit = !!(dailyLimit && dailyLimit.limitMinutes != null);
+  const dailyLimitReached = !!(dailyLimit && dailyLimit.reached);
+  const dailyLimitSuffix = hasDailyLimit
+    ? (dailyLimitReached
+      ? ` Daily limit of ${dailyLimit.limitMinutes} min has been reached.`
+      : ` Daily limit: ${Math.max(0, dailyLimit.limitMinutes - (dailyLimit.usedMinutes || 0))} min remaining.`)
+    : '';
 
   if (!wantsEnforcement) {
-    if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval. ${details}`;
-    return `Protection is currently off. ${details}`;
+    if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
+    return `Protection is currently off. ${details}${dailyLimitSuffix}`;
   }
 
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
-    return `Protection is currently off for approved extra time and scheduled to resume at ${resume}. ${details}`;
+    return `Protection is currently off for approved extra time and scheduled to resume at ${resume}. ${details}${dailyLimitSuffix}`;
   }
 
   if (pendingExtraTime) {
     if (enforce) {
-      if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}`;
-      return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}`;
+      if (!hasSchedule && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. Extra time request is pending parent approval. ${details}`;
+      if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
+      return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
     }
-    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}`;
-    return `Protection is currently off. Extra time request is pending parent approval. ${details}`;
+    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
+    return `Protection is currently off. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
   }
 
   if (enforce) {
-    if (!hasSchedule) return `Protection is currently on. ${details}`;
-    return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}`;
+    if (!hasSchedule && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
+    if (!hasSchedule) return `Protection is currently on. ${details}${dailyLimitSuffix}`;
+    if (!inScheduleWindow && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
+    return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}${dailyLimitSuffix}`;
   }
-  if (!hasSchedule) return `Protection is currently off. ${details}`;
-  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}`;
+  if (!hasSchedule) return `Protection is currently off. ${details}${dailyLimitSuffix}`;
+  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}${dailyLimitSuffix}`;
 }
 
 function insertDeviceEvent({

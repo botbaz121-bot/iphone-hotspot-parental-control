@@ -558,6 +558,7 @@ private struct PolicyEditorCard: View {
 
   @State private var startDate: Date
   @State private var endDate: Date
+  @State private var dailyLimitMinutes: Int
 
   @State private var saveTask: Task<Void, Never>?
   @State private var saving: Bool = false
@@ -592,7 +593,7 @@ private struct PolicyEditorCard: View {
     var qd: [String: UpdatePolicyRequest.QuietDayWindow] = [:]
     if let src = device.quietDays {
       for (k, v) in src {
-        qd[k] = UpdatePolicyRequest.QuietDayWindow(start: v.start, end: v.end)
+        qd[k] = UpdatePolicyRequest.QuietDayWindow(start: v.start, end: v.end, dailyLimitMinutes: v.dailyLimitMinutes)
       }
     }
     _quietDays = State(initialValue: qd)
@@ -600,8 +601,10 @@ private struct PolicyEditorCard: View {
     // Pickers show the selected day values (or defaults)
     let start = qd[initialDay]?.start ?? "22:00"
     let end = qd[initialDay]?.end ?? "07:00"
+    let dailyLimit = max(0, ((qd[initialDay]?.dailyLimitMinutes ?? 0) / 15) * 15)
     _startDate = State(initialValue: Self.parseTime(start) ?? Date())
     _endDate = State(initialValue: Self.parseTime(end) ?? Date())
+    _dailyLimitMinutes = State(initialValue: dailyLimit)
     _activeExtraTimeEndsAt = State(initialValue: Self.dateFromMillis(device.activeExtraTime?.endsAt))
   }
 
@@ -678,14 +681,15 @@ private struct PolicyEditorCard: View {
             // seed all days with current picker values
             let s = Self.formatTime(startDate)
             let e = Self.formatTime(endDate)
+            let limit = max(0, (dailyLimitMinutes / 15) * 15)
             quietDays = [
-              "mon": .init(start: s, end: e),
-              "tue": .init(start: s, end: e),
-              "wed": .init(start: s, end: e),
-              "thu": .init(start: s, end: e),
-              "fri": .init(start: s, end: e),
-              "sat": .init(start: s, end: e),
-              "sun": .init(start: s, end: e),
+              "mon": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "tue": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "wed": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "thu": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "fri": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "sat": .init(start: s, end: e, dailyLimitMinutes: limit),
+              "sun": .init(start: s, end: e, dailyLimitMinutes: limit),
             ]
           }
           scheduleSave()
@@ -711,6 +715,7 @@ private struct PolicyEditorCard: View {
                   let end = quietDays[d]?.end ?? "07:00"
                   startDate = Self.parseTime(start) ?? startDate
                   endDate = Self.parseTime(end) ?? endDate
+                  dailyLimitMinutes = max(0, ((quietDays[d]?.dailyLimitMinutes ?? 0) / 15) * 15)
                 } label: {
                   Text(Self.dayLabel(d))
                     .font(.system(size: 13, weight: .semibold))
@@ -745,7 +750,8 @@ private struct PolicyEditorCard: View {
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: startDate) { _ in
-                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
+                    let currentLimit = max(0, ((quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes) / 15) * 15)
+                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate), dailyLimitMinutes: currentLimit)
                     scheduleSave()
                   }
               }
@@ -764,7 +770,8 @@ private struct PolicyEditorCard: View {
                   .clipped()
                   .contentShape(Rectangle())
                   .onChange(of: endDate) { _ in
-                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate))
+                    let currentLimit = max(0, ((quietDays[selectedDay]?.dailyLimitMinutes ?? dailyLimitMinutes) / 15) * 15)
+                    quietDays[selectedDay] = .init(start: Self.formatTime(startDate), end: Self.formatTime(endDate), dailyLimitMinutes: currentLimit)
                     scheduleSave()
                   }
               }
@@ -779,19 +786,41 @@ private struct PolicyEditorCard: View {
             RoundedRectangle(cornerRadius: 16)
               .stroke(Color.white.opacity(0.08), lineWidth: 1)
           )
+          HStack(spacing: 10) {
+            Text("Total daily limit")
+              .font(.system(size: 16, weight: .semibold))
+            Spacer()
+            Picker("Total daily limit", selection: $dailyLimitMinutes) {
+              Text("Off").tag(0)
+              ForEach(Array(stride(from: 15, through: 12 * 60, by: 15)), id: \.self) { m in
+                Text("\(m) min").tag(m)
+              }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: dailyLimitMinutes) { v in
+              let rounded = max(0, (v / 15) * 15)
+              quietDays[selectedDay] = .init(
+                start: Self.formatTime(startDate),
+                end: Self.formatTime(endDate),
+                dailyLimitMinutes: rounded
+              )
+              scheduleSave()
+            }
+          }
           HStack {
             Spacer()
             Button {
               let s = Self.formatTime(startDate)
               let e = Self.formatTime(endDate)
+              let limit = max(0, (dailyLimitMinutes / 15) * 15)
               quietDays = [
-                "mon": .init(start: s, end: e),
-                "tue": .init(start: s, end: e),
-                "wed": .init(start: s, end: e),
-                "thu": .init(start: s, end: e),
-                "fri": .init(start: s, end: e),
-                "sat": .init(start: s, end: e),
-                "sun": .init(start: s, end: e),
+                "mon": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "tue": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "wed": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "thu": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "fri": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "sat": .init(start: s, end: e, dailyLimitMinutes: limit),
+                "sun": .init(start: s, end: e, dailyLimitMinutes: limit),
               ]
               scheduleSave()
               copyAllSuccess = true
