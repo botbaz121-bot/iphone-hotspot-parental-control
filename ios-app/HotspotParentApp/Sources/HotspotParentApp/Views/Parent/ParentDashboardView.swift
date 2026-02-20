@@ -786,17 +786,45 @@ private struct PolicyEditorCard: View {
             .pickerStyle(.menu)
           }
 
-          Button {
-            Task { await applyExtraTime() }
-          } label: {
-            HStack(spacing: 8) {
-              if applyingExtraTime { ProgressView() }
-              Text(applyingExtraTime ? "Applying..." : (hasPendingExtraTimeRequest ? "Approve request" : "Apply extra time"))
+          if hasPendingExtraTimeRequest {
+            HStack(spacing: 10) {
+              Button {
+                Task { await applyExtraTime() }
+              } label: {
+                HStack(spacing: 8) {
+                  if applyingExtraTime { ProgressView() }
+                  Text(applyingExtraTime ? "Approving..." : "Approve")
+                }
+                .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.borderedProminent)
+              .disabled(applyingExtraTime || denyingExtraTime)
+
+              Button(role: .destructive) {
+                Task { await denyExtraTime() }
+              } label: {
+                HStack(spacing: 8) {
+                  if denyingExtraTime { ProgressView() }
+                  Text(denyingExtraTime ? "Denying..." : "Deny")
+                }
+                .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.bordered)
+              .disabled(applyingExtraTime || denyingExtraTime)
             }
-            .frame(maxWidth: .infinity)
+          } else {
+            Button {
+              Task { await applyExtraTime() }
+            } label: {
+              HStack(spacing: 8) {
+                if applyingExtraTime { ProgressView() }
+                Text(applyingExtraTime ? "Applying..." : "Apply extra time")
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(applyingExtraTime)
           }
-          .buttonStyle(.borderedProminent)
-          .disabled(applyingExtraTime)
 
           if let text = extraTimeStatusText {
             Text(text)
@@ -804,47 +832,6 @@ private struct PolicyEditorCard: View {
               .foregroundStyle(.secondary)
               .italic()
           }
-        }
-        .padding(18)
-        .background(Color.primary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-      }
-
-      if hasPendingExtraTimeRequest {
-        VStack(alignment: .leading, spacing: 10) {
-          Text("Approval")
-            .font(.headline)
-
-          Text("A child request is waiting.")
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-
-          HStack(spacing: 10) {
-            Button {
-              Task { await applyExtraTime() }
-            } label: {
-              HStack(spacing: 8) {
-                if applyingExtraTime { ProgressView() }
-                Text(applyingExtraTime ? "Accepting..." : "Accept")
-              }
-              .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(applyingExtraTime || denyingExtraTime)
-
-            Button(role: .destructive) {
-              Task { await denyExtraTime() }
-            } label: {
-              HStack(spacing: 8) {
-                if denyingExtraTime { ProgressView() }
-                Text(denyingExtraTime ? "Denying..." : "Deny")
-              }
-              .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .disabled(applyingExtraTime || denyingExtraTime)
-          }
-
         }
         .padding(18)
         .background(Color.primary.opacity(0.06))

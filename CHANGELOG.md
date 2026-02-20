@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 (7) - 2026-02-19
+- Removed the separate `Approval` card from parent child settings.
+- Kept dual-button moderation flow inside `Extra Time` when a request is pending (`Approve` / `Deny`).
+
 ## 0.1.5 (6) - 2026-02-19
 - Fixed API URL building for query endpoints so `?` is no longer escaped to `%3F` (this fixes `Cannot GET /api/extra-time/requests%3F...` and restores pending-request fetch/approval visibility).
 
