@@ -105,9 +105,9 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeAuthorized = result.approved
     if let grantedMode = result.grantedMode {
       model.screenTimeAuthorizationMode = grantedMode
-      statusText = "Permission granted (\(grantedMode.title)). \(result.debugLine)"
+      statusText = "Permission granted (\(grantedMode.title))."
     } else {
-      statusText = "Permission not granted. \(result.debugLine)"
+      statusText = "Permission not granted."
     }
     await refreshStatus()
   }
@@ -176,7 +176,7 @@ private struct ChecklistTile: View {
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(.white.opacity(0.80))
             .multilineTextAlignment(.leading)
-            .lineLimit(4)
+            .lineLimit(5)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)

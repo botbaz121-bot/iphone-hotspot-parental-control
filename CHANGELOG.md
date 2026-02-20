@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.30 (31) - 2026-02-20
+- Increased Screen Time protection checklist subtitle line limit from 4 to 5 lines.
+- Removed debug detail text from Screen Time permission result messages.
+
 ## 0.1.29 (30) - 2026-02-20
 - Moved `Open Shortcuts` button to below the automations instruction list in the child Automations sheet.
 
