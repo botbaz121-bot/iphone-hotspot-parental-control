@@ -2144,9 +2144,10 @@ async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinu
           body: String(out.body || '').slice(0, 200)
         });
       }
-    } catch {
+    } catch (err) {
       // keep trying remaining tokens
-      attempts.push({ ok: false, tokenSuffix, reason: 'exception' });
+      const detail = String(err?.message || err || '').slice(0, 240);
+      attempts.push({ ok: false, tokenSuffix, reason: 'exception', detail });
     }
   }
 

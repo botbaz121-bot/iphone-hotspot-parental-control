@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17 (18) - 2026-02-20
+- Expanded push diagnostics to include exception detail text in `attempts` (helps identify APNs signing key format errors vs network failures).
+
 ## 0.1.16 (17) - 2026-02-20
 - Added backend push diagnostics:
 - New `POST /api/push/test` endpoint (parent/admin) returns APNs env/topic/config flags and per-token delivery attempts.
