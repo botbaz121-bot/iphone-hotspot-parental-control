@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import http2 from 'node:http2';
 import path from 'node:path';
 
 import express from 'express';
@@ -438,33 +439,85 @@ async function apnsSendToToken(deviceToken, payload) {
   if (!APNS_TOPIC) return { ok: false, skipped: 'missing_apns_topic' };
 
   const host = APNS_ENV === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com';
-  const url = `https://${host}/3/device/${encodeURIComponent(deviceToken)}`;
+  const path = `/3/device/${encodeURIComponent(deviceToken)}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
+  return await new Promise(resolve => {
+    let settled = false;
+    const finish = out => {
+      if (settled) return;
+      settled = true;
+      try {
+        client.close();
+      } catch {
+        // ignore
+      }
+      resolve(out);
+    };
+
+    const client = http2.connect(`https://${host}`);
+
+    client.on('error', err => {
+      finish({ ok: false, reason: 'client_error', detail: String(err?.message || err || '') });
+    });
+
+    const req = client.request({
+      ':method': 'POST',
+      ':path': path,
       authorization: `bearer ${providerToken}`,
       'apns-topic': APNS_TOPIC,
       'apns-push-type': 'alert',
       'apns-priority': '10',
       'content-type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  });
+    });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    let reason = '';
+    let status = 0;
+    let apnsId = null;
+    let body = '';
+    req.setEncoding('utf8');
+
+    req.on('response', headers => {
+      status = Number(headers[':status'] || 0);
+      apnsId = headers['apns-id'] ? String(headers['apns-id']) : null;
+    });
+
+    req.on('data', chunk => {
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      if (status >= 200 && status < 300) {
+        finish({ ok: true, apnsId });
+        return;
+      }
+      let reason = '';
+      try {
+        const parsed = JSON.parse(body || '{}');
+        reason = typeof parsed?.reason === 'string' ? parsed.reason : '';
+      } catch {
+        // ignore parse failure
+      }
+      finish({ ok: false, status, body: String(body || '').slice(0, 500), reason });
+    });
+
+    req.on('error', err => {
+      finish({ ok: false, reason: 'request_error', detail: String(err?.message || err || '') });
+    });
+
+    req.setTimeout(10_000, () => {
+      try {
+        req.close(http2.constants.NGHTTP2_CANCEL);
+      } catch {
+        // ignore
+      }
+      finish({ ok: false, reason: 'timeout' });
+    });
+
     try {
-      const parsed = JSON.parse(txt || '{}');
-      reason = typeof parsed?.reason === 'string' ? parsed.reason : '';
-    } catch {
-      // ignore parse failure
+      req.end(JSON.stringify(payload));
+    } catch (err) {
+      finish({ ok: false, reason: 'request_end_error', detail: String(err?.message || err || '') });
     }
-    return { ok: false, status: res.status, body: txt, reason };
-  }
-  const apnsId = res.headers.get('apns-id') || null;
-  return { ok: true, apnsId };
+  });
 }
 
 async function appleTokenExchange(code) {
