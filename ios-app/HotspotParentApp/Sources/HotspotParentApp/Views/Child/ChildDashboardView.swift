@@ -199,27 +199,6 @@ public struct ChildDashboardView: View {
               .font(.system(size: 15))
               .foregroundStyle(.secondary)
 
-            Button {
-              openShortcutsApp()
-            } label: {
-              HStack(spacing: 8) {
-                if let shortcutsIcon {
-                  shortcutsIcon
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-                    .foregroundStyle(.white)
-                } else {
-                  Image(systemName: "link")
-                    .font(.system(size: 14, weight: .semibold))
-                }
-                Text("Open Shortcuts")
-              }
-              .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-
             VStack(spacing: 0) {
               AutomationRow(
                 triggerIcon: "clock.fill",
@@ -269,6 +248,27 @@ public struct ChildDashboardView: View {
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 22))
+
+            Button {
+              openShortcutsApp()
+            } label: {
+              HStack(spacing: 8) {
+                if let shortcutsIcon {
+                  shortcutsIcon
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(.white)
+                } else {
+                  Image(systemName: "link")
+                    .font(.system(size: 14, weight: .semibold))
+                }
+                Text("Open Shortcuts")
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
           }
           .padding(18)
         }

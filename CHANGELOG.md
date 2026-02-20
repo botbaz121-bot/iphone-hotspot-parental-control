@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.29 (30) - 2026-02-20
+- Moved `Open Shortcuts` button to below the automations instruction list in the child Automations sheet.
+
 ## 0.1.28 (29) - 2026-02-20
 - Child lock screen title changed from `SpotChecker Complete` to `SpotChecker`.
 - Child lock screen button label changed from `Update` to `Refresh Status` (busy: `Refreshing Status…`).
