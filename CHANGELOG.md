@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.33 (34) - 2026-02-20
+- Removed remaining debug/status text from the child Screen Time protection screen (degraded reason and transient permission status line).
+
 ## 0.1.32 (33) - 2026-02-20
 - Child Automations sheet updated:
 - Removed the `Personal` heading.

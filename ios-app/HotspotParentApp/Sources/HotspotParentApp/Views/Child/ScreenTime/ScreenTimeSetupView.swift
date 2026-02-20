@@ -11,7 +11,6 @@ import FamilyControls
 #if canImport(SwiftUI)
 public struct ScreenTimeSetupView: View {
   @EnvironmentObject private var model: AppModel
-  @State private var statusText: String?
   @State private var busy = false
 
   public init() {}
@@ -70,18 +69,6 @@ public struct ScreenTimeSetupView: View {
           }
         }
 
-        if let reason = model.screenTimeDegradedReason, !reason.isEmpty {
-          Text(reason)
-            .font(.system(size: 14))
-            .foregroundStyle(.orange)
-        }
-
-        if let statusText, !statusText.isEmpty {
-          Text(statusText)
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-        }
-
       }
       .padding(.horizontal, 18)
       .padding(.bottom, 32)
@@ -105,9 +92,6 @@ public struct ScreenTimeSetupView: View {
     model.screenTimeAuthorized = result.approved
     if let grantedMode = result.grantedMode {
       model.screenTimeAuthorizationMode = grantedMode
-      statusText = "Permission granted (\(grantedMode.title))."
-    } else {
-      statusText = "Permission not granted."
     }
     await refreshStatus()
   }
