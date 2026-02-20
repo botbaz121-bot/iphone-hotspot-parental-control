@@ -454,9 +454,17 @@ async function apnsSendToToken(deviceToken, payload) {
 
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    return { ok: false, status: res.status, body: txt };
+    let reason = '';
+    try {
+      const parsed = JSON.parse(txt || '{}');
+      reason = typeof parsed?.reason === 'string' ? parsed.reason : '';
+    } catch {
+      // ignore parse failure
+    }
+    return { ok: false, status: res.status, body: txt, reason };
   }
-  return { ok: true };
+  const apnsId = res.headers.get('apns-id') || null;
+  return { ok: true, apnsId };
 }
 
 async function appleTokenExchange(code) {
@@ -871,7 +879,8 @@ app.get('/admin', (req, res) => {
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
           '<td>' +
             '<button class="saveRow">Save</button> ' +
-            '<button class="eventsRow">Events</button>' +
+            '<button class="eventsRow">Events</button> ' +
+            '<button class="pushTestRow">Test push</button>' +
           '</td>' +
           '<td>' +
             '<button class="pairRow">Pair code</button> ' +
@@ -931,6 +940,19 @@ app.get('/admin', (req, res) => {
           $('events').textContent = 'Loading...';
           try{
             const out = await api('/api/devices/' + d.id + '/events');
+            $('events').textContent = JSON.stringify(out, null, 2);
+          }catch(e){
+            $('events').textContent = String(e);
+          }
+        };
+
+        tr.querySelector('.pushTestRow').onclick = async ()=>{
+          $('events').textContent = 'Testing push...';
+          try{
+            const out = await api('/api/push/test', {
+              method:'POST',
+              body: JSON.stringify({ deviceId: d.id })
+            });
             $('events').textContent = JSON.stringify(out, null, 2);
           }catch(e){
             $('events').textContent = String(e);
@@ -2092,25 +2114,89 @@ async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinu
   };
 
   let delivered = 0;
+  const attempts = [];
   for (const t of tokens) {
     const token = String(t.token || '').trim();
     if (!token) continue;
+    const tokenSuffix = token.length > 8 ? token.slice(-8) : token;
     try {
       const out = await apnsSendToToken(token, payload);
       if (out.ok) {
         delivered += 1;
         db.prepare("UPDATE parent_push_tokens SET last_used_at = ?, updated_at = datetime('now') WHERE token = ?").run(Date.now(), token);
+        attempts.push({ ok: true, tokenSuffix, apnsId: out.apnsId || null });
       } else if (out.status === 400 || out.status === 410) {
         // Expired/invalid token, prune it.
         db.prepare('DELETE FROM parent_push_tokens WHERE token = ?').run(token);
+        attempts.push({
+          ok: false,
+          tokenSuffix,
+          status: out.status || null,
+          reason: out.reason || out.skipped || 'push_failed',
+          body: String(out.body || '').slice(0, 200)
+        });
+      } else {
+        attempts.push({
+          ok: false,
+          tokenSuffix,
+          status: out.status || null,
+          reason: out.reason || out.skipped || 'push_failed',
+          body: String(out.body || '').slice(0, 200)
+        });
       }
     } catch {
       // keep trying remaining tokens
+      attempts.push({ ok: false, tokenSuffix, reason: 'exception' });
     }
   }
 
-  return { ok: delivered > 0, delivered };
+  const failed = attempts.filter(a => !a.ok);
+  if (failed.length) {
+    console.warn('[push] delivery failures', {
+      deviceId,
+      delivered,
+      failed: failed.map(f => ({ tokenSuffix: f.tokenSuffix, status: f.status || null, reason: f.reason || 'push_failed' }))
+    });
+  } else if (delivered > 0) {
+    console.log('[push] delivered', { deviceId, delivered });
+  }
+
+  return { ok: delivered > 0, delivered, attempts };
 }
+
+app.post('/api/push/test', requireParentOrAdmin, async (req, res, next) => {
+  try {
+    const schema = z.object({
+      deviceId: z.string().uuid()
+    });
+    const body = schema.parse(req.body || {});
+    const device = req.parent
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(body.deviceId, req.parent.id)
+      : db.prepare('SELECT id FROM devices WHERE id = ?').get(body.deviceId);
+    if (!device) return res.status(404).json({ error: 'not_found' });
+
+    const out = await notifyParentExtraTimeRequest({
+      deviceId: body.deviceId,
+      requestId: `debug_${id()}`,
+      requestedMinutes: 15,
+      reason: 'debug_test'
+    });
+    return res.json({
+      ok: out.ok,
+      delivered: out.delivered || 0,
+      attempts: out.attempts || [],
+      apns: {
+        env: APNS_ENV,
+        topic: APNS_TOPIC,
+        hasTeamId: !!APNS_TEAM_ID,
+        hasKeyId: !!APNS_KEY_ID,
+        hasPrivateKey: !!(APNS_PRIVATE_KEY || APNS_PRIVATE_KEY_PATH)
+      }
+    });
+  } catch (e) {
+    next(e);
+  }
+});
 
 // Basic JSON error handler
 app.use((err, req, res, next) => {

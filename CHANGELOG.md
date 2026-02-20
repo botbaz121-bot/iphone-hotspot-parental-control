@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.16 (17) - 2026-02-20
+- Added backend push diagnostics:
+- New `POST /api/push/test` endpoint (parent/admin) returns APNs env/topic/config flags and per-token delivery attempts.
+- `/admin` now has a per-device `Test push` button and prints diagnostic JSON.
+- APNs error parsing now extracts `reason` (e.g. `BadDeviceToken`) and includes status/body in diagnostics.
+- Added backend push delivery/failure summary logging.
+
 ## 0.1.15 (16) - 2026-02-20
 - Updated Rules Schedule warning copy from "may prevent this phone" to "may prevent child phone".
 
