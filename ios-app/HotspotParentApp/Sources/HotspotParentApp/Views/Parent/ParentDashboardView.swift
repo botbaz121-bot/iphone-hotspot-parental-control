@@ -659,15 +659,9 @@ private struct PolicyEditorCard: View {
 
       // Schedule box (first)
       VStack(alignment: .leading, spacing: 10) {
-        HStack {
-          Text("Rules Schedule")
-            .font(.headline)
-          Spacer()
-        }
-
         Toggle(isOn: $quiet) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Enforcement schedule")
+            Text("Rules Enforcement Schedule")
               .font(.system(size: 16, weight: .semibold))
             Text("Enforcement only active during this time. Will enforce at all times if off.")
               .font(.system(size: 14))

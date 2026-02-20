@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.39 (40) - 2026-02-20
+- Removed duplicate `Rules Schedule` heading in parent child settings.
+- Renamed toggle title from `Enforcement schedule` to `Rules Enforcement Schedule`.
+
 ## 0.1.38 (39) - 2026-02-20
 - Added missing full stop in parent Lock Apps subtitle (`Set list on child phone.`).
 
