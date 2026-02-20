@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.25 (26) - 2026-02-20
+- Fixed status messaging to follow effective backend enforcement state (`enforce`) so schedule-off + active protections reports “Protection is currently on.”
+
 ## 0.1.24 (25) - 2026-02-20
 - Fixed backend protection status messaging so it never reports “Protection is currently on” when no protections are configured.
 

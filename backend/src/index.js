@@ -1180,7 +1180,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const pendingExtraTime = getPendingExtraTime(deviceId);
   const enforce = wantsEnforcement && inScheduleWindow && !activeExtraTime;
   const isQuietHours = inScheduleWindow;
-  const statusMessage = buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions });
+  const statusMessage = buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions, enforce, wantsEnforcement });
 
   const out = {
     enforce,
@@ -1453,7 +1453,9 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       activeExtraTime,
       pendingExtraTime,
       tz,
-      actions
+      actions,
+      enforce,
+      wantsEnforcement
     });
 
     // New semantics: "inQuietHours" means within the enforcement schedule.
@@ -2091,10 +2093,6 @@ function formatProtectedActions({ activateProtection, setHotspotOff, setWifiOff,
   return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]} are protected.`;
 }
 
-function hasConfiguredProtection({ activateProtection, setHotspotOff, setWifiOff, setMobileDataOff }) {
-  return !!(activateProtection || setHotspotOff || setWifiOff || setMobileDataOff);
-}
-
 function scheduleStartSuffix({ start, end, tz }) {
   const s = parseHHMM(start);
   const e = parseHHMM(end);
@@ -2104,12 +2102,11 @@ function scheduleStartSuffix({ start, end, tz }) {
   return `at ${start}`;
 }
 
-function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions }) {
+function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime, pendingExtraTime, tz, actions, enforce, wantsEnforcement }) {
   const details = formatProtectedActions(actions);
   const hasSchedule = !!(schedule && schedule.start && schedule.end);
-  const hasConfigured = hasConfiguredProtection(actions);
 
-  if (!hasConfigured) {
+  if (!wantsEnforcement) {
     if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval. ${details}`;
     return `Protection is currently off. ${details}`;
   }
@@ -2120,13 +2117,19 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
   }
 
   if (pendingExtraTime) {
-    if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}`;
-    if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}`;
-    return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}`;
+    if (enforce) {
+      if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}`;
+      return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}`;
+    }
+    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}`;
+    return `Protection is currently off. Extra time request is pending parent approval. ${details}`;
   }
 
-  if (!hasSchedule) return `Protection is currently on. ${details}`;
-  if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}`;
+  if (enforce) {
+    if (!hasSchedule) return `Protection is currently on. ${details}`;
+    return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}`;
+  }
+  if (!hasSchedule) return `Protection is currently off. ${details}`;
   return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}`;
 }
 
