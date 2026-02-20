@@ -205,18 +205,30 @@ private struct DeviceDetailsSheet: View {
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-          PolicyEditorCard(device: device) {
-            Task { await loadEvents() }
-          }
-            .environmentObject(model)
+      ScrollViewReader { proxy in
+        ScrollView {
+          VStack(alignment: .leading, spacing: 14) {
+            PolicyEditorCard(device: device, extraTimeAnchorId: extraTimeAnchorId) {
+              Task { await loadEvents() }
+            }
+              .environmentObject(model)
 
-          recentActivityCard
+            recentActivityCard
+          }
+          .padding(.top, 18)
+          .padding(.horizontal, 18)
+          .padding(.bottom, 32)
         }
-        .padding(.top, 18)
-        .padding(.horizontal, 18)
-        .padding(.bottom, 32)
+        .onAppear {
+          guard !didAutoScrollToExtraTime else { return }
+          guard model.extraTimePrefillMinutesByDeviceId[device.id] != nil || model.extraTimePendingRequestIdByDeviceId[device.id] != nil else { return }
+          didAutoScrollToExtraTime = true
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            withAnimation(.easeOut(duration: 0.25)) {
+              proxy.scrollTo(extraTimeAnchorId, anchor: .top)
+            }
+          }
+        }
       }
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
@@ -245,6 +257,8 @@ private struct DeviceDetailsSheet: View {
   @State private var showPairingCodePopup = false
   @State private var pairingCodeText: String = ""
   @State private var pairingCodeBusy = false
+  @State private var didAutoScrollToExtraTime = false
+  private let extraTimeAnchorId = "extraTimeSection"
 
   #if canImport(PhotosUI)
   @State private var pickedPhoto: PhotosPickerItem?
@@ -523,6 +537,7 @@ private struct PolicyEditorCard: View {
   @EnvironmentObject private var model: AppModel
 
   let device: DashboardDevice
+  let extraTimeAnchorId: String
   let onExtraTimeApplied: () -> Void
 
   @State private var hotspotOff: Bool
@@ -550,9 +565,11 @@ private struct PolicyEditorCard: View {
   @State private var pendingRequestId: String?
   @State private var pendingRequestedMinutes: Int?
   @State private var denyingExtraTime: Bool = false
+  @State private var forceShowExtraTime: Bool = false
 
-  init(device: DashboardDevice, onExtraTimeApplied: @escaping () -> Void = {}) {
+  init(device: DashboardDevice, extraTimeAnchorId: String = "extraTimeSection", onExtraTimeApplied: @escaping () -> Void = {}) {
     self.device = device
+    self.extraTimeAnchorId = extraTimeAnchorId
     self.onExtraTimeApplied = onExtraTimeApplied
 
     _hotspotOff = State(initialValue: device.actions.setHotspotOff)
@@ -798,7 +815,7 @@ private struct PolicyEditorCard: View {
       .background(Color.primary.opacity(0.06))
       .clipShape(RoundedRectangle(cornerRadius: 22))
 
-      if quiet || hasPendingExtraTimeRequest {
+      if quiet || hasPendingExtraTimeRequest || forceShowExtraTime {
         VStack(alignment: .leading, spacing: 10) {
           Text("Extra Time")
             .font(.headline)
@@ -871,6 +888,7 @@ private struct PolicyEditorCard: View {
         .padding(18)
         .background(Color.primary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 22))
+        .id(extraTimeAnchorId)
       }
 
     }
@@ -924,6 +942,7 @@ private struct PolicyEditorCard: View {
     didConsumePrefill = true
     if let prefilled = model.consumeExtraTimePrefill(deviceId: device.id) {
       extraTimeMinutes = max(0, min(120, (prefilled / 5) * 5))
+      forceShowExtraTime = true
     }
   }
 

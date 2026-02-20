@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.19 (20) - 2026-02-20
+- Parent child-details sheet now auto-scrolls to `Extra Time` when opened from a push/request prefill.
+- `Extra Time` section is force-shown when prefill exists so the target anchor is always available.
+
 ## 0.1.18 (19) - 2026-02-20
 - Switched backend APNs send transport from `fetch` to native `http2` client (APNs requires HTTP/2).
 - Added explicit APNs HTTP/2 client/request timeout and error reasons (`client_error`, `request_error`, `timeout`) in diagnostics.
