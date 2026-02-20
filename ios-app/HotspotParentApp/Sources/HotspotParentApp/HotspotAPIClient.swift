@@ -79,6 +79,12 @@ public final class HotspotAPIClient {
     let _: OkResponse = try await HTTP.postJSON(api.url("/api/push/register"), body: req, headers: parentHeaders())
   }
 
+  public func registerChildPushToken(deviceSecret: String, deviceToken: String) async throws {
+    let req = PushRegisterRequest(deviceToken: deviceToken, platform: "ios")
+    let headers: [String: String] = ["Authorization": "Bearer \(deviceSecret)"]
+    let _: OkResponse = try await HTTP.postJSON(api.url("/api/push/register-child"), body: req, headers: headers)
+  }
+
   public func requestExtraTime(deviceSecret: String, minutes: Int, reason: String?) async throws -> ExtraTimeCreateResponse {
     var headers: [String: String] = ["Authorization": "Bearer \(deviceSecret)"]
     headers["Content-Type"] = "application/json"

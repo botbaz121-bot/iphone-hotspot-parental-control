@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.45 (46) - 2026-02-20
+- Moved child 5-minute daily-limit warning delivery to backend APNS (server-side minute sweep) for higher reliability.
+- Added backend child push token registration endpoint (`POST /api/push/register-child`) authenticated by child `device_secret`.
+- Added backend `child_push_tokens` storage and APNS send path for daily-limit warnings.
+- Added per-day backend warning dedupe fields in `device_daily_usage` (`daily_limit_warn_5m_day_key`, `daily_limit_warn_5m_sent_at`).
+- Updated iOS push sync to register token in child mode after pairing.
+- Removed local App Intent notification fallback to avoid duplicate warnings.
+
 ## 0.1.44 (45) - 2026-02-20
 - Child lock screen protection status now appends daily-limit usage text when configured (e.g. used X of Y today).
 - Parent `Total daily limit` picker now shows values in `h/m` format and is capped at 8 hours.

@@ -3,9 +3,6 @@ import Foundation
 #if canImport(AppIntents)
 import AppIntents
 #endif
-#if canImport(UserNotifications)
-import UserNotifications
-#endif
 
 /// App Intent used by the Shortcut to fetch the current policy from the backend.
 ///
@@ -21,7 +18,6 @@ public struct FetchHotspotPolicyIntent: AppIntent {
 
   private static let cacheKey = "last_policy_json"
   private static let cacheTsKey = "last_policy_cached_at"
-  private static let dailyLimitWarnKey = "daily_limit_warned_day_key"
 
   public init() {}
 
@@ -81,7 +77,6 @@ public struct FetchHotspotPolicyIntent: AppIntent {
       // Cache last-known-good policy strictly.
       SharedDefaults.suite.set(trimmed, forKey: Self.cacheKey)
       SharedDefaults.suite.set(Date().timeIntervalSince1970, forKey: Self.cacheTsKey)
-      await Self.maybeNotifyDailyLimitFiveMinutesRemaining(policyJSON: trimmed, deviceToken: cfg.deviceToken)
 
       let out = Self.appendScreenTimeAuthMode(trimmed) ?? trimmed
       return .result(value: out)
@@ -103,8 +98,6 @@ public struct FetchHotspotPolicyIntent: AppIntent {
         let out = (try? JSONSerialization.data(withJSONObject: obj, options: []))
           .flatMap { String(data: $0, encoding: .utf8) }
           ?? cached
-
-        await Self.maybeNotifyDailyLimitFiveMinutesRemaining(policyJSON: out, deviceToken: cfg.deviceToken)
 
         return .result(value: out)
       }
@@ -136,62 +129,6 @@ public struct FetchHotspotPolicyIntent: AppIntent {
     let mode = SharedDefaults.screenTimeAuthorizationModeRaw ?? "individual"
     obj["screenTimeAuthorizationMode"] = mode
     obj["screenTimeIsIndividualMode"] = (mode == "individual")
-  }
-
-  private static func maybeNotifyDailyLimitFiveMinutesRemaining(policyJSON: String, deviceToken: String) async {
-    #if canImport(UserNotifications)
-    guard let data = policyJSON.data(using: .utf8),
-          let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let daily = obj["dailyLimit"] as? [String: Any]
-    else {
-      return
-    }
-
-    let remaining = intValue(daily["remainingMinutes"])
-    let limit = intValue(daily["limitMinutes"])
-    let used = intValue(daily["usedMinutes"])
-    let dayKey = (daily["dayKey"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-    let reached = (daily["reached"] as? Bool) ?? false
-    let enforce = (obj["enforce"] as? Bool) ?? false
-
-    guard limit > 0, used >= 0, remaining > 0, remaining <= 5, !reached, !enforce, let dayKey, !dayKey.isEmpty else {
-      return
-    }
-
-    let dedupeKey = "\(deviceToken)|\(dayKey)"
-    let alreadyWarned = SharedDefaults.suite.string(forKey: Self.dailyLimitWarnKey)
-    if alreadyWarned == dedupeKey { return }
-
-    let center = UNUserNotificationCenter.current()
-    let settings = await center.notificationSettings()
-    guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
-      return
-    }
-
-    let content = UNMutableNotificationContent()
-    content.title = "SpotChecker"
-    content.body = "5 minutes left today (\(used)m of \(limit)m used)."
-    content.sound = .default
-
-    let req = UNNotificationRequest(
-      identifier: "spotchecker.daily-limit.\(dayKey)",
-      content: content,
-      trigger: nil
-    )
-    do {
-      try await center.add(req)
-      SharedDefaults.suite.set(dedupeKey, forKey: Self.dailyLimitWarnKey)
-    } catch {
-      // best effort
-    }
-    #endif
-  }
-
-  private static func intValue(_ any: Any?) -> Int {
-    if let v = any as? Int { return v }
-    if let v = any as? Double { return Int(v) }
-    if let v = any as? NSNumber { return v.intValue }
-    return -1
   }
 }
 

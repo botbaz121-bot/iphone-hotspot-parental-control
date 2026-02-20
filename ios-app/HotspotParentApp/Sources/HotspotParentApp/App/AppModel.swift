@@ -424,25 +424,32 @@ public final class AppModel: ObservableObject {
     guard !normalized.isEmpty else { return }
     AppDefaults.parentPushToken = normalized
     lastRegisteredPushToken = normalized
-
-    guard isSignedIn else { return }
-    guard let client = apiClient else { return }
-    do {
-      try await client.registerParentPushToken(normalized)
-    } catch {
-      // best-effort
-    }
+    await syncPushRegistrationIfNeeded()
   }
 
   public func syncPushRegistrationIfNeeded() async {
-    guard isSignedIn else { return }
     let token = (lastRegisteredPushToken ?? AppDefaults.parentPushToken)?.trimmingCharacters(in: .whitespacesAndNewlines)
     guard let token, !token.isEmpty else { return }
-    guard let client = apiClient else { return }
-    do {
-      try await client.registerParentPushToken(token)
-    } catch {
-      // best-effort
+
+    // Parent push registration (for extra-time request notifications).
+    if isSignedIn, let client = apiClient {
+      do {
+        try await client.registerParentPushToken(token)
+      } catch {
+        // best-effort
+      }
+    }
+
+    // Child push registration (for 5-minute daily-limit warning notifications).
+    if appMode == .childSetup,
+       let cfg = loadHotspotConfig(),
+       let url = URL(string: cfg.apiBaseURL) {
+      let childClient = HotspotAPIClient(api: API(baseURL: url))
+      do {
+        try await childClient.registerChildPushToken(deviceSecret: cfg.deviceSecret, deviceToken: token)
+      } catch {
+        // best-effort
+      }
     }
   }
 

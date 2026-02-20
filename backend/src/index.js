@@ -145,12 +145,24 @@ CREATE TABLE IF NOT EXISTS parent_push_tokens (
   FOREIGN KEY(parent_id) REFERENCES parents(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS child_push_tokens (
+  token TEXT PRIMARY KEY,
+  device_id TEXT NOT NULL,
+  platform TEXT NOT NULL DEFAULT 'ios',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at INTEGER,
+  FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS device_daily_usage (
   device_id TEXT PRIMARY KEY,
   day_key TEXT NOT NULL,
   used_ms INTEGER NOT NULL DEFAULT 0,
   last_fetch_ms INTEGER,
   last_effective_enforce INTEGER NOT NULL DEFAULT 0,
+  daily_limit_warn_5m_day_key TEXT,
+  daily_limit_warn_5m_sent_at INTEGER,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
@@ -164,6 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_extra_time_device ON extra_time_requests(device_i
 CREATE INDEX IF NOT EXISTS idx_extra_time_status ON extra_time_requests(status);
 CREATE INDEX IF NOT EXISTS idx_extra_time_ends ON extra_time_requests(ends_at);
 CREATE INDEX IF NOT EXISTS idx_parent_push_tokens_parent ON parent_push_tokens(parent_id);
+CREATE INDEX IF NOT EXISTS idx_child_push_tokens_device ON child_push_tokens(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_daily_usage_day ON device_daily_usage(day_key);
 `);
 
@@ -195,6 +208,15 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devices'").get()) {
   if (!tableHasColumn('devices', 'parent_id')) {
     db.exec('ALTER TABLE devices ADD COLUMN parent_id TEXT');
+  }
+}
+
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_daily_usage'").get()) {
+  if (!tableHasColumn('device_daily_usage', 'daily_limit_warn_5m_day_key')) {
+    db.exec('ALTER TABLE device_daily_usage ADD COLUMN daily_limit_warn_5m_day_key TEXT');
+  }
+  if (!tableHasColumn('device_daily_usage', 'daily_limit_warn_5m_sent_at')) {
+    db.exec('ALTER TABLE device_daily_usage ADD COLUMN daily_limit_warn_5m_sent_at INTEGER');
   }
 }
 
@@ -1414,6 +1436,33 @@ app.post('/api/push/register', requireParent, (req, res, next) => {
   }
 });
 
+app.post('/api/push/register-child', requireShortcutAuth, (req, res, next) => {
+  try {
+    const schema = z.object({
+      deviceToken: z.string().min(16).max(512),
+      platform: z.string().max(32).optional().default('ios')
+    });
+    const body = schema.parse(req.body || {});
+    const token = String(body.deviceToken).trim();
+    if (!token) return res.status(400).json({ error: 'invalid_token' });
+
+    db.prepare(
+      `
+      INSERT INTO child_push_tokens (token, device_id, platform, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(token) DO UPDATE SET
+        device_id = excluded.device_id,
+        platform = excluded.platform,
+        updated_at = datetime('now')
+      `
+    ).run(token, req.shortcut.deviceId, body.platform || 'ios');
+
+    return res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
   const parentId = req.parent?.id || null;
   const where = parentId ? 'WHERE d.parent_id = ?' : '';
@@ -2157,7 +2206,7 @@ function upsertDailyUsageAndCompute({
     usedMs = 0;
     lastFetchMs = nowMs;
     lastEffectiveEnforce = false;
-  } else if (accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
+  } else if (lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
     // Only accrue "allowed" time while enforcement was off. Cap delta to avoid giant jumps from sparse check-ins.
     usedMs += Math.min(nowMs - lastFetchMs, MAX_DELTA_MS);
   }
@@ -2333,6 +2382,162 @@ function insertDeviceEvent({
   );
 }
 
+async function notifyChildDailyLimitWarning({ deviceId, deviceName, remainingMinutes, usedMinutes, limitMinutes }) {
+  const tokens = db
+    .prepare('SELECT token FROM child_push_tokens WHERE device_id = ? ORDER BY updated_at DESC')
+    .all(deviceId);
+  if (!tokens.length) return { ok: false, skipped: 'no_tokens' };
+
+  const title = 'SpotChecker';
+  const body = `${remainingMinutes} minutes left before protections turn on.`;
+  const payload = {
+    aps: { alert: { title, body }, sound: 'default' },
+    type: 'daily_limit_warning',
+    deviceId,
+    deviceName: deviceName || '',
+    remainingMinutes: Number(remainingMinutes || 0),
+    usedMinutes: Number(usedMinutes || 0),
+    limitMinutes: Number(limitMinutes || 0)
+  };
+
+  let delivered = 0;
+  const attempts = [];
+  for (const t of tokens) {
+    const token = String(t.token || '').trim();
+    if (!token) continue;
+    const tokenSuffix = token.length > 8 ? token.slice(-8) : token;
+    try {
+      const out = await apnsSendToToken(token, payload);
+      if (out.ok) {
+        delivered += 1;
+        db.prepare("UPDATE child_push_tokens SET last_used_at = ?, updated_at = datetime('now') WHERE token = ?").run(Date.now(), token);
+        attempts.push({ ok: true, tokenSuffix, apnsId: out.apnsId || null });
+      } else if (out.status === 400 || out.status === 410) {
+        db.prepare('DELETE FROM child_push_tokens WHERE token = ?').run(token);
+        attempts.push({
+          ok: false,
+          tokenSuffix,
+          status: out.status || null,
+          reason: out.reason || out.skipped || 'push_failed'
+        });
+      } else {
+        attempts.push({
+          ok: false,
+          tokenSuffix,
+          status: out.status || null,
+          reason: out.reason || out.skipped || 'push_failed'
+        });
+      }
+    } catch (err) {
+      const detail = String(err?.message || err || '').slice(0, 240);
+      attempts.push({ ok: false, tokenSuffix, reason: 'exception', detail });
+    }
+  }
+
+  return { ok: delivered > 0, delivered, attempts };
+}
+
+let dailyLimitWarningSweepRunning = false;
+async function runDailyLimitWarningSweep() {
+  if (dailyLimitWarningSweepRunning) return;
+  dailyLimitWarningSweepRunning = true;
+  try {
+    const now = Date.now();
+    const rows = db
+      .prepare(
+        `
+        SELECT
+          d.id AS id,
+          d.name AS name,
+          p.activate_protection AS activate_protection,
+          p.set_hotspot_off AS set_hotspot_off,
+          p.set_wifi_off AS set_wifi_off,
+          p.set_mobile_data_off AS set_mobile_data_off,
+          p.quiet_days AS quiet_days,
+          p.tz AS tz,
+          u.daily_limit_warn_5m_day_key AS daily_limit_warn_5m_day_key
+        FROM devices d
+        LEFT JOIN device_policies p ON p.device_id = d.id
+        LEFT JOIN device_daily_usage u ON u.device_id = d.id
+        `
+      )
+      .all();
+
+    for (const r of rows) {
+      const actions = {
+        activateProtection: r.activate_protection == null ? true : !!r.activate_protection,
+        setHotspotOff: r.set_hotspot_off == null ? true : !!r.set_hotspot_off,
+        setWifiOff: r.set_wifi_off == null ? false : !!r.set_wifi_off,
+        setMobileDataOff: r.set_mobile_data_off == null ? false : !!r.set_mobile_data_off
+      };
+      const wantsEnforcement = !!(actions.setHotspotOff || actions.setWifiOff || actions.setMobileDataOff);
+      if (!wantsEnforcement) continue;
+
+      const quietDays = parseQuietDaysJSON(r.quiet_days);
+      if (!quietDays) continue;
+
+      const tz = r.tz || 'Europe/Paris';
+      const todayKey = weekdayKeyNow(tz);
+      const todays = quietDays[todayKey] || null;
+      const dailyLimitMinutes = normalizeDailyLimitMinutes(todays?.dailyLimitMinutes);
+      if (dailyLimitMinutes == null) continue;
+
+      const hasSchedule = !!(todays && todays.start && todays.end);
+      const inScheduleWindow = hasSchedule
+        ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz })
+        : true;
+      const activeExtraTime = getActiveExtraTime(r.id, now);
+      const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+
+      const dailyLimit = upsertDailyUsageAndCompute({
+        deviceId: r.id,
+        tz,
+        dailyLimitMinutes,
+        enforceWithoutLimit,
+        nowMs: now,
+        accrue: false
+      });
+
+      const remainingMinutes = Number(dailyLimit.remainingMinutes);
+      const shouldWarn =
+        !enforceWithoutLimit &&
+        !activeExtraTime &&
+        !dailyLimit.reached &&
+        Number.isFinite(remainingMinutes) &&
+        remainingMinutes > 0 &&
+        remainingMinutes <= 5;
+
+      if (!shouldWarn) continue;
+      if ((r.daily_limit_warn_5m_day_key || '') === dailyLimit.dayKey) continue;
+
+      const out = await notifyChildDailyLimitWarning({
+        deviceId: r.id,
+        deviceName: r.name,
+        remainingMinutes,
+        usedMinutes: dailyLimit.usedMinutes,
+        limitMinutes: dailyLimit.limitMinutes
+      });
+
+      if (out.ok) {
+        db.prepare(
+          `
+          INSERT INTO device_daily_usage (device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce, daily_limit_warn_5m_day_key, daily_limit_warn_5m_sent_at, updated_at)
+          VALUES (?, ?, 0, NULL, 0, ?, ?, datetime('now'))
+          ON CONFLICT(device_id) DO UPDATE SET
+            daily_limit_warn_5m_day_key = excluded.daily_limit_warn_5m_day_key,
+            daily_limit_warn_5m_sent_at = excluded.daily_limit_warn_5m_sent_at,
+            updated_at = datetime('now')
+          `
+        ).run(r.id, dailyLimit.dayKey, dailyLimit.dayKey, now);
+      }
+    }
+  } catch (e) {
+    console.warn('[daily-limit-warning] sweep_failed', String(e?.message || e || 'unknown'));
+  } finally {
+    dailyLimitWarningSweepRunning = false;
+  }
+}
+
 async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinutes, reason }) {
   const device = db.prepare('SELECT id, parent_id, name FROM devices WHERE id = ?').get(deviceId);
   if (!device || !device.parent_id) return { ok: false, skipped: 'no_parent' };
@@ -2448,4 +2653,11 @@ app.use((err, req, res, next) => {
 app.listen(PORT, HOST, () => {
   console.log(`[hotspot] listening on http://${HOST}:${PORT}`);
   console.log(`[hotspot] sqlite: ${DATABASE_PATH}`);
+  // Server-side minute sweep for child 5-minute daily-limit warnings.
+  setTimeout(() => {
+    void runDailyLimitWarningSweep();
+  }, 20_000);
+  setInterval(() => {
+    void runDailyLimitWarningSweep();
+  }, 60_000);
 });
