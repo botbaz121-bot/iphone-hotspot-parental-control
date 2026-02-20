@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11 (12) - 2026-02-20
+- Fixed parent approve/deny flow so pending extra-time requests are always resolved from backend by `requestId` before action.
+- Prevented accidental manual grant fallback from leaving pending requests uncleared.
+
 ## 0.1.10 (11) - 2026-02-20
 - Fixed `/admin` JavaScript `ReferenceError: activateProtection is not defined` by restoring the missing `activateProtection` row variable.
 

@@ -18,8 +18,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bazapps.hotspotparent
-        MARKETING_VERSION: "0.1.10"
-        CURRENT_PROJECT_VERSION: "11"
+        MARKETING_VERSION: "0.1.11"
+        CURRENT_PROJECT_VERSION: "12"
         INFOPLIST_FILE: HotspotParentiOS/Info.plist
         CODE_SIGN_ENTITLEMENTS: HotspotParentiOS/HotspotParent.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

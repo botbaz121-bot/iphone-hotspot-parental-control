@@ -458,8 +458,9 @@ public final class AppModel: ObservableObject {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let clamped = max(0, min(240, (minutes / 5) * 5))
 
-    if let requestId = consumeExtraTimePendingRequestId(deviceId: deviceId) {
+    if let requestId = try await resolvePendingExtraTimeRequestId(client: client, deviceId: deviceId) {
       _ = try await client.decideExtraTimeRequest(requestId: requestId, approve: true, grantedMinutes: clamped)
+      extraTimePendingRequestIdByDeviceId.removeValue(forKey: deviceId)
     } else {
       _ = try await client.grantExtraTime(deviceId: deviceId, minutes: clamped, reason: "parent_manual")
     }
@@ -474,22 +475,26 @@ public final class AppModel: ObservableObject {
   public func parentDenyExtraTime(deviceId: String) async throws {
     guard let client = apiClient else { throw APIError.invalidResponse }
 
-    let requestId: String = {
-      if let existing = consumeExtraTimePendingRequestId(deviceId: deviceId), !existing.isEmpty {
-        return existing
-      }
-      return ""
-    }()
-
-    if !requestId.isEmpty {
+    if let requestId = try await resolvePendingExtraTimeRequestId(client: client, deviceId: deviceId) {
       _ = try await client.decideExtraTimeRequest(requestId: requestId, approve: false, grantedMinutes: nil)
+      extraTimePendingRequestIdByDeviceId.removeValue(forKey: deviceId)
     } else {
-      let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
-      guard let req = out.requests.first(where: { $0.deviceId == deviceId }) else { return }
-      _ = try await client.decideExtraTimeRequest(requestId: req.id, approve: false, grantedMinutes: nil)
+      return
     }
 
     await refreshParentDashboard()
+  }
+
+  private func resolvePendingExtraTimeRequestId(client: HotspotAPIClient, deviceId: String) async throws -> String? {
+    if let cached = extraTimePendingRequestIdByDeviceId[deviceId], !cached.isEmpty {
+      return cached
+    }
+    let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
+    if let req = out.requests.first(where: { $0.deviceId == deviceId }) {
+      extraTimePendingRequestIdByDeviceId[deviceId] = req.id
+      return req.id
+    }
+    return nil
   }
 
   public func fetchLatestPendingExtraTimeRequest(deviceId: String) async throws -> ExtraTimeRequestRow? {
