@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.35 (36) - 2026-02-20
+- Child Settings mode toggle now routes logged-out users to the welcome screen (app mode `nil`) instead of parent sign-in when turning off `This is a child phone`.
+
 ## 0.1.34 (35) - 2026-02-20
 - Updated extra-time push notification copy to use plural `mins`.
 

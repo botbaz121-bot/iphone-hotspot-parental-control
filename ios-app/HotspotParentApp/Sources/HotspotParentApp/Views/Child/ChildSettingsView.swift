@@ -25,7 +25,11 @@ public struct ChildSettingsView: View {
               isOn: Binding(
                 get: { model.appMode == .childSetup },
                 set: { isOn in
-                  model.setAppMode(isOn ? .childSetup : .parent)
+                  if isOn {
+                    model.setAppMode(.childSetup)
+                  } else {
+                    model.setAppMode(model.isSignedIn ? .parent : nil)
+                  }
                 }
               )
             )
