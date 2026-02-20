@@ -54,7 +54,7 @@ public struct ScreenTimeSetupView: View {
             model.screenTimePasswordStepCompleted.toggle()
           }
 
-          if model.screenTimeAuthorized && model.screenTimeAuthorizationMode == .individual {
+          if model.screenTimeAuthorizationMode == .individual {
             ChecklistTile(
               color: model.screenTimeDeletionProtectionStepCompleted ? .pink : .gray,
               systemIcon: "trash.slash",

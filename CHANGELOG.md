@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.23 (24) - 2026-02-20
+- `Prevent App Deletions` now remains visible in Screen Time setup for `This Device` mode even before `Grant Permissions` is completed.
+
 ## 0.1.22 (23) - 2026-02-20
 - Replaced the old embedded Shortcuts icon with a new vector asset (`ShortcutsIcon`) using the provided SVG.
 - Updated child setup/automation Shortcuts icon rendering to use the shared asset.
