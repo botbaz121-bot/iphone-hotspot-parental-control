@@ -520,7 +520,6 @@ private struct PolicyEditorCard: View {
   @State private var pendingRequestId: String?
   @State private var pendingRequestedMinutes: Int?
   @State private var denyingExtraTime: Bool = false
-  @State private var pendingDebugText: String = "pending: not loaded"
 
   init(device: DashboardDevice, onExtraTimeApplied: @escaping () -> Void = {}) {
     self.device = device
@@ -838,11 +837,6 @@ private struct PolicyEditorCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 22))
       }
 
-      Text("Debug: deviceId=\(device.id) hasPending=\(hasPendingExtraTimeRequest) reqId=\(pendingRequestId ?? "nil") reqMins=\(pendingRequestedMinutes.map(String.init) ?? "nil") | \(pendingDebugText)")
-        .font(.system(size: 12))
-        .foregroundStyle(.secondary)
-        .italic()
-
     }
     .onAppear {
       consumePrefillIfNeeded()
@@ -907,45 +901,18 @@ private struct PolicyEditorCard: View {
         hasPendingExtraTimeRequest = true
         pendingRequestId = req.id
         pendingRequestedMinutes = req.requestedMinutes
-        pendingDebugText = "deviceId=\(device.id) reqId=\(req.id) reqDeviceId=\(req.deviceId) mins=\(req.requestedMinutes) status=\(req.status)"
       } else if extraTimeStatus?.hasPrefix("Pending request:") == true {
         extraTimeStatus = nil
         hasPendingExtraTimeRequest = false
         pendingRequestId = nil
         pendingRequestedMinutes = nil
-        pendingDebugText = "deviceId=\(device.id) no pending request"
       } else {
         hasPendingExtraTimeRequest = false
         pendingRequestId = nil
         pendingRequestedMinutes = nil
-        pendingDebugText = "deviceId=\(device.id) no pending request"
       }
     } catch {
-      pendingDebugText = "deviceId=\(device.id) pending fetch error: \(Self.describePendingFetchError(error))"
     }
-  }
-
-  private static func describePendingFetchError(_ error: Error) -> String {
-    if let apiError = error as? APIError {
-      switch apiError {
-        case .invalidResponse:
-          return "invalidResponse"
-        case .httpStatus(let code, let body):
-          let compactBody = body
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\r", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-          let trimmed = compactBody.count > 140 ? String(compactBody.prefix(140)) + "..." : compactBody
-          return "http \(code) body=\(trimmed)"
-      }
-    }
-
-    if let urlError = error as? URLError {
-      return "urlError \(urlError.code.rawValue) \(urlError.localizedDescription)"
-    }
-
-    let desc = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-    return desc.isEmpty ? String(describing: error) : desc
   }
 
   @MainActor
@@ -975,11 +942,9 @@ private struct PolicyEditorCard: View {
       pendingRequestId = nil
       pendingRequestedMinutes = nil
       extraTimeStatus = "Request denied."
-      pendingDebugText = "deviceId=\(device.id) denied"
       onExtraTimeApplied()
     } catch {
       extraTimeStatus = "Failed to deny request."
-      pendingDebugText = "deviceId=\(device.id) deny failed"
     }
   }
 

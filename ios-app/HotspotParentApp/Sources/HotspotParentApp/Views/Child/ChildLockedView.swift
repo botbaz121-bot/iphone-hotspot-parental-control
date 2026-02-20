@@ -192,10 +192,6 @@ public struct ChildLockedView: View {
       return "Protection is currently off. Screen Time permission is not enabled."
     }
 
-    if let reason = model.screenTimeDegradedReason?.lowercased(), reason.contains("disabled by parent") {
-      return "Protection is currently off. The parent has disabled protection."
-    }
-
     if let backend = backendStatusMessage(), !backend.isEmpty {
       return backend
     }
@@ -227,10 +223,6 @@ public struct ChildLockedView: View {
 
   private var isProtectionCurrentlyOn: Bool {
     if !model.screenTimeAuthorized { return false }
-    if let reason = model.screenTimeDegradedReason?.lowercased(),
-       reason.contains("disabled by parent") {
-      return false
-    }
     return model.screenTimeScheduleEnforcedNow
   }
 

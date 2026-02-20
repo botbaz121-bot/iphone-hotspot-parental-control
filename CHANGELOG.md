@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 (8) - 2026-02-19
+- Removed parent child-settings pending-request debug text from the UI.
+- Updated backend policy status wording to consistently use "Protection is currently on/off..." phrasing.
+- Removed child fallback copy branch that showed "The parent has disabled protection." so backend status messaging is preferred.
+
 ## 0.1.6 (7) - 2026-02-19
 - Removed the separate `Approval` card from parent child settings.
 - Kept dual-button moderation flow inside `Extra Time` when a request is pending (`Approve` / `Deny`).

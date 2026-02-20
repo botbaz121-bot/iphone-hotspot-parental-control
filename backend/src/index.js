@@ -2005,13 +2005,13 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
   const details = formatProtectedActions(actions);
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
-    return `Protection is off for extra time and scheduled to resume at ${resume}. ${details}`;
+    return `Protection is currently off for extra time and scheduled to resume at ${resume}. ${details}`;
   }
 
   const hasSchedule = !!(schedule && schedule.start && schedule.end);
-  if (!hasSchedule) return `Protection is on. ${details}`;
-  if (inScheduleWindow) return `Protection is on and scheduled to end at ${schedule.end}. ${details}`;
-  return `Protection is off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}`;
+  if (!hasSchedule) return `Protection is currently on. ${details}`;
+  if (inScheduleWindow) return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}`;
+  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}`;
 }
 
 function insertDeviceEvent({
