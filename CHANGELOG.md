@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.26 (27) - 2026-02-20
+- Child lock screen now shows `Need more time?` only when protection is currently on and protections are configured.
+- Hides extra-time request card when protection is off or no protections are enabled.
+
 ## 0.1.25 (26) - 2026-02-20
 - Fixed status messaging to follow effective backend enforcement state (`enforce`) so schedule-off + active protections reports “Protection is currently on.”
 

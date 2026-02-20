@@ -24,7 +24,7 @@ public struct ChildLockedView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
         headerCard
-        if !isProtectionCurrentlyOn {
+        if canRequestExtraTime {
           extraTimeCard
         }
       }
@@ -224,6 +224,34 @@ public struct ChildLockedView: View {
   private var isProtectionCurrentlyOn: Bool {
     if !model.screenTimeAuthorized { return false }
     return model.screenTimeScheduleEnforcedNow
+  }
+
+  private var canRequestExtraTime: Bool {
+    if let policy = backendPolicyState() {
+      return policy.enforce && policy.hasConfiguredProtections
+    }
+    // Fallback when backend policy cache is unavailable.
+    return isProtectionCurrentlyOn
+  }
+
+  private func backendPolicyState() -> (enforce: Bool, hasConfiguredProtections: Bool)? {
+    guard let raw = SharedDefaults.suite.string(forKey: "last_policy_json"),
+          let data = raw.data(using: .utf8),
+          let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    else {
+      return nil
+    }
+
+    let enforce = (obj["enforce"] as? Bool) ?? false
+    if let actions = obj["actions"] as? [String: Any] {
+      let hasConfigured = (actions["activateProtection"] as? Bool ?? false)
+        || (actions["setHotspotOff"] as? Bool ?? false)
+        || (actions["setWifiOff"] as? Bool ?? false)
+        || (actions["setMobileDataOff"] as? Bool ?? false)
+      return (enforce, hasConfigured)
+    }
+
+    return (enforce, enforce)
   }
 
   private func nextScheduleBoundary(after now: Date, protectionOnNow: Bool) -> Date? {
