@@ -38,6 +38,9 @@ const APNS_PRIVATE_KEY = env('APNS_PRIVATE_KEY');
 const APNS_PRIVATE_KEY_PATH = env('APNS_PRIVATE_KEY_PATH');
 const APNS_TOPIC = env('APNS_TOPIC', 'com.bazapps.hotspotparent');
 const APNS_ENV = String(env('APNS_ENV', 'sandbox')).toLowerCase(); // sandbox | production
+const BACKEND_BUILD_VERSION = env('BACKEND_BUILD_VERSION', env('APP_VERSION', 'dev'));
+const BACKEND_BUILD_COMMIT = env('COOLIFY_GIT_COMMIT', env('RENDER_GIT_COMMIT', env('GIT_COMMIT', 'local'))).slice(0, 12);
+const BACKEND_BOOTED_AT = new Date().toISOString();
 
 const MAX_SKEW_MS = Number(env('MAX_SKEW_MS', String(5 * 60 * 1000)));
 const LOG_REQUEST_BODIES = env('LOG_REQUEST_BODIES', '0') === '1';
@@ -688,6 +691,7 @@ app.use((req, res, next) => {
 // Visit: http://127.0.0.1:3003/admin
 // It uses ADMIN_TOKEN in the browser via "Bearer <token>" (stored in localStorage).
 app.get('/admin', (req, res) => {
+  const adminBuildStamp = `Backend ${BACKEND_BUILD_VERSION} | commit ${BACKEND_BUILD_COMMIT} | boot ${BACKEND_BOOTED_AT} | apns ${APNS_ENV}`;
   res.type('html').send(`<!doctype html>
 <html>
 <head>
@@ -707,6 +711,7 @@ app.get('/admin', (req, res) => {
 </head>
 <body>
   <h1>Hotspot Admin</h1>
+  <div class="muted"><code>${adminBuildStamp}</code></div>
 
   <div class="row">
     <label>Admin token:</label>

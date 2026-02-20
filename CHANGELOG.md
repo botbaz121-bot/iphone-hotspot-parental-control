@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.9 (10) - 2026-02-20
+- Added `/admin` backend build stamp under the page title (version, commit hash, boot timestamp, APNS env) to confirm which deployment is live.
+
 ## 0.1.8 (9) - 2026-02-20
 - Updated backend protection status messaging for extra time:
 - Clarified active state text to "approved extra time".
