@@ -439,10 +439,10 @@ public struct ChildDashboardView: View {
     } label: {
       ShortcutTileCard(
         color: hasRequired ? .pink : .gray,
-        systemIcon: hasRequired ? "checkmark.shield" : "link",
-        customIcon: hasRequired ? shortcutsIcon : nil,
+        systemIcon: "link",
+        customIcon: shortcutsIcon,
         title: "Lock Shortcuts",
-        subtitle: hasRequired ? "Done" : "Pick Shortcuts in Always Locked Apps"
+        subtitle: hasRequired ? "Done" : "Pick Productivity & Finance > Shortcuts to lock"
       )
       .opacity(enabled ? 1.0 : 0.7)
     }

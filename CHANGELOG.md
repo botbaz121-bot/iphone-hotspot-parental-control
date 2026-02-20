@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.37 (38) - 2026-02-20
+- `Lock Shortcuts` tile now shows the Shortcuts icon in both incomplete and complete states.
+- Updated incomplete subtitle to: `Pick Productivity & Finance > Shortcuts to lock`.
+
 ## 0.1.36 (37) - 2026-02-20
 - Increased Screen Time protection checklist subtitle line limit from 5 to 6 lines.
 
