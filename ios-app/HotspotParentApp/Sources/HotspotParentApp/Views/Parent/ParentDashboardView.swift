@@ -109,8 +109,8 @@ public struct ParentDashboardView: View {
   private var parentDevicesSection: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text("Parent Devices")
-        .font(.system(size: 22, weight: .bold))
-        .padding(.top, 8)
+        .font(.system(size: 34, weight: .bold))
+        .padding(.top, 14)
 
       if parentEntries.isEmpty {
         Text("No parent devices or invites yet.")
@@ -290,6 +290,15 @@ private struct ParentPersonTileView: View {
     return palette[idx]
   }
 
+  private var canDelete: Bool {
+    switch entry {
+      case .invite:
+        return true
+      case .member(let m):
+        return m.role.lowercased() != "owner"
+    }
+  }
+
   var body: some View {
     Menu {
       Button {
@@ -319,12 +328,14 @@ private struct ParentPersonTileView: View {
         Label("View Invite Code", systemImage: "qrcode")
       }
 
-      Divider()
+      if canDelete {
+        Divider()
 
-      Button(role: .destructive) {
-        showDeleteConfirm = true
-      } label: {
-        Label("Delete", systemImage: "trash")
+        Button(role: .destructive) {
+          showDeleteConfirm = true
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
       }
     } label: {
       ZStack {
@@ -370,12 +381,6 @@ private struct ParentPersonTileView: View {
             .font(.system(size: 18, weight: .bold))
             .foregroundStyle(.white.opacity(0.95))
             .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-          Text(entry.subtitle)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.white.opacity(0.82))
-            .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)

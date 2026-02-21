@@ -80,6 +80,7 @@ public struct LandingView: View {
           }
           .padding(14)
         }
+        .padding(.top, 10)
       }
       .padding(.top, 18)
       .padding(.horizontal, 18)

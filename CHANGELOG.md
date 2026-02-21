@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.64 (65) - 2026-02-21
+- Parent Devices menu now hides `Delete` for household owners.
+- Prevents owner-removal action from being shown in-app.
+
+## 0.1.63 (64) - 2026-02-21
+- UI polish for parent/invite surfaces:
+- `Parent Devices` title now matches `Child Devices` font sizing.
+- Parent device tiles now use less cramped content layout.
+- Added extra top spacing above `Join By Invite` on welcome screen.
+
 ## 0.1.62 (63) - 2026-02-21
 - Parent dashboard updates:
 - renamed "All Child Devices" to "Child Devices" and removed subtitle,
