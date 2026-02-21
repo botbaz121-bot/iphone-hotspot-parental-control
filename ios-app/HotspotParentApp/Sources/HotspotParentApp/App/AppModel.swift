@@ -583,9 +583,9 @@ public final class AppModel: ObservableObject {
     await refreshParentDashboard()
   }
 
-  public func createHouseholdInvite(email: String?, inviteName: String?) async throws -> CreateHouseholdInviteResponse.Invite {
+  public func createHouseholdInvite(inviteName: String) async throws -> CreateHouseholdInviteResponse.Invite {
     guard let client = apiClient else { throw APIError.invalidResponse }
-    let resp = try await client.createHouseholdInvite(email: email, inviteName: inviteName)
+    let resp = try await client.createHouseholdInvite(inviteName: inviteName)
     await refreshParentDashboard()
     return resp.invite
   }

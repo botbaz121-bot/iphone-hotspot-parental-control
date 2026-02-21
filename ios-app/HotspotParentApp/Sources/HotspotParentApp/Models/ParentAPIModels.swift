@@ -230,11 +230,9 @@ public struct SetActiveHouseholdRequest: Encodable {
 }
 
 public struct CreateHouseholdInviteRequest: Encodable {
-  public var email: String?
-  public var inviteName: String?
+  public var inviteName: String
 
-  public init(email: String? = nil, inviteName: String? = nil) {
-    self.email = email
+  public init(inviteName: String) {
     self.inviteName = inviteName
   }
 }

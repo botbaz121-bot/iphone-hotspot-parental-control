@@ -308,10 +308,9 @@
 
         <section class="card half">
           <h2>Invite Co-parent</h2>
-          <p class="muted">Send by email, or share 4-character code. It can be entered at <code>web.spotchecker.app</code>.</p>
+          <p class="muted">Create an invite name and share the 4-character code. It can be entered at <code>web.spotchecker.app</code>.</p>
           <div class="row">
-            <input id="inviteName" placeholder="name (optional)" style="flex:1" />
-            <input id="inviteEmail" placeholder="email (optional)" style="flex:1" />
+            <input id="inviteName" placeholder="name" style="flex:1" />
             <button id="createInvite" class="primary">Create Invite</button>
           </div>
           <div id="inviteList" class="col" style="margin-top:10px;">${buildInviteList()}</div>
@@ -368,12 +367,15 @@
     };
 
     document.getElementById('createInvite').onclick = async () => {
-      const email = document.getElementById('inviteEmail').value.trim();
       const inviteName = document.getElementById('inviteName').value.trim();
+      if (!inviteName) {
+        alert('Invite name is required.');
+        return;
+      }
       try {
         await api('/api/household/invites', {
           method: 'POST',
-          body: JSON.stringify({ email: email || undefined, inviteName: inviteName || undefined })
+          body: JSON.stringify({ inviteName })
         });
         await loadAll('Invite created.');
       } catch (e) {

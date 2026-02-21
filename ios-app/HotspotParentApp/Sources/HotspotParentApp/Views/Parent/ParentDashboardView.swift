@@ -176,7 +176,6 @@ private struct CreateParentInviteSheet: View {
   @Environment(\.dismiss) private var dismiss
 
   @State private var inviteName: String = ""
-  @State private var inviteEmail: String = ""
   @State private var creating: Bool = false
   @State private var createdCode: String?
   @State private var errorText: String?
@@ -187,18 +186,9 @@ private struct CreateParentInviteSheet: View {
         Text("Create Invite")
           .font(.system(size: 24, weight: .bold))
 
-        TextField("Name (optional)", text: $inviteName)
+        TextField("Name", text: $inviteName)
           .textInputAutocapitalization(.words)
           .disableAutocorrection(true)
-          .padding(.horizontal, 12)
-          .padding(.vertical, 10)
-          .background(Color.primary.opacity(0.06))
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-
-        TextField("Email (optional)", text: $inviteEmail)
-          .textInputAutocapitalization(.never)
-          .keyboardType(.emailAddress)
-          .autocorrectionDisabled(true)
           .padding(.horizontal, 12)
           .padding(.vertical, 10)
           .background(Color.primary.opacity(0.06))
@@ -256,9 +246,13 @@ private struct CreateParentInviteSheet: View {
     errorText = nil
     defer { creating = false }
     do {
+      let name = inviteName.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !name.isEmpty else {
+        errorText = "Invite name is required."
+        return
+      }
       let invite = try await model.createHouseholdInvite(
-        email: inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines),
-        inviteName: inviteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : inviteName.trimmingCharacters(in: .whitespacesAndNewlines)
+        inviteName: name
       )
       createdCode = invite.code
     } catch {
@@ -510,8 +504,6 @@ private struct ParentPersonDetailsSheet: View {
   @State private var showInviteCode: Bool = false
   @State private var inviteCodeText: String = ""
   @State private var actionError: String?
-  @State private var switchingHousehold: Bool = false
-  @State private var selectedHouseholdId: String = ""
 
   #if canImport(PhotosUI)
   @State private var pickedPhoto: PhotosPickerItem?
@@ -535,11 +527,7 @@ private struct ParentPersonDetailsSheet: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-          if isCurrentParent {
-            currentParentSettingsCard
-          }
-
-          infoCard
+          notificationSettingsCard
         }
         .padding(.top, 18)
         .padding(.horizontal, 18)
@@ -553,9 +541,6 @@ private struct ParentPersonDetailsSheet: View {
         ToolbarItem(placement: .topBarTrailing) {
           Button("Done") { dismiss() }
         }
-      }
-      .onAppear {
-        selectedHouseholdId = model.activeHouseholdId ?? model.households.first?.id ?? ""
       }
       .alert("Action failed", isPresented: Binding(
         get: { actionError != nil },
@@ -719,37 +704,15 @@ private struct ParentPersonDetailsSheet: View {
     }
   }
 
-  private var currentParentSettingsCard: some View {
+  private var notificationSettingsCard: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("Parent Settings")
+      Text("Notification Settings")
         .font(.headline)
 
-      VStack(alignment: .leading, spacing: 8) {
-        Text("Active Household")
-          .font(.system(size: 16, weight: .semibold))
-        if model.households.isEmpty {
-          Text("No households available.")
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-        } else {
-          Picker("Active household", selection: $selectedHouseholdId) {
-            ForEach(model.households, id: \.id) { h in
-              Text(h.name ?? "Household").tag(h.id)
-            }
-          }
-          .pickerStyle(.menu)
-          .onChange(of: selectedHouseholdId) { v in
-            guard !v.isEmpty else { return }
-            Task { await applyHouseholdSwitch(v) }
-          }
-          if switchingHousehold {
-            ProgressView()
-              .scaleEffect(0.9)
-          }
-        }
-      }
-
-      Toggle(isOn: $model.parentNotifyExtraTimeRequests) {
+      Toggle(isOn: Binding(
+        get: { model.parentNotifyExtraTimeRequests },
+        set: { newValue in if isCurrentParent { model.parentNotifyExtraTimeRequests = newValue } }
+      )) {
         VStack(alignment: .leading, spacing: 2) {
           Text("Extra time request notifications")
             .font(.system(size: 16, weight: .semibold))
@@ -758,8 +721,12 @@ private struct ParentPersonDetailsSheet: View {
             .foregroundStyle(.secondary)
         }
       }
+      .disabled(!isCurrentParent)
 
-      Toggle(isOn: $model.parentNotifyTamperAlerts) {
+      Toggle(isOn: Binding(
+        get: { model.parentNotifyTamperAlerts },
+        set: { newValue in if isCurrentParent { model.parentNotifyTamperAlerts = newValue } }
+      )) {
         VStack(alignment: .leading, spacing: 2) {
           Text("Tamper notifications")
             .font(.system(size: 16, weight: .semibold))
@@ -768,45 +735,12 @@ private struct ParentPersonDetailsSheet: View {
             .foregroundStyle(.secondary)
         }
       }
+      .disabled(!isCurrentParent)
     }
     .padding(18)
     .background(Color.primary.opacity(0.06))
     .clipShape(RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var infoCard: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text(entry.subtitle)
-        .font(.system(size: 16, weight: .semibold))
-      switch entry {
-        case .member(let member):
-          Text(member.email ?? "No email")
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-        case .invite(let invite):
-          Text("Invite code: \(invite.code)")
-            .font(.system(size: 14, weight: .semibold))
-          Text(invite.email ?? "No email")
-            .font(.system(size: 14))
-            .foregroundStyle(.secondary)
-      }
-    }
-    .padding(18)
-    .background(Color.primary.opacity(0.06))
-    .clipShape(RoundedRectangle(cornerRadius: 22))
-  }
-
-  @MainActor
-  private func applyHouseholdSwitch(_ householdId: String) async {
-    switchingHousehold = true
-    defer { switchingHousehold = false }
-    do {
-      try await model.switchActiveHousehold(householdId: householdId)
-      selectedHouseholdId = model.activeHouseholdId ?? householdId
-    } catch {
-      actionError = userError(error)
-      selectedHouseholdId = model.activeHouseholdId ?? selectedHouseholdId
-    }
+    .opacity(isCurrentParent ? 1.0 : 0.6)
   }
 
   @MainActor

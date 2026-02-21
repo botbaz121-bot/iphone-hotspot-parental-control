@@ -1907,8 +1907,7 @@ app.get('/api/household/invites', requireParent, (req, res) => {
 app.post('/api/household/invites', requireParent, (req, res, next) => {
   try {
     const schema = z.object({
-      email: z.string().email().optional(),
-      inviteName: z.string().trim().min(1).max(120).optional(),
+      inviteName: z.string().trim().min(1).max(120),
       ttlDays: z.number().int().min(1).max(30).optional().default(7)
     });
     const body = schema.parse(req.body || {});
@@ -1928,7 +1927,7 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
             id, household_id, invited_by_parent_id, email, invite_name, token, code, status, expires_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
           `
-        ).run(id(), req.household.id, req.parent.id, body.email || null, body.inviteName || null, token, code, expiresAt);
+        ).run(id(), req.household.id, req.parent.id, null, body.inviteName, token, code, expiresAt);
         ok = true;
         break;
       } catch (e) {
@@ -1943,8 +1942,8 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
       invite: {
         token,
         code,
-        email: body.email || null,
-        inviteName: body.inviteName || null,
+        email: null,
+        inviteName: body.inviteName,
         expiresAt,
         inviteUrl
       }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.73 (74) - 2026-02-21
+- Parent details screen cleanup:
+- removed `Active Household` dropdown from UI,
+- renamed section to `Notification Settings`,
+- removed the follow-up account-type info card.
+- Notification toggles now show for every parent profile but are disabled for non-own profiles.
+- Invite creation is now name-only and required (email removed) across iOS + web UI.
+- Backend invite create now requires `inviteName` and stores email as null.
+
 ## 0.1.72 (73) - 2026-02-21
 - Added explicit vertical outer margin to parent tiles to ensure visible gap between parent rows.
 
