@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.86 (87) - 2026-02-21
+- Tightened web desktop content width:
+- reduced main container max-width from `1160px` to `920px`.
+- Updated web cache-bust versions to `styles.css?v=0.1.86` and `app.js?v=0.1.86`.
+
 ## 0.1.85 (86) - 2026-02-21
 - Kept a consistent SpotChecker header/top nav on web child and parent subpages.
 - Removed back buttons from subpages.
