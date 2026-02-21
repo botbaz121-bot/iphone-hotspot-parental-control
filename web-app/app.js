@@ -362,6 +362,7 @@
     app.querySelectorAll('.device-card[data-device-id]').forEach(card => {
       const id = card.getAttribute('data-device-id');
       const daySel = card.querySelector('.f-day');
+      if (!id || !daySel) return;
       daySel.onchange = () => {
         state.selectedDayByDevice[id] = daySel.value;
         renderMain();
@@ -370,21 +371,27 @@
       const pairOut = card.querySelector('.pairOut');
       const eventsOut = card.querySelector('.eventsOut');
 
-      card.querySelector('.pairBtn').onclick = async () => {
+      const pairBtn = card.querySelector('.pairBtn');
+      if (pairBtn) pairBtn.onclick = async () => {
         try {
           const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
-          pairOut.classList.remove('hidden');
-          pairOut.textContent = `${out.code} (expires ${new Date(out.expiresAt).toLocaleString()})`;
+          if (pairOut) {
+            pairOut.classList.remove('hidden');
+            pairOut.textContent = `${out.code} (expires ${new Date(out.expiresAt).toLocaleString()})`;
+          }
         } catch (e) {
           alert(`Pairing code failed: ${e.message}`);
         }
       };
 
-      card.querySelector('.eventsBtn').onclick = async () => {
+      const eventsBtn = card.querySelector('.eventsBtn');
+      if (eventsBtn) eventsBtn.onclick = async () => {
         try {
           const out = await api(`/api/devices/${id}/events`);
-          eventsOut.classList.remove('hidden');
-          eventsOut.textContent = JSON.stringify(out.events || [], null, 2);
+          if (eventsOut) {
+            eventsOut.classList.remove('hidden');
+            eventsOut.textContent = JSON.stringify(out.events || [], null, 2);
+          }
         } catch (e) {
           alert(`Events failed: ${e.message}`);
         }
@@ -403,7 +410,9 @@
         };
       }
 
-      card.querySelector('.saveBtn').onclick = async () => {
+      const saveBtn = card.querySelector('.saveBtn');
+      if (!saveBtn) return;
+      saveBtn.onclick = async () => {
         const activateProtection = !!card.querySelector('.f-activateProtection').checked;
         const setHotspotOff = !!card.querySelector('.f-setHotspotOff').checked;
         const setWifiOff = !!card.querySelector('.f-setWifiOff').checked;

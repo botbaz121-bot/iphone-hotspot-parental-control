@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.55 (56) - 2026-02-21
+- Hardened web dashboard event binding for child cards:
+- added null-safe guards for day selector and row buttons,
+- prevents render-time crashes from missing controls,
+- fixes repeated `Cannot set properties of null (setting 'onchange')` load failures after sign-in/invite actions.
+
 ## 0.1.54 (55) - 2026-02-21
 - Fixed web invite flow crash after creating an invite:
 - invite cards no longer bind device schedule listeners,
