@@ -1,6 +1,5 @@
 (() => {
   const WEB_BUILD = '0.1.77-web';
-  const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -24,7 +23,7 @@
   ];
 
   const state = {
-    apiBase: localStorage.getItem(API_BASE_KEY) || 'https://api.spotchecker.app',
+    apiBase: 'https://api.spotchecker.app',
     sessionToken: localStorage.getItem(SESSION_KEY) || '',
     me: null,
     household: null,
@@ -250,15 +249,6 @@
             </div>
           </section>
 
-          <details class="help-card">
-            <summary class="inline-note" style="cursor:pointer">Connection settings</summary>
-            <div class="stack" style="margin-top:10px">
-              <input id="apiBase" class="field" value="${escapeHtml(state.apiBase)}" placeholder="https://api.spotchecker.app" />
-              <div class="actions-wrap">
-                <button id="btnSaveApi" class="btn ghost">Save API Base</button>
-              </div>
-            </div>
-          </details>
         </div>
 
         <footer class="build">Build ${escapeHtml(WEB_BUILD)}</footer>
@@ -266,26 +256,12 @@
     `;
 
     document.getElementById('parentModeTile')?.addEventListener('click', () => {
-      const apiInput = document.getElementById('apiBase');
-      if (apiInput) {
-        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-        localStorage.setItem(API_BASE_KEY, state.apiBase);
-      }
       const nextPath = `${location.pathname}${location.search}`;
       location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
     });
 
     document.getElementById('childModeTile')?.addEventListener('click', () => {
       setNotice('Child setup is available in the iOS app.', 'err');
-    });
-
-    document.getElementById('btnSaveApi')?.addEventListener('click', () => {
-      const apiInput = document.getElementById('apiBase');
-      if (apiInput) {
-        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-        localStorage.setItem(API_BASE_KEY, state.apiBase);
-      }
-      setNotice('API base saved.');
     });
 
     document.getElementById('inviteCode')?.addEventListener('input', e => {
@@ -296,11 +272,6 @@
     });
 
     document.getElementById('btnJoin')?.addEventListener('click', () => {
-      const apiInput = document.getElementById('apiBase');
-      if (apiInput) {
-        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-        localStorage.setItem(API_BASE_KEY, state.apiBase);
-      }
       const code = String(document.getElementById('inviteCode')?.value || '').trim().toUpperCase();
       if (!/^[A-Z0-9]{4}$/.test(code)) {
         setNotice('Enter a valid 4-character code.', 'err');

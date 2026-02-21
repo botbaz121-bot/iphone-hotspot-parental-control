@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.78 (79) - 2026-02-21
+- Removed end-user API base controls from web app welcome screen.
+- Web app now always uses the production API base internally (`https://api.spotchecker.app`) for normal users.
+
 ## 0.1.77 (78) - 2026-02-21
 - Refactored web app navigation to app-like separate screens:
 - dashboard at `#/dashboard`,
