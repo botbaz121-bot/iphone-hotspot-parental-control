@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.89 (90) - 2026-02-21
+- Updated web welcome copy:
+- subtitle changed from `Choose device type` to `Choose user type`,
+- mode tiles renamed from `Parent phone` / `Child phone` to `Parent` / `Child`.
+- Updated web cache-bust versions to `styles.css?v=0.1.89` and `app.js?v=0.1.89`.
+
 ## 0.1.88 (89) - 2026-02-21
 - Reduced web section header size by 10px:
 - `.section-title` desktop `52px -> 42px`,

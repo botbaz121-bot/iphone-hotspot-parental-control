@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.88-web';
+  const WEB_BUILD = '0.1.89-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -260,7 +260,7 @@
         <header class="topbar">
           <div>
             ${renderBrandLink()}
-            <p class="subtitle">Choose device type</p>
+            <p class="subtitle">Choose user type</p>
           </div>
         </header>
 
@@ -270,11 +270,11 @@
         <section class="mode-grid">
           <button id="parentModeTile" class="mode-tile" style="background:linear-gradient(135deg, #2d7fff 0%, #2464dd 100%)">
             <span class="avatar-badge">⌂</span>
-            <p class="tile-subtitle" style="font-size:38px;color:#fff">Parent phone</p>
+            <p class="tile-subtitle" style="font-size:38px;color:#fff">Parent</p>
           </button>
           <button id="childModeTile" class="mode-tile" style="background:linear-gradient(135deg, #d84adf 0%, #a54de8 100%)">
             <span class="avatar-badge">📱</span>
-            <p class="tile-subtitle" style="font-size:38px;color:#fff">Child phone</p>
+            <p class="tile-subtitle" style="font-size:38px;color:#fff">Child</p>
           </button>
         </section>
 
