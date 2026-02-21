@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.61 (62) - 2026-02-21
+- Removed token-based invite surfaces from web UI.
+- Invite list now shows code only (no `invite?token=...` link).
+- Removed token accept panel from dashboard page.
+- Updated invite copy to code-first entry at `web.spotchecker.app`.
+
 ## 0.1.60 (61) - 2026-02-21
 - Allowed parents to join multiple households via invite acceptance.
 - Added `parents.active_household_id` for active household context selection.

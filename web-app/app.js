@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.58-webdebug-20260221';
+  const WEB_BUILD = '0.1.59-webdebug-20260221';
   const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
 
@@ -132,12 +132,6 @@
     };
   }
 
-  function inviteAcceptTokenFromUrl() {
-    const u = new URL(location.href);
-    const t = (u.searchParams.get('token') || '').trim();
-    return t;
-  }
-
   function inviteAcceptCodeFromUrl() {
     const u = new URL(location.href);
     return (u.searchParams.get('inviteCode') || '').trim().toUpperCase();
@@ -148,13 +142,6 @@
     if (!u.searchParams.has('inviteCode')) return;
     u.searchParams.delete('inviteCode');
     history.replaceState(null, '', `${u.pathname}${u.search}`);
-  }
-
-  async function acceptInviteIfPresent() {
-    const token = inviteAcceptTokenFromUrl();
-    if (!token) return null;
-    const out = await api(`/api/household/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' });
-    return out;
   }
 
   function minsToHm(mins) {
@@ -169,7 +156,6 @@
   function buildInviteList() {
     if (!state.invites.length) return '<p class="muted">No invites yet.</p>';
     return state.invites.map(i => {
-      const inviteUrl = `https://web.spotchecker.app/invite?token=${encodeURIComponent(i.token)}`;
       return `
         <div class="invite-card device-card">
           <div class="row" style="justify-content:space-between">
@@ -178,7 +164,6 @@
           </div>
           <div class="muted">Expires: ${new Date(i.expiresAt).toLocaleString()}</div>
           <div class="kv"><div class="muted">Code</div><div class="code">${escapeHtml(i.code)}</div></div>
-          <div class="kv"><div class="muted">Link</div><div class="code">${escapeHtml(inviteUrl)}</div></div>
         </div>
       `;
     }).join('');
@@ -272,7 +257,6 @@
 
   function renderMain(info = '') {
     addDebug('renderMain.start', { devices: (state.devices || []).length, invites: (state.invites || []).length });
-    const inviteToken = inviteAcceptTokenFromUrl();
 
     app.innerHTML = `
       <div class="top">
@@ -291,16 +275,6 @@
 
       ${info ? `<p class="ok">${escapeHtml(info)}</p>` : ''}
 
-      ${inviteToken ? `
-      <section class="card">
-        <h2>Accept Invite</h2>
-        <p class="muted">Invite token detected in URL.</p>
-        <div class="row">
-          <div class="code" style="flex:1">${escapeHtml(inviteToken)}</div>
-          <button id="acceptTokenInvite" class="primary">Accept Invite</button>
-        </div>
-      </section>` : ''}
-
       <div class="grid">
         <section class="card half">
           <h2>Profile</h2>
@@ -312,7 +286,7 @@
 
         <section class="card half">
           <h2>Invite Co-parent</h2>
-          <p class="muted">Send by email, or share code/link. It can be entered at <code>web.spotchecker.app/invite</code>.</p>
+          <p class="muted">Send by email, or share 4-character code. It can be entered at <code>web.spotchecker.app</code>.</p>
           <div class="row">
             <input id="inviteName" placeholder="name (optional)" style="flex:1" />
             <input id="inviteEmail" placeholder="email (optional)" style="flex:1" />
@@ -359,18 +333,6 @@
       localStorage.removeItem(SESSION_KEY);
       renderAuthOnly();
     };
-
-    if (inviteToken) {
-      document.getElementById('acceptTokenInvite').onclick = async () => {
-        try {
-          await acceptInviteIfPresent();
-          history.replaceState(null, '', location.pathname);
-          await loadAll('Invite accepted.');
-        } catch (e) {
-          alert(`Invite accept failed: ${e.message}`);
-        }
-      };
-    }
 
     document.getElementById('saveDisplayName').onclick = async () => {
       const displayName = document.getElementById('displayName').value.trim();
