@@ -122,7 +122,7 @@ public struct ParentDashboardView: View {
   }
 
   private var parentDevicesSection: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .top) {
         Text("Parent Devices")
           .font(.system(size: 34, weight: .bold))

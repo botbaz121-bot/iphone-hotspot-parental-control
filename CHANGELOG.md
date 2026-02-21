@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.74 (75) - 2026-02-21
+- Removed leftover household-switch plumbing now that Active Household UI was removed:
+- deleted backend `/api/households` and `/api/households/active` routes,
+- removed related iOS client/model/types and state.
+- Adjusted `Parent Devices` header-to-tiles spacing to match `Child Devices` visual gap.
+
 ## 0.1.73 (74) - 2026-02-21
 - Parent details screen cleanup:
 - removed `Active Household` dropdown from UI,

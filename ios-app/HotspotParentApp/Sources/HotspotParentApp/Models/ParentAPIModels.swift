@@ -207,28 +207,6 @@ public struct ParentProfileUpdateRequest: Encodable {
   }
 }
 
-public struct HouseholdsResponse: Decodable {
-  public var ok: Bool
-  public var households: [ParentHousehold]
-  public var activeHouseholdId: String
-}
-
-public struct ParentHousehold: Decodable {
-  public var id: String
-  public var name: String?
-  public var role: String
-  public var status: String
-  public var active: Bool
-}
-
-public struct SetActiveHouseholdRequest: Encodable {
-  public var householdId: String
-
-  public init(householdId: String) {
-    self.householdId = householdId
-  }
-}
-
 public struct CreateHouseholdInviteRequest: Encodable {
   public var inviteName: String
 
