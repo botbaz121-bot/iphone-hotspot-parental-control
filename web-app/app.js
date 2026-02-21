@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.78-web';
+  const WEB_BUILD = '0.1.80-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -40,6 +40,9 @@
     toastType: 'ok',
     modal: null,
     menu: null,
+    renameChildId: null,
+    renameParentKey: null,
+    renameDraft: '',
     busy: false
   };
   let toastTimer = null;
@@ -466,14 +469,24 @@
 
     const canDelete = String(state.household?.role || '').toLowerCase() === 'owner';
 
+    const isRenamingChild = state.renameChildId === device.id;
+
     return `
       <div class="screen">
         <header class="topbar">
           <div class="row">
             <button class="btn ghost" data-action="go-dashboard">Back</button>
-            <h1 class="title" style="font-size:30px">${escapeHtml(device.name || 'Child')}</h1>
+            ${isRenamingChild
+              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || device.name || '')}" />`
+              : `<h1 class="title" style="font-size:30px">${escapeHtml(device.name || 'Child')}</h1>`}
           </div>
           <div class="row">
+            ${isRenamingChild
+              ? `
+                <button class="btn ghost small" data-action="rename-child-cancel" data-device-id="${escapeHtml(device.id)}">Cancel</button>
+                <button class="btn primary small" data-action="rename-child-save" data-device-id="${escapeHtml(device.id)}">Save</button>
+              `
+              : ''}
             <div class="menu-wrap">
               <button class="menu-trigger" data-action="toggle-child-menu" data-device-id="${escapeHtml(device.id)}">•••</button>
               ${renderChildMenu(device, canDelete)}
@@ -588,14 +601,24 @@
     const prefKey = entry.type === 'member' ? entry.parentId : `invite:${entry.id}`;
     const prefs = state.notifPrefs[prefKey] || { extraTime: true, tamper: true };
 
+    const isRenamingParent = state.renameParentKey === entry.key;
+
     return `
       <div class="screen">
         <header class="topbar">
           <div class="row">
             <button class="btn ghost" data-action="go-dashboard">Back</button>
-            <h1 class="title" style="font-size:30px">${escapeHtml(entry.title)}</h1>
+            ${isRenamingParent
+              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || entry.title || '')}" />`
+              : `<h1 class="title" style="font-size:30px">${escapeHtml(entry.title)}</h1>`}
           </div>
           <div class="row">
+            ${isRenamingParent
+              ? `
+                <button class="btn ghost small" data-action="rename-parent-cancel" data-parent-key="${escapeHtml(entry.key)}">Cancel</button>
+                <button class="btn primary small" data-action="rename-parent-save" data-parent-key="${escapeHtml(entry.key)}">Save</button>
+              `
+              : ''}
             <button class="btn ghost" data-action="refresh">Refresh</button>
             <div class="menu-wrap">
               <button class="menu-trigger" data-action="toggle-parent-menu" data-parent-key="${escapeHtml(entry.key)}">•••</button>
@@ -609,10 +632,7 @@
         <section class="panel stack">
           <div class="rules">
             <h3>${entry.type === 'invite' ? 'Invite Settings' : 'Profile'}</h3>
-            <div class="form-row">
-              <input id="renameInput" class="field" value="${escapeHtml(entry.title)}" placeholder="Name" ${(!current && entry.type !== 'invite') ? 'disabled' : ''} />
-              <button class="btn primary" data-action="save-parent-name" data-parent-key="${escapeHtml(entry.key)}" ${(!current && entry.type !== 'invite') ? 'disabled' : ''}>Save name</button>
-            </div>
+            <p class="panel-sub">Use the menu to rename.</p>
 
             ${entry.type === 'invite' ? `
               <div class="stack">
@@ -737,6 +757,14 @@
         el.addEventListener(eventName, () => scheduleChildAutoSave(r.id));
       });
     }
+
+    if (state.renameChildId || state.renameParentKey) {
+      const renameInput = document.getElementById('headerRenameInput');
+      if (renameInput) {
+        renameInput.focus();
+        renameInput.setSelectionRange(renameInput.value.length, renameInput.value.length);
+      }
+    }
   }
 
   function scheduleChildAutoSave(deviceId) {
@@ -767,6 +795,9 @@
       state.sessionToken = '';
       localStorage.removeItem(SESSION_KEY);
       state.notice = null;
+      state.renameChildId = null;
+      state.renameParentKey = null;
+      state.renameDraft = '';
       renderWelcome();
       return;
     }
@@ -810,18 +841,12 @@
     if (action === 'menu-child-rename') {
       const id = btn.getAttribute('data-device-id');
       const device = selectedDeviceById(id);
-      const current = device?.name || '';
       if (!id || !device) return;
-      const name = window.prompt('Rename child device', current);
-      if (!name || !name.trim()) return;
-      try {
-        await api(`/api/devices/${id}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }) });
-        state.menu = null;
-        await loadAll('Name updated.');
-        nav(`#/child/${encodeURIComponent(id)}`);
-      } catch (e) {
-        setNotice(`Couldn’t rename child: ${friendlyError(e)}`, 'err');
-      }
+      state.menu = null;
+      state.renameParentKey = null;
+      state.renameChildId = id;
+      state.renameDraft = device.name || '';
+      renderAuthenticated();
       return;
     }
 
@@ -830,15 +855,59 @@
       const entry = selectedParentByKey(key);
       if (!key || !entry) return;
       if (!isCurrentParent(entry) && entry.type !== 'invite') return;
-      const name = window.prompt('Rename', entry.title || '');
-      if (!name || !name.trim()) return;
+      state.menu = null;
+      state.renameChildId = null;
+      state.renameParentKey = key;
+      state.renameDraft = entry.title || '';
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'rename-child-cancel') {
+      state.renameChildId = null;
+      state.renameDraft = '';
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'rename-parent-cancel') {
+      state.renameParentKey = null;
+      state.renameDraft = '';
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'rename-child-save') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      const name = String(document.getElementById('headerRenameInput')?.value || '').trim();
+      if (!name) return setNotice('Name cannot be empty.', 'err');
+      try {
+        await api(`/api/devices/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+        state.renameChildId = null;
+        state.renameDraft = '';
+        await loadAll('Name updated.');
+        nav(`#/child/${encodeURIComponent(id)}`);
+      } catch (e) {
+        setNotice(`Couldn’t rename child: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'rename-parent-save') {
+      const key = btn.getAttribute('data-parent-key');
+      const entry = selectedParentByKey(key);
+      if (!key || !entry) return;
+      const name = String(document.getElementById('headerRenameInput')?.value || '').trim();
+      if (!name) return setNotice('Name cannot be empty.', 'err');
       try {
         if (entry.type === 'invite') {
-          await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name.trim() }) });
-        } else {
-          await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name.trim() }) });
+          await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name }) });
+        } else if (isCurrentParent(entry)) {
+          await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name }) });
         }
-        state.menu = null;
+        state.renameParentKey = null;
+        state.renameDraft = '';
         await loadAll('Name updated.');
         nav(`#/parent/${encodeURIComponent(key)}`);
       } catch (e) {
@@ -887,6 +956,9 @@
       const id = btn.getAttribute('data-device-id');
       if (!id) return;
       state.menu = null;
+      state.renameChildId = null;
+      state.renameParentKey = null;
+      state.renameDraft = '';
       await ensureChildData(id);
       return nav(`#/child/${encodeURIComponent(id)}`);
     }
@@ -895,6 +967,9 @@
       const key = btn.getAttribute('data-parent-key');
       if (!key) return;
       state.menu = null;
+      state.renameChildId = null;
+      state.renameParentKey = null;
+      state.renameDraft = '';
       return nav(`#/parent/${encodeURIComponent(key)}`);
     }
 
@@ -998,25 +1073,6 @@
       return;
     }
 
-
-    if (action === 'save-parent-name') {
-      const key = btn.getAttribute('data-parent-key');
-      const entry = selectedParentByKey(key);
-      const name = String(document.getElementById('renameInput')?.value || '').trim();
-      if (!entry || !name) return;
-      try {
-        if (entry.type === 'invite') {
-          await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name }) });
-        } else if (isCurrentParent(entry)) {
-          await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name }) });
-        }
-        await loadAll('Name updated.');
-        nav(`#/parent/${encodeURIComponent(key)}`);
-      } catch (e) {
-        setNotice(`Couldn’t update name: ${friendlyError(e)}`, 'err');
-      }
-      return;
-    }
 
     if (action === 'delete-parent-entry') {
       const key = btn.getAttribute('data-parent-key');

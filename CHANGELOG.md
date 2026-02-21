@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.80 (81) - 2026-02-21
+- Web rename flow now edits the actual page title inline (no browser prompt dialogs):
+- child and parent/invite rename opens inline text edit in header with Save/Cancel.
+- Updated toast behavior to a clearer floating style:
+- desktop: top-right toast,
+- mobile: bottom safe-area toast.
+- Success feedback now stays visible as a toast while top-page banners are error-only.
+- Updated web cache-bust script version to `app.js?v=0.1.80`.
+
 ## 0.1.79 (80) - 2026-02-21
 - Web child settings now auto-save on change (like iOS):
 - toggles, day selection, schedule times, and daily limit changes save automatically.
