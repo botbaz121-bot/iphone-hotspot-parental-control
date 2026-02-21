@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.59-webdebug-20260221';
+  const WEB_BUILD = '0.1.60-webdebug-20260221';
   const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
 
@@ -15,7 +15,29 @@
     debugLines: []
   };
 
-  const app = document.getElementById('app');
+  const app = (() => {
+    const existing = document.getElementById('app');
+    if (existing) return existing;
+    const fallback = document.createElement('div');
+    fallback.id = 'app';
+    document.body.appendChild(fallback);
+    return fallback;
+  })();
+
+  function hardFail(message) {
+    try {
+      app.innerHTML = `
+        <div style="max-width:900px;margin:20px auto;padding:16px;border:1px solid #6b2f3d;border-radius:12px;background:#2a151a;color:#ffd6de;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial">
+          <h2 style="margin:0 0 8px 0">SpotChecker Web failed to load</h2>
+          <div style="opacity:0.9;white-space:pre-wrap">${escapeHtml(String(message || 'unknown error'))}</div>
+          <div style="margin-top:8px;opacity:0.75">Build: ${escapeHtml(WEB_BUILD)}</div>
+        </div>
+      `;
+    } catch {
+      // last resort
+      document.body.textContent = `SpotChecker Web failed to load. ${String(message || '')}`;
+    }
+  }
 
   function addDebug(message, extra) {
     const ts = new Date().toISOString();
@@ -538,5 +560,9 @@
     await loadAll();
   }
 
-  boot();
+  boot().catch((e) => {
+    const msg = e?.stack || e?.message || String(e);
+    addDebug('boot.failed', { message: String(e?.message || e), stack: e?.stack || '' });
+    hardFail(msg);
+  });
 })();

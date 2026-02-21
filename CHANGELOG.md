@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.69 (70) - 2026-02-21
+- Web app bootstrap hardening:
+- added startup fail-safe panel so runtime errors show visibly instead of blank page,
+- added fallback `#app` container creation,
+- bumped web cache bust to `app.js?v=0.1.60`.
+
 ## 0.1.68 (69) - 2026-02-21
 - Fixed parent sign-in return path:
 - if session exists and `appMode` is nil after auth handoff, app now auto-enters Parent mode.
