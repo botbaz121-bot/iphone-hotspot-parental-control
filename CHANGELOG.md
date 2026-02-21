@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.60 (61) - 2026-02-21
+- Allowed parents to join multiple households via invite acceptance.
+- Added `parents.active_household_id` for active household context selection.
+- Accepting an invite now sets the newly joined household as active context.
+- Removed `already_in_other_household` restriction during invite accept.
+
 ## 0.1.59 (60) - 2026-02-21
 - Fixed household invite code length mismatch:
 - backend now generates 4-character invite codes (was 6),

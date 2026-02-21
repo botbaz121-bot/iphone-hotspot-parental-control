@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS parents (
   apple_sub TEXT NOT NULL UNIQUE,
   email TEXT,
   display_name TEXT,
+  active_household_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -239,6 +240,9 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='pare
   if (!tableHasColumn('parents', 'display_name')) {
     db.exec('ALTER TABLE parents ADD COLUMN display_name TEXT');
   }
+  if (!tableHasColumn('parents', 'active_household_id')) {
+    db.exec('ALTER TABLE parents ADD COLUMN active_household_id TEXT');
+  }
 }
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_policies'").get()) {
@@ -312,6 +316,25 @@ if (
             `
           )
           .run(crypto.randomUUID(), householdId, p.id);
+      }
+
+      if (!tableHasColumn('parents', 'active_household_id')) continue;
+      const pref = db.prepare('SELECT active_household_id FROM parents WHERE id = ?').get(p.id);
+      if (!pref?.active_household_id) {
+        const chosen = db
+          .prepare(
+            `
+            SELECT hm.household_id
+            FROM household_members hm
+            WHERE hm.parent_id = ? AND hm.status = 'active'
+            ORDER BY hm.created_at ASC
+            LIMIT 1
+            `
+          )
+          .get(p.id);
+        if (chosen?.household_id) {
+          db.prepare('UPDATE parents SET active_household_id = ? WHERE id = ?').run(chosen.household_id, p.id);
+        }
       }
     }
 
@@ -498,6 +521,9 @@ function requireAdmin(req, res, next) {
 }
 
 function ensureActiveHouseholdForParent(parent) {
+  const pref = db.prepare('SELECT active_household_id FROM parents WHERE id = ?').get(parent.id);
+  const preferredHouseholdId = String(pref?.active_household_id || '').trim() || null;
+
   let membership = db
     .prepare(
       `
@@ -505,11 +531,13 @@ function ensureActiveHouseholdForParent(parent) {
       FROM household_members hm
       JOIN households h ON h.id = hm.household_id
       WHERE hm.parent_id = ? AND hm.status = 'active'
-      ORDER BY CASE hm.role WHEN 'owner' THEN 0 ELSE 1 END, hm.created_at ASC
+      ORDER BY CASE WHEN hm.household_id = ? THEN 0 ELSE 1 END,
+               CASE hm.role WHEN 'owner' THEN 0 ELSE 1 END,
+               hm.created_at ASC
       LIMIT 1
       `
     )
-    .get(parent.id);
+    .get(parent.id, preferredHouseholdId);
 
   if (!membership) {
     const householdId = id();
@@ -525,6 +553,7 @@ function ensureActiveHouseholdForParent(parent) {
       .run(id(), householdId, parent.id);
 
     db.prepare('UPDATE devices SET household_id = ? WHERE household_id IS NULL AND parent_id = ?').run(householdId, parent.id);
+    db.prepare('UPDATE parents SET active_household_id = ? WHERE id = ?').run(householdId, parent.id);
 
     membership = {
       id: null,
@@ -533,6 +562,10 @@ function ensureActiveHouseholdForParent(parent) {
       status: 'active',
       household_name: defaultName
     };
+  }
+
+  if (!preferredHouseholdId || preferredHouseholdId !== membership.household_id) {
+    db.prepare('UPDATE parents SET active_household_id = ? WHERE id = ?').run(membership.household_id, parent.id);
   }
 
   return {
@@ -1874,22 +1907,6 @@ function acceptHouseholdInviteForParent({ inviteRow, parent }) {
   if (inviteRow.status !== 'pending') return { ok: false, status: 409, error: 'invite_not_pending' };
   if (Number(inviteRow.expires_at || 0) <= now) return { ok: false, status: 410, error: 'invite_expired' };
 
-  const active = db
-    .prepare(
-      `
-      SELECT household_id
-      FROM household_members
-      WHERE parent_id = ? AND status = 'active'
-      ORDER BY created_at ASC
-      LIMIT 1
-      `
-    )
-    .get(parent.id);
-
-  if (active && active.household_id !== inviteRow.household_id) {
-    return { ok: false, status: 409, error: 'already_in_other_household' };
-  }
-
   const tx = db.transaction(() => {
     db.prepare(
       `
@@ -1910,6 +1927,9 @@ function acceptHouseholdInviteForParent({ inviteRow, parent }) {
       WHERE id = ?
       `
     ).run(now, parent.id, inviteRow.id);
+
+    // Newly accepted household becomes active context for subsequent scoped API calls.
+    db.prepare('UPDATE parents SET active_household_id = ? WHERE id = ?').run(inviteRow.household_id, parent.id);
   });
   tx();
 
