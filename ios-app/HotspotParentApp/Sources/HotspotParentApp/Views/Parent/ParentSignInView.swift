@@ -68,6 +68,7 @@ public struct ParentSignInView: View {
               email: creds.email,
               fullName: creds.fullName
             )
+            model.setAppMode(.parent)
           } catch {
             status = "Apple sign-in failed: \(error)"
           }

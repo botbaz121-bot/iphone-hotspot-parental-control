@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.70 (71) - 2026-02-21
+- Added parent sign-in diagnostics:
+- in-app debug line on welcome screen showing mode/signed-in/parentId and last auth event.
+- Added extra parent-mode fallback after successful sign-in in `ParentSignInView`.
+- Added auth/mode trace logging in `AppModel` for sign-in/sign-out/mode changes/dashboard refresh.
+
 ## 0.1.69 (70) - 2026-02-21
 - Web app bootstrap hardening:
 - added startup fail-safe panel so runtime errors show visibly instead of blank page,

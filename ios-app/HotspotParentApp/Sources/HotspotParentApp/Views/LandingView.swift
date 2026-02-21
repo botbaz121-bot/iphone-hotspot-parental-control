@@ -28,6 +28,15 @@ public struct LandingView: View {
           .font(.system(size: 14))
           .foregroundStyle(.secondary)
 
+        Text("Debug: mode=\(model.appMode?.rawValue ?? "nil") signedIn=\(model.isSignedIn ? "yes" : "no") parentId=\(model.currentParentId ?? "nil")")
+          .font(.system(size: 12))
+          .foregroundStyle(.secondary)
+
+        Text(model.authDebugLastEvent)
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .lineLimit(3)
+
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
           ShortcutTile(
             color: .blue,

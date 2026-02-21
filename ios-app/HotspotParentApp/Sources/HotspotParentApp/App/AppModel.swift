@@ -25,6 +25,7 @@ public final class AppModel: ObservableObject {
   /// Apple user id (best-effort, informational).
   @Published public private(set) var appleUserID: String?
   @Published public private(set) var currentParentId: String?
+  @Published public private(set) var authDebugLastEvent: String = "init"
 
   // MARK: - Parent state (v1B)
 
@@ -173,6 +174,7 @@ public final class AppModel: ObservableObject {
     self.lastRegisteredPushToken = AppDefaults.parentPushToken
     self.parentNotifyExtraTimeRequests = AppDefaults.parentNotifyExtraTime
     self.parentNotifyTamperAlerts = AppDefaults.parentNotifyTamper
+    logAuth("init mode=\(appMode?.rawValue ?? "nil") signedIn=\(isSignedIn) parentId=\(currentParentId ?? "nil")")
   }
 
   // MARK: - Mode switching
@@ -187,6 +189,7 @@ public final class AppModel: ObservableObject {
 
   public func setAppMode(_ mode: AppMode?) {
     appMode = mode
+    logAuth("setAppMode -> \(mode?.rawValue ?? "nil") signedIn=\(isSignedIn)")
   }
 
   public func startParentFlow() {
@@ -209,6 +212,7 @@ public final class AppModel: ObservableObject {
 
   public func signInWithApple(identityToken: String, appleUserID: String, email: String?, fullName: PersonNameComponents?) async throws {
     guard let client = apiClient else { throw APIError.invalidResponse }
+    logAuth("signInWithApple.start mode=\(appMode?.rawValue ?? "nil")")
 
     let displayName: String? = {
       guard let fullName else { return nil }
@@ -226,10 +230,13 @@ public final class AppModel: ObservableObject {
 
     self.appleUserID = appleUserID
     AppDefaults.appleUserID = appleUserID
+    setAppMode(.parent)
+    logAuth("signInWithApple.success parentId=\(resp.parent.id) mode=\(appMode?.rawValue ?? "nil")")
     await syncPushRegistrationIfNeeded()
   }
 
   public func signOut() {
+    logAuth("signOut.start")
     parentSessionToken = nil
     AppDefaults.parentSessionToken = nil
     try? KeychainStore.setCodable(Optional<String>.none, account: KeychainAccounts.parentSessionToken)
@@ -246,6 +253,7 @@ public final class AppModel: ObservableObject {
     activeHouseholdId = nil
     extraTimePrefillMinutesByDeviceId = [:]
     extraTimePendingRequestIdByDeviceId = [:]
+    logAuth("signOut.end mode=\(appMode?.rawValue ?? "nil") signedIn=\(isSignedIn)")
   }
 
   // MARK: - Child pairing
@@ -427,8 +435,10 @@ public final class AppModel: ObservableObject {
       if selectedDeviceId == nil {
         selectedDeviceId = dash.devices.first?.id
       }
+      logAuth("refreshParentDashboard.ok mode=\(appMode?.rawValue ?? "nil") devices=\(dash.devices.count)")
     } catch {
       parentLastError = String(describing: error)
+      logAuth("refreshParentDashboard.error \(String(describing: error))")
     }
   }
 
@@ -709,6 +719,12 @@ public final class AppModel: ObservableObject {
     extraTimePrefillMinutesByDeviceId = [:]
     extraTimePendingRequestIdByDeviceId = [:]
     lastRegisteredPushToken = nil
+    logAuth("resetLocalData mode=\(appMode?.rawValue ?? "nil")")
+  }
+
+  private func logAuth(_ message: String) {
+    let ts = ISO8601DateFormatter().string(from: Date())
+    authDebugLastEvent = "[\(ts)] \(message)"
   }
 }
 
