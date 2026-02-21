@@ -548,6 +548,30 @@ input[type="checkbox"].toggle:checked::after {
   padding: 12px;
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(24, 26, 33, 0.95);
+  color: var(--text);
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 620;
+  z-index: 120;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+}
+
+.toast.ok {
+  border-color: rgba(48, 209, 88, 0.45);
+}
+
+.toast.err {
+  border-color: rgba(255, 69, 58, 0.45);
+}
+
 .menu-wrap {
   position: relative;
 }

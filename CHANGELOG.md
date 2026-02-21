@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.79 (80) - 2026-02-21
+- Web child settings now auto-save on change (like iOS):
+- toggles, day selection, schedule times, and daily limit changes save automatically.
+- Removed `Update` button from web child settings.
+- Added bottom toast confirmation (`Saved`) after successful auto-save.
+- Updated web cache-bust script version to `app.js?v=0.1.78`.
+
 ## 0.1.78 (79) - 2026-02-21
 - Removed end-user API base controls from web app welcome screen.
 - Web app now always uses the production API base internally (`https://api.spotchecker.app`) for normal users.

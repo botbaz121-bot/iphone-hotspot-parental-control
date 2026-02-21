@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.77-web';
+  const WEB_BUILD = '0.1.78-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -36,10 +36,14 @@
     notifPrefs: loadNotificationPrefs(),
     notice: null,
     noticeType: 'ok',
+    toast: null,
+    toastType: 'ok',
     modal: null,
     menu: null,
     busy: false
   };
+  let toastTimer = null;
+  let childAutoSaveTimer = null;
 
   const app = document.getElementById('app');
 
@@ -88,8 +92,26 @@
   }
 
   function setNotice(message, type = 'ok') {
+    if (type !== 'err') {
+      state.notice = null;
+      state.noticeType = 'ok';
+      if (message) showToast(message, type);
+      else render();
+      return;
+    }
     state.notice = message ? String(message) : null;
-    state.noticeType = type;
+    state.noticeType = 'err';
+    render();
+  }
+
+  function showToast(message, type = 'ok') {
+    state.toast = message ? String(message) : null;
+    state.toastType = type;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      state.toast = null;
+      render();
+    }, 1800);
     render();
   }
 
@@ -210,8 +232,13 @@
   }
 
   function renderBanner() {
-    if (!state.notice) return '';
-    return `<div class="banner ${state.noticeType === 'err' ? 'err' : 'ok'}">${escapeHtml(state.notice)}</div>`;
+    if (!state.notice || state.noticeType !== 'err') return '';
+    return `<div class="banner err">${escapeHtml(state.notice)}</div>`;
+  }
+
+  function renderToast() {
+    if (!state.toast) return '';
+    return `<div class="toast ${state.toastType === 'err' ? 'err' : 'ok'}">${escapeHtml(state.toast)}</div>`;
   }
 
   function renderWelcome(err = '') {
@@ -447,7 +474,6 @@
             <h1 class="title" style="font-size:30px">${escapeHtml(device.name || 'Child')}</h1>
           </div>
           <div class="row">
-            <button class="btn ghost" data-action="refresh-child" data-device-id="${escapeHtml(device.id)}">Update</button>
             <div class="menu-wrap">
               <button class="menu-trigger" data-action="toggle-child-menu" data-device-id="${escapeHtml(device.id)}">•••</button>
               ${renderChildMenu(device, canDelete)}
@@ -504,7 +530,6 @@
               <span class="inline-note">Daily usage: ${escapeHtml(dailySummary)}</span>
               <div class="actions-wrap">
                 <button class="btn ghost" data-action="copy-day" data-device-id="${escapeHtml(device.id)}">Copy to all days</button>
-                <button class="btn primary" data-action="save-child" data-device-id="${escapeHtml(device.id)}">Save</button>
               </div>
             </div>
           </div>
@@ -619,18 +644,52 @@
   function renderAuthenticated() {
     const r = route();
     if (r.view === 'child') {
-      app.innerHTML = renderChildPage(selectedDeviceById(r.id));
+      app.innerHTML = renderChildPage(selectedDeviceById(r.id)) + renderToast();
       bindHandlers();
       return;
     }
     if (r.view === 'parent') {
-      app.innerHTML = renderParentPage(selectedParentByKey(r.key));
+      app.innerHTML = renderParentPage(selectedParentByKey(r.key)) + renderToast();
       bindHandlers();
       return;
     }
 
-    app.innerHTML = renderDashboardPage();
+    app.innerHTML = renderDashboardPage() + renderToast();
     bindHandlers();
+  }
+
+  async function saveChildPolicy(deviceId) {
+    const device = selectedDeviceById(deviceId);
+    if (!device) throw new Error('not_found');
+
+    const activateProtection = !!document.getElementById('ruleLockApps')?.checked;
+    const setHotspotOff = !!document.getElementById('ruleHotspot')?.checked;
+    const setWifiOff = !!document.getElementById('ruleWifi')?.checked;
+    const setMobileDataOff = !!document.getElementById('ruleData')?.checked;
+    const start = String(document.getElementById('scheduleStart')?.value || '22:00');
+    const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
+    const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
+    const day = state.selectedDayByDevice[deviceId] || device.quietDay || 'mon';
+
+    const existing = device.quietDays || {};
+    const quietDays = {};
+    DAY_KEYS.forEach(k => {
+      const src = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
+      quietDays[k] = { start: src.start || '22:00', end: src.end || '07:00', dailyLimitMinutes: Number(src.dailyLimitMinutes || 0) };
+    });
+    quietDays[day] = { start, end, dailyLimitMinutes };
+
+    await api(`/api/devices/${deviceId}/policy`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        activateProtection,
+        setHotspotOff,
+        setWifiOff,
+        setMobileDataOff,
+        quietDays,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
+      })
+    });
   }
 
   function bindHandlers() {
@@ -661,6 +720,38 @@
         });
       }
     }
+
+    if (r.view === 'child' && r.id) {
+      [
+        'ruleLockApps',
+        'ruleHotspot',
+        'ruleWifi',
+        'ruleData',
+        'scheduleStart',
+        'scheduleEnd',
+        'dailyLimit'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const eventName = (id === 'scheduleStart' || id === 'scheduleEnd') ? 'input' : 'change';
+        el.addEventListener(eventName, () => scheduleChildAutoSave(r.id));
+      });
+    }
+  }
+
+  function scheduleChildAutoSave(deviceId) {
+    if (childAutoSaveTimer) clearTimeout(childAutoSaveTimer);
+    childAutoSaveTimer = setTimeout(async () => {
+      try {
+        await saveChildPolicy(deviceId);
+        await loadAll();
+        await ensureChildData(deviceId);
+        nav(`#/child/${encodeURIComponent(deviceId)}`);
+        showToast('Saved');
+      } catch (e) {
+        setNotice(`Couldn’t save rules: ${friendlyError(e)}`, 'err');
+      }
+    }, 500);
   }
 
   async function handleActionClick(ev) {
@@ -813,6 +904,7 @@
       if (!id || !day) return;
       state.selectedDayByDevice[id] = day;
       renderAuthenticated();
+      scheduleChildAutoSave(id);
       return;
     }
 
@@ -828,51 +920,9 @@
         quietDays[day] = { start, end, dailyLimitMinutes };
       });
       d.quietDays = quietDays;
-      setNotice('Copied to all days.');
+      showToast('Copied');
       renderAuthenticated();
-      return;
-    }
-
-    if (action === 'save-child') {
-      const id = btn.getAttribute('data-device-id');
-      const device = selectedDeviceById(id);
-      if (!device) return;
-
-      const activateProtection = !!document.getElementById('ruleLockApps')?.checked;
-      const setHotspotOff = !!document.getElementById('ruleHotspot')?.checked;
-      const setWifiOff = !!document.getElementById('ruleWifi')?.checked;
-      const setMobileDataOff = !!document.getElementById('ruleData')?.checked;
-      const start = String(document.getElementById('scheduleStart')?.value || '22:00');
-      const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
-      const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
-      const day = state.selectedDayByDevice[id] || device.quietDay || 'mon';
-
-      const existing = device.quietDays || {};
-      const quietDays = {};
-      DAY_KEYS.forEach(k => {
-        const src = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
-        quietDays[k] = { start: src.start || '22:00', end: src.end || '07:00', dailyLimitMinutes: Number(src.dailyLimitMinutes || 0) };
-      });
-      quietDays[day] = { start, end, dailyLimitMinutes };
-
-      try {
-        await api(`/api/devices/${id}/policy`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            activateProtection,
-            setHotspotOff,
-            setWifiOff,
-            setMobileDataOff,
-            quietDays,
-            tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
-          })
-        });
-        await loadAll('Saved.');
-        await ensureChildData(id);
-        nav(`#/child/${encodeURIComponent(id)}`);
-      } catch (e) {
-        setNotice(`Couldn’t save rules: ${friendlyError(e)}`, 'err');
-      }
+      scheduleChildAutoSave(id);
       return;
     }
 
@@ -939,7 +989,7 @@
       return;
     }
 
-    if (action === 'refresh-events' || action === 'refresh-child') {
+    if (action === 'refresh-events') {
       const id = btn.getAttribute('data-device-id') || route().id;
       if (!id) return;
       await ensureChildData(id);
@@ -947,6 +997,7 @@
       setNotice('Updated.');
       return;
     }
+
 
     if (action === 'save-parent-name') {
       const key = btn.getAttribute('data-parent-key');
