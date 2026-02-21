@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.95 (96) - 2026-02-21
+- Made web success toast higher-contrast with full green background for clearer visibility.
+- Removed duplicate `View Pairing Code` button from child settings actions; pairing code remains available via the three-dots menu only.
+- Updated web cache-bust versions to `styles.css?v=0.1.95` and `app.js?v=0.1.95`.
+
+## 0.1.94 (95) - 2026-02-21
+- `View Pairing Code` on web now opens a persistent modal instead of a short-lived toast.
+- Modal includes code, expiry time, and `Copy code` action so users have enough time to read/use it.
+- Updated web cache-bust versions to `styles.css?v=0.1.94` and `app.js?v=0.1.94`.
+
 ## 0.1.93 (94) - 2026-02-21
 - Welcome screen invite code input is now left-aligned (`inviteCode` field), instead of centered.
 - Updated web cache-bust versions to `styles.css?v=0.1.93` and `app.js?v=0.1.93`.

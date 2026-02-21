@@ -584,7 +584,9 @@ input[type="checkbox"].toggle:checked::after {
 }
 
 .toast.ok {
-  border-color: rgba(48, 209, 88, 0.45);
+  background: #16a34a;
+  border-color: #15803d;
+  color: #ffffff;
 }
 
 .toast.err {
@@ -697,6 +699,19 @@ input[type="checkbox"].toggle:checked::after {
   justify-content: flex-end;
   gap: 8px;
   padding: 0 16px 16px;
+}
+
+.modal-code {
+  border-radius: 12px;
+  border: 1px solid #364052;
+  background: #10151f;
+  padding: 10px 12px;
+  font-size: 30px;
+  font-weight: 760;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f3f8ff;
+  text-align: center;
 }
 
 .auth-shell {

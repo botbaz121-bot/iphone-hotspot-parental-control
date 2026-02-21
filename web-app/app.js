@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.93-web';
+  const WEB_BUILD = '0.1.95-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -399,6 +399,28 @@
       `;
     }
 
+    if (state.modal.type === 'pairing-code') {
+      return `
+        <div class="modal-backdrop" data-action="close-modal">
+          <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-head">
+              <h3 class="modal-title">Pairing Code</h3>
+              <button class="modal-close" data-action="close-modal" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body stack">
+              <p class="panel-sub">Use this code on the child phone.</p>
+              <div class="modal-code">${escapeHtml(state.modal.code || '----')}</div>
+              <p class="panel-sub">Expires ${formatDateTime(state.modal.expiresAt)}</p>
+            </div>
+            <div class="modal-foot">
+              <button class="btn ghost" data-action="copy-pairing-code">Copy code</button>
+              <button class="btn primary" data-action="close-modal">Done</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return '';
   }
 
@@ -529,7 +551,6 @@
           </div>
 
           <div class="actions-wrap">
-            <button class="btn ghost" data-action="pairing" data-device-id="${escapeHtml(device.id)}">View Pairing Code</button>
             ${canDelete ? `<button class="btn danger" data-action="delete-child" data-device-id="${escapeHtml(device.id)}">Delete Child</button>` : ''}
           </div>
 
@@ -1046,9 +1067,23 @@
       if (!id) return;
       try {
         const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
-        setNotice(`Pairing code ${out.code} (expires ${formatDateTime(out.expiresAt)}).`);
+        state.menu = null;
+        state.modal = { type: 'pairing-code', code: out.code, expiresAt: out.expiresAt };
+        renderAuthenticated();
       } catch (e) {
         setNotice(`Couldn’t create pairing code: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'copy-pairing-code') {
+      const code = String(state.modal?.code || '').trim();
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        showToast('Code copied');
+      } catch {
+        showToast('Copy failed', 'err');
       }
       return;
     }
