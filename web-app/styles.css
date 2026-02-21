@@ -755,10 +755,10 @@ footer.build {
   }
 
   .toast {
-    top: auto;
+    top: max(12px, env(safe-area-inset-top));
     right: 12px;
     left: 12px;
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: auto;
     max-width: none;
     min-width: 0;
   }

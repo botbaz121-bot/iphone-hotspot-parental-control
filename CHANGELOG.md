@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.81 (82) - 2026-02-21
+- Fixed web toast placement to Flowbite-style top position on all screen sizes.
+- Removed mobile bottom-toast behavior so save feedback appears at the top while editing child settings.
+- Updated web cache-bust script version to `app.js?v=0.1.81`.
+
 ## 0.1.80 (81) - 2026-02-21
 - Web rename flow now edits the actual page title inline (no browser prompt dialogs):
 - child and parent/invite rename opens inline text edit in header with Save/Cancel.
