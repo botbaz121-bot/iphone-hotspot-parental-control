@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.54 (55) - 2026-02-21
+- Fixed web invite flow crash after creating an invite:
+- invite cards no longer bind device schedule listeners,
+- prevents `Cannot set properties of null (setting 'onchange')`,
+- avoids forced redirect back to login from the post-create render failure.
+
 ## 0.1.53 (54) - 2026-02-20
 - Added parent display name support:
 - new `parents.display_name` field (with migration),

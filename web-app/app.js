@@ -112,7 +112,7 @@
     return state.invites.map(i => {
       const inviteUrl = `https://web.spotchecker.app/invite?token=${encodeURIComponent(i.token)}`;
       return `
-        <div class="device-card">
+        <div class="invite-card device-card">
           <div class="row" style="justify-content:space-between">
             <strong>${escapeHtml(i.inviteName || i.email || 'Manual invite')}</strong>
             <span class="badge">${escapeHtml(i.status)}</span>
@@ -359,7 +359,7 @@
       }
     };
 
-    app.querySelectorAll('.device-card').forEach(card => {
+    app.querySelectorAll('.device-card[data-device-id]').forEach(card => {
       const id = card.getAttribute('data-device-id');
       const daySel = card.querySelector('.f-day');
       daySel.onchange = () => {
