@@ -279,6 +279,11 @@ private struct ParentPersonTileView: View {
   @State private var showPhotoPicker: Bool = false
   #endif
 
+  #if canImport(UIKit)
+  @State private var imageToCrop: UIImage?
+  @State private var showCropper: Bool = false
+  #endif
+
   private var gradient: LinearGradient {
     let palette: [LinearGradient] = [
       LinearGradient(colors: [Color(red: 0.15, green: 0.52, blue: 0.98), Color(red: 0.10, green: 0.32, blue: 0.82)], startPoint: .topLeading, endPoint: .bottomTrailing),
@@ -432,11 +437,40 @@ private struct ParentPersonTileView: View {
       Task {
         do {
           if let data = try await item.loadTransferable(type: Data.self) {
+            #if canImport(UIKit)
+            if let img = UIImage(data: data) {
+              imageToCrop = img
+              showCropper = true
+            } else {
+              model.setDevicePhoto(deviceId: entry.photoKey, jpegData: data)
+            }
+            #else
             model.setDevicePhoto(deviceId: entry.photoKey, jpegData: data)
+            #endif
           }
         } catch {
           actionError = userError(error)
         }
+      }
+    }
+    #endif
+    #if canImport(UIKit) && canImport(TOCropViewController)
+    .sheet(isPresented: $showCropper) {
+      if let img = imageToCrop {
+        ImageCropperView(
+          image: img,
+          onCropped: { cropped in
+            let jpeg = cropped.jpegData(compressionQuality: 0.85)
+            model.setDevicePhoto(deviceId: entry.photoKey, jpegData: jpeg)
+            showCropper = false
+            imageToCrop = nil
+          },
+          onCancel: {
+            showCropper = false
+            imageToCrop = nil
+          }
+        )
+        .ignoresSafeArea()
       }
     }
     #endif

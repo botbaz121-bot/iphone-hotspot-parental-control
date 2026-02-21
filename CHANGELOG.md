@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.65 (66) - 2026-02-21
+- Parent-device photo selection now uses the same crop flow as child photos.
+- Added `ImageCropperView` flow for parent/invite tile photos before saving.
+
 ## 0.1.64 (65) - 2026-02-21
 - Parent Devices menu now hides `Delete` for household owners.
 - Prevents owner-removal action from being shown in-app.
