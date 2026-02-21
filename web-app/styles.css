@@ -477,6 +477,19 @@ input[type="checkbox"].toggle:checked::after {
   transform: translateX(22px);
 }
 
+input[type="checkbox"].toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rules.readonly {
+  opacity: 0.62;
+}
+
+.rules.readonly .toggle-row label {
+  color: var(--muted);
+}
+
 .chip-row {
   display: flex;
   gap: 8px;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.98 (99) - 2026-02-21
+- Parent settings notification section:
+- removed helper text `Visible here, but only this parent can change their own settings.`,
+- non-own parent notification controls are now visibly greyed out when disabled.
+- Invite settings label tweak:
+- changed `View Pairing Code` text to `Pairing Code`.
+- Updated web cache-bust versions to `styles.css?v=0.1.98` and `app.js?v=0.1.98`.
+
 ## 0.1.97 (98) - 2026-02-21
 - Updated web helper/subtext spacing: `.panel-sub` now uses `margin-top: 20px`.
 - Updated web cache-bust versions to `styles.css?v=0.1.97` and `app.js?v=0.1.97`.

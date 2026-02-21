@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.97-web';
+  const WEB_BUILD = '0.1.98-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -688,16 +688,15 @@
             <div class="rules">
               <h3>Invite Settings</h3>
               <div class="stack">
-                <div class="inline-note">View Pairing Code</div>
+                <div class="inline-note">Pairing Code</div>
                 <div class="pill" style="font-size:18px;letter-spacing:0.12em">${escapeHtml(entry.code || '----')}</div>
                 <div class="inline-note">Expires ${formatDateTime(entry.expiresAt)}</div>
               </div>
             </div>
           ` : ''}
 
-          <div class="rules">
+          <div class="rules ${(!current && entry.type === 'member') ? 'readonly' : ''}">
             <h3>Notification Settings</h3>
-            ${!current && entry.type === 'member' ? '<p class="panel-sub">Visible here, but only this parent can change their own settings.</p>' : ''}
             <div class="toggle-row"><div><label>Extra time requests</label></div><input id="notifyExtra" class="toggle" type="checkbox" ${prefs.extraTime ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} /></div>
             <div class="toggle-row"><div><label>Tamper alerts</label></div><input id="notifyTamper" class="toggle" type="checkbox" ${prefs.tamper ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} /></div>
           </div>
