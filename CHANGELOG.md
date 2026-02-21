@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.93 (94) - 2026-02-21
+- Welcome screen invite code input is now left-aligned (`inviteCode` field), instead of centered.
+- Updated web cache-bust versions to `styles.css?v=0.1.93` and `app.js?v=0.1.93`.
+
+## 0.1.92 (93) - 2026-02-21
+- Removed welcome subtitle text (`Choose user type`) so only brand/title and mode tiles are shown.
+- Updated web cache-bust versions to `styles.css?v=0.1.92` and `app.js?v=0.1.92`.
+
+## 0.1.91 (92) - 2026-02-21
+- Web header/branding polish:
+- updated brand logo size to `46x46` with `margin-top: 8px`.
+- Child settings header cleanup:
+- removed `Child Settings` subtitle pill,
+- moved child name/title to the left side of the subpage header row.
+- Reworked add-child/add-parent dialogs to a proper modal layout (Flowbite-style structure):
+- explicit modal header/body/footer sections,
+- close button in modal header,
+- improved spacing and input/button alignment.
+- Updated web cache-bust versions to `styles.css?v=0.1.91` and `app.js?v=0.1.91`.
+
 ## 0.1.90 (91) - 2026-02-21
 - Increased web logo header text size to `47px` (`.title`).
 - Added top margin to section title rows: `.section-title-row { margin-top: 20px; }`.

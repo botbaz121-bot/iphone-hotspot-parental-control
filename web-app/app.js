@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.90-web';
+  const WEB_BUILD = '0.1.93-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -260,7 +260,6 @@
         <header class="topbar">
           <div>
             ${renderBrandLink()}
-            <p class="subtitle">Choose user type</p>
           </div>
         </header>
 
@@ -283,7 +282,7 @@
           <section class="auth-tile">
             <p class="auth-sub">Enter the 4-character code from the parent.</p>
             <div class="row" style="align-items:center">
-              <input id="inviteCode" maxlength="4" class="field code-input" placeholder="ABCD" value="${escapeHtml(queryInviteCode)}" />
+              <input id="inviteCode" maxlength="4" class="field code-input invite-code-input" placeholder="ABCD" value="${escapeHtml(queryInviteCode)}" />
               <button id="btnJoin" class="btn primary">Join</button>
             </div>
           </section>
@@ -362,10 +361,15 @@
       return `
         <div class="modal-backdrop" data-action="close-modal">
           <div class="modal-card" onclick="event.stopPropagation()">
-            <h3>Add Child Device</h3>
-            <p class="panel-sub">Enter your child's name.</p>
-            <input id="modalChildName" class="field" placeholder="Enter your child's name" />
-            <div class="actions-wrap" style="margin-top:10px">
+            <div class="modal-head">
+              <h3 class="modal-title">Add Child Device</h3>
+              <button class="modal-close" data-action="close-modal" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body stack">
+              <p class="panel-sub">Enter your child's name.</p>
+              <input id="modalChildName" class="field" placeholder="Enter your child's name" />
+            </div>
+            <div class="modal-foot">
               <button class="btn ghost" data-action="close-modal">Cancel</button>
               <button class="btn primary" data-action="submit-add-child">Add Child</button>
             </div>
@@ -378,10 +382,15 @@
       return `
         <div class="modal-backdrop" data-action="close-modal">
           <div class="modal-card" onclick="event.stopPropagation()">
-            <h3>Create Parent Invite</h3>
-            <p class="panel-sub">Invite name is required.</p>
-            <input id="modalInviteName" class="field" placeholder="Invite name" />
-            <div class="actions-wrap" style="margin-top:10px">
+            <div class="modal-head">
+              <h3 class="modal-title">Create Parent Invite</h3>
+              <button class="modal-close" data-action="close-modal" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body stack">
+              <p class="panel-sub">Invite name is required.</p>
+              <input id="modalInviteName" class="field" placeholder="Invite name" />
+            </div>
+            <div class="modal-foot">
               <button class="btn ghost" data-action="close-modal">Cancel</button>
               <button class="btn primary" data-action="submit-add-parent">Create Invite</button>
             </div>
@@ -490,12 +499,11 @@
 
         <div class="row spread">
           <div class="row">
-            <span class="pill">Child Settings</span>
-          </div>
-          <div class="row">
             ${isRenamingChild
               ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || device.name || '')}" />`
               : `<h2 style="margin:0;font-size:30px;line-height:1.02;letter-spacing:-0.02em">${escapeHtml(device.name || 'Child')}</h2>`}
+          </div>
+          <div class="row">
             ${isRenamingChild
               ? `
                 <button class="btn ghost small" data-action="rename-child-cancel" data-device-id="${escapeHtml(device.id)}">Cancel</button>
@@ -790,6 +798,13 @@
         renameInput.focus();
         renameInput.setSelectionRange(renameInput.value.length, renameInput.value.length);
       }
+    }
+
+    if (state.modal?.type === 'add-child') {
+      document.getElementById('modalChildName')?.focus();
+    }
+    if (state.modal?.type === 'add-parent') {
+      document.getElementById('modalInviteName')?.focus();
     }
   }
 
