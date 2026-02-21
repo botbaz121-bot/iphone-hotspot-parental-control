@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.96 (97) - 2026-02-21
+- Child settings: moved Protection On/Off indicator to the top-right corner of the main panel box.
+- Parent settings header: removed `Parent Settings` subtitle pill and moved parent name/title to the left.
+- Parent settings cleanup: removed `Profile` block and `Use the menu to rename.` helper text.
+- Updated web cache-bust versions to `styles.css?v=0.1.96` and `app.js?v=0.1.96`.
+
 ## 0.1.95 (96) - 2026-02-21
 - Made web success toast higher-contrast with full green background for clearer visibility.
 - Removed duplicate `View Pairing Code` button from child settings actions; pairing code remains available via the three-dots menu only.

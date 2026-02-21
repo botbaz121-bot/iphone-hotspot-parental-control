@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.95-web';
+  const WEB_BUILD = '0.1.96-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -541,13 +541,13 @@
 
         ${renderBanner()}
 
-        <section class="panel stack">
+        <section class="panel panel-with-status stack">
+          <span class="pill panel-status-pill ${device.enforce ? 'ok' : 'warn'}">${device.enforce ? 'Protection On' : 'Protection Off'}</span>
           <div class="row spread">
             <div>
               <h2>Rules</h2>
               <p class="panel-sub">${escapeHtml(device.statusMessage || 'No status yet.')}</p>
             </div>
-            <span class="pill ${device.enforce ? 'ok' : 'warn'}">${device.enforce ? 'Protection On' : 'Protection Off'}</span>
           </div>
 
           <div class="actions-wrap">
@@ -663,12 +663,11 @@
 
         <div class="row spread">
           <div class="row">
-            <span class="pill">Parent Settings</span>
-          </div>
-          <div class="row">
             ${isRenamingParent
               ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || entry.title || '')}" />`
               : `<h2 style="margin:0;font-size:30px;line-height:1.02;letter-spacing:-0.02em">${escapeHtml(entry.title)}</h2>`}
+          </div>
+          <div class="row">
             ${isRenamingParent
               ? `
                 <button class="btn ghost small" data-action="rename-parent-cancel" data-parent-key="${escapeHtml(entry.key)}">Cancel</button>
@@ -685,18 +684,16 @@
         ${renderBanner()}
 
         <section class="panel stack">
-          <div class="rules">
-            <h3>${entry.type === 'invite' ? 'Invite Settings' : 'Profile'}</h3>
-            <p class="panel-sub">Use the menu to rename.</p>
-
-            ${entry.type === 'invite' ? `
+          ${entry.type === 'invite' ? `
+            <div class="rules">
+              <h3>Invite Settings</h3>
               <div class="stack">
                 <div class="inline-note">View Pairing Code</div>
                 <div class="pill" style="font-size:18px;letter-spacing:0.12em">${escapeHtml(entry.code || '----')}</div>
                 <div class="inline-note">Expires ${formatDateTime(entry.expiresAt)}</div>
               </div>
-            ` : ''}
-          </div>
+            </div>
+          ` : ''}
 
           <div class="rules">
             <h3>Notification Settings</h3>

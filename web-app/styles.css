@@ -258,6 +258,16 @@ body {
   padding: 14px;
 }
 
+.panel-with-status {
+  position: relative;
+}
+
+.panel-status-pill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
 .panel h2,
 .panel h3 {
   margin: 0;
