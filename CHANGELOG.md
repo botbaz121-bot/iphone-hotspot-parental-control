@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.99 (100) - 2026-02-21
+- Parent settings notification section cleanup:
+- removed the helper line `Visible here, but only this parent can change their own settings.`,
+- non-own parent notification controls are now visibly greyed out/readonly.
+- Invite settings text tweak:
+- changed `View Pairing Code` label to `Pairing Code`.
+- Updated web cache-bust versions to `styles.css?v=0.1.99` and `app.js?v=0.1.99`.
+
 ## 0.1.98 (99) - 2026-02-21
 - Parent settings notification section:
 - removed helper text `Visible here, but only this parent can change their own settings.`,
