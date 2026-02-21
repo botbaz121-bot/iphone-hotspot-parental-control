@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.56 (57) - 2026-02-21
+- Added extra hardening for web dashboard rendering/binding:
+- isolated per-device card listener binding in try/catch,
+- prevents one malformed card from breaking full dashboard load,
+- avoids auth-screen fallback loops caused by render-time exceptions.
+
 ## 0.1.55 (56) - 2026-02-21
 - Hardened web dashboard event binding for child cards:
 - added null-safe guards for day selector and row buttons,

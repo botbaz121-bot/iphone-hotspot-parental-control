@@ -360,93 +360,97 @@
     };
 
     app.querySelectorAll('.device-card[data-device-id]').forEach(card => {
-      const id = card.getAttribute('data-device-id');
-      const daySel = card.querySelector('.f-day');
-      if (!id || !daySel) return;
-      daySel.onchange = () => {
-        state.selectedDayByDevice[id] = daySel.value;
-        renderMain();
-      };
+      try {
+        const id = card.getAttribute('data-device-id');
+        const daySel = card.querySelector('.f-day');
+        if (!id || !daySel) return;
+        daySel.onchange = () => {
+          state.selectedDayByDevice[id] = daySel.value;
+          renderMain();
+        };
 
-      const pairOut = card.querySelector('.pairOut');
-      const eventsOut = card.querySelector('.eventsOut');
+        const pairOut = card.querySelector('.pairOut');
+        const eventsOut = card.querySelector('.eventsOut');
 
-      const pairBtn = card.querySelector('.pairBtn');
-      if (pairBtn) pairBtn.onclick = async () => {
-        try {
-          const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
-          if (pairOut) {
-            pairOut.classList.remove('hidden');
-            pairOut.textContent = `${out.code} (expires ${new Date(out.expiresAt).toLocaleString()})`;
-          }
-        } catch (e) {
-          alert(`Pairing code failed: ${e.message}`);
-        }
-      };
-
-      const eventsBtn = card.querySelector('.eventsBtn');
-      if (eventsBtn) eventsBtn.onclick = async () => {
-        try {
-          const out = await api(`/api/devices/${id}/events`);
-          if (eventsOut) {
-            eventsOut.classList.remove('hidden');
-            eventsOut.textContent = JSON.stringify(out.events || [], null, 2);
-          }
-        } catch (e) {
-          alert(`Events failed: ${e.message}`);
-        }
-      };
-
-      const del = card.querySelector('.delBtn');
-      if (del) {
-        del.onclick = async () => {
-          if (!confirm('Delete this child device?')) return;
+        const pairBtn = card.querySelector('.pairBtn');
+        if (pairBtn) pairBtn.onclick = async () => {
           try {
-            await api(`/api/devices/${id}`, { method: 'DELETE' });
-            await loadAll('Child deleted.');
+            const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
+            if (pairOut) {
+              pairOut.classList.remove('hidden');
+              pairOut.textContent = `${out.code} (expires ${new Date(out.expiresAt).toLocaleString()})`;
+            }
           } catch (e) {
-            alert(`Delete failed: ${e.message}`);
+            alert(`Pairing code failed: ${e.message}`);
           }
         };
+
+        const eventsBtn = card.querySelector('.eventsBtn');
+        if (eventsBtn) eventsBtn.onclick = async () => {
+          try {
+            const out = await api(`/api/devices/${id}/events`);
+            if (eventsOut) {
+              eventsOut.classList.remove('hidden');
+              eventsOut.textContent = JSON.stringify(out.events || [], null, 2);
+            }
+          } catch (e) {
+            alert(`Events failed: ${e.message}`);
+          }
+        };
+
+        const del = card.querySelector('.delBtn');
+        if (del) {
+          del.onclick = async () => {
+            if (!confirm('Delete this child device?')) return;
+            try {
+              await api(`/api/devices/${id}`, { method: 'DELETE' });
+              await loadAll('Child deleted.');
+            } catch (e) {
+              alert(`Delete failed: ${e.message}`);
+            }
+          };
+        }
+
+        const saveBtn = card.querySelector('.saveBtn');
+        if (!saveBtn) return;
+        saveBtn.onclick = async () => {
+          const activateProtection = !!card.querySelector('.f-activateProtection').checked;
+          const setHotspotOff = !!card.querySelector('.f-setHotspotOff').checked;
+          const setWifiOff = !!card.querySelector('.f-setWifiOff').checked;
+          const setMobileDataOff = !!card.querySelector('.f-setMobileDataOff').checked;
+          const day = card.querySelector('.f-day').value;
+          const start = card.querySelector('.f-start').value;
+          const end = card.querySelector('.f-end').value;
+          const dailyLimitMinutes = Number(card.querySelector('.f-limit').value || 0);
+
+          const quietDays = {};
+          const existing = (state.devices.find(x => x.id === id)?.quietDays) || {};
+          for (const k of ['sun','mon','tue','wed','thu','fri','sat']) {
+            const cur = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
+            quietDays[k] = { start: cur.start || '22:00', end: cur.end || '07:00', dailyLimitMinutes: Number(cur.dailyLimitMinutes || 0) };
+          }
+          quietDays[day] = { start, end, dailyLimitMinutes };
+
+          try {
+            await api(`/api/devices/${id}/policy`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                activateProtection,
+                setHotspotOff,
+                setWifiOff,
+                setMobileDataOff,
+                quietDays,
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
+              })
+            });
+            await loadAll('Saved.');
+          } catch (e) {
+            alert(`Save failed: ${e.message}`);
+          }
+        };
+      } catch (e) {
+        console.error('device card bind failed', e);
       }
-
-      const saveBtn = card.querySelector('.saveBtn');
-      if (!saveBtn) return;
-      saveBtn.onclick = async () => {
-        const activateProtection = !!card.querySelector('.f-activateProtection').checked;
-        const setHotspotOff = !!card.querySelector('.f-setHotspotOff').checked;
-        const setWifiOff = !!card.querySelector('.f-setWifiOff').checked;
-        const setMobileDataOff = !!card.querySelector('.f-setMobileDataOff').checked;
-        const day = card.querySelector('.f-day').value;
-        const start = card.querySelector('.f-start').value;
-        const end = card.querySelector('.f-end').value;
-        const dailyLimitMinutes = Number(card.querySelector('.f-limit').value || 0);
-
-        const quietDays = {};
-        const existing = (state.devices.find(x => x.id === id)?.quietDays) || {};
-        for (const k of ['sun','mon','tue','wed','thu','fri','sat']) {
-          const cur = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
-          quietDays[k] = { start: cur.start || '22:00', end: cur.end || '07:00', dailyLimitMinutes: Number(cur.dailyLimitMinutes || 0) };
-        }
-        quietDays[day] = { start, end, dailyLimitMinutes };
-
-        try {
-          await api(`/api/devices/${id}/policy`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              activateProtection,
-              setHotspotOff,
-              setWifiOff,
-              setMobileDataOff,
-              quietDays,
-              tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
-            })
-          });
-          await loadAll('Saved.');
-        } catch (e) {
-          alert(`Save failed: ${e.message}`);
-        }
-      };
     });
   }
 
@@ -465,7 +469,11 @@
       state.invites = invites.invites || [];
       state.devices = dash.devices || [];
 
-      renderMain(info);
+      try {
+        renderMain(info);
+      } catch (e) {
+        renderAuthOnly(`Load failed: ${e.message}`);
+      }
     } catch (e) {
       if (String(e.message || '').includes('unauthorized')) {
         state.sessionToken = '';
