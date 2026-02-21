@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.75 (76) - 2026-02-21
+- Removed temporary auth/debug text from the welcome screen.
+- Matched `Parent Devices` section layout to `Child Devices`:
+- same header/top-button spacing,
+- same tile height,
+- removed extra parent tile vertical padding that caused inconsistent gaps.
+
 ## 0.1.74 (75) - 2026-02-21
 - Removed leftover household-switch plumbing now that Active Household UI was removed:
 - deleted backend `/api/households` and `/api/households/active` routes,

@@ -126,7 +126,7 @@ public struct ParentDashboardView: View {
       HStack(alignment: .top) {
         Text("Parent Devices")
           .font(.system(size: 34, weight: .bold))
-          .padding(.top, 14)
+          .padding(.top, 2)
         Spacer()
         Button {
           showCreateInviteSheet = true
@@ -138,7 +138,7 @@ public struct ParentDashboardView: View {
             .clipShape(Circle())
         }
         .accessibilityLabel("Add parent invite")
-        .padding(.top, 12)
+        .padding(.top, 4)
       }
 
       if parentEntries.isEmpty {
@@ -480,10 +480,9 @@ private struct ParentPersonTileView: View {
         }
         .padding(14)
       }
-      .frame(height: 118)
+      .frame(height: 110)
     }
     .buttonStyle(.plain)
-    .padding(.vertical, 6)
   }
 }
 
