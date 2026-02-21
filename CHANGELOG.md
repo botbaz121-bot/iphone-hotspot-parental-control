@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.83 (84) - 2026-02-21
+- Adjusted web toast placement to top-center within the main content column (instead of viewport right edge).
+- Kept mobile toast anchored near top with full-width inset behavior.
+- Updated web cache-bust versions to `styles.css?v=0.1.83` and `app.js?v=0.1.83`.
+
 ## 0.1.82 (83) - 2026-02-21
 - Fixed stale CSS issue by adding cache-busting query params to both web assets:
 - `styles.css?v=0.1.82`

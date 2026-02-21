@@ -551,7 +551,8 @@ input[type="checkbox"].toggle:checked::after {
 .toast {
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   border-radius: 14px;
   border: 1px solid var(--line);
   background: rgba(24, 26, 33, 0.98);
@@ -562,7 +563,7 @@ input[type="checkbox"].toggle:checked::after {
   z-index: 220;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
   min-width: 200px;
-  max-width: min(380px, calc(100vw - 24px));
+  max-width: min(560px, calc(100vw - 24px));
 }
 
 .toast.ok {
@@ -756,9 +757,8 @@ footer.build {
 
   .toast {
     top: max(12px, env(safe-area-inset-top));
-    right: 12px;
     left: 12px;
-    bottom: auto;
+    transform: none;
     max-width: none;
     min-width: 0;
   }
