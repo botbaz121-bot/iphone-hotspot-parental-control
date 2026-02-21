@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.82 (83) - 2026-02-21
+- Fixed stale CSS issue by adding cache-busting query params to both web assets:
+- `styles.css?v=0.1.82`
+- `app.js?v=0.1.82`
+- Bumped web build marker to `0.1.82-web` to make asset version visible in UI.
+
 ## 0.1.81 (82) - 2026-02-21
 - Fixed web toast placement to Flowbite-style top position on all screen sizes.
 - Removed mobile bottom-toast behavior so save feedback appears at the top while editing child settings.
