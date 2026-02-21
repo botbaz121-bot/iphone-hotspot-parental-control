@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.57 (58) - 2026-02-21
+- Added explicit web login/debug diagnostics for dashboard load issues:
+- auth screen now shows web build stamp and recent runtime debug trace,
+- captures `window.error` and `unhandledrejection` with stack details,
+- logs per-card binding state to isolate remaining null `onchange` sources.
+- Added cache busting for web script load (`web-app/index.html` uses `app.js?v=0.1.57`).
+
 ## 0.1.56 (57) - 2026-02-21
 - Added extra hardening for web dashboard rendering/binding:
 - isolated per-device card listener binding in try/catch,

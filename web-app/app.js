@@ -1,4 +1,5 @@
 (() => {
+  const WEB_BUILD = '0.1.57-webdebug-20260221';
   const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
 
@@ -10,10 +11,29 @@
     members: [],
     invites: [],
     devices: [],
-    selectedDayByDevice: {}
+    selectedDayByDevice: {},
+    debugLines: []
   };
 
   const app = document.getElementById('app');
+
+  function addDebug(message, extra) {
+    const ts = new Date().toISOString();
+    const suffix = extra ? ` ${JSON.stringify(extra)}` : '';
+    state.debugLines.push(`[${ts}] ${message}${suffix}`);
+    if (state.debugLines.length > 120) state.debugLines.shift();
+    try { console.log('[web-debug]', message, extra || ''); } catch {}
+  }
+
+  window.addEventListener('error', (ev) => {
+    addDebug('window.error', { message: ev.message, stack: ev.error?.stack || '' });
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    const reason = ev.reason && typeof ev.reason === 'object'
+      ? { message: ev.reason.message || String(ev.reason), stack: ev.reason.stack || '' }
+      : { message: String(ev.reason || '') };
+    addDebug('window.unhandledrejection', reason);
+  });
 
   function parseHashSession() {
     const raw = (location.hash || '').replace(/^#/, '');
@@ -50,6 +70,7 @@
   }
 
   function renderAuthOnly(err = '') {
+    const debugText = state.debugLines.join('\n');
     app.innerHTML = `
       <div class="top">
         <h1>SpotChecker Web Parent</h1>
@@ -58,6 +79,7 @@
         <section class="card half">
           <h2>Sign In</h2>
           <p class="muted">Use Apple sign in to access household, invites, and child controls.</p>
+          <p class="muted">Build: ${escapeHtml(WEB_BUILD)}</p>
           ${err ? `<p class="err">${escapeHtml(err)}</p>` : ''}
           <div class="col">
             <label class="muted">API Base</label>
@@ -67,6 +89,7 @@
               <button id="signIn" class="primary">Sign in with Apple</button>
             </div>
           </div>
+          ${debugText ? `<pre class="code" style="margin-top:10px;white-space:pre-wrap;max-height:280px;overflow:auto">${escapeHtml(debugText)}</pre>` : ''}
         </section>
       </div>
     `;
@@ -212,6 +235,7 @@
   }
 
   function renderMain(info = '') {
+    addDebug('renderMain.start', { devices: (state.devices || []).length, invites: (state.invites || []).length });
     const inviteToken = inviteAcceptTokenFromUrl();
 
     app.innerHTML = `
@@ -359,10 +383,13 @@
       }
     };
 
-    app.querySelectorAll('.device-card[data-device-id]').forEach(card => {
+    const deviceCards = app.querySelectorAll('.device-card[data-device-id]');
+    addDebug('renderMain.bind.deviceCards', { count: deviceCards.length });
+    deviceCards.forEach(card => {
       try {
         const id = card.getAttribute('data-device-id');
         const daySel = card.querySelector('.f-day');
+        addDebug('renderMain.bind.card', { id: id || '', hasDaySel: !!daySel });
         if (!id || !daySel) return;
         daySel.onchange = () => {
           state.selectedDayByDevice[id] = daySel.value;
@@ -449,13 +476,14 @@
           }
         };
       } catch (e) {
-        console.error('device card bind failed', e);
+        addDebug('renderMain.bind.card.failed', { message: e.message || String(e), stack: e.stack || '' });
       }
     });
   }
 
   async function loadAll(info = '') {
     try {
+      addDebug('loadAll.start', { apiBase: state.apiBase, hasSession: !!state.sessionToken });
       const [me, members, invites, dash] = await Promise.all([
         api('/api/me'),
         api('/api/household/members'),
@@ -468,13 +496,16 @@
       state.members = members.members || [];
       state.invites = invites.invites || [];
       state.devices = dash.devices || [];
+      addDebug('loadAll.data', { members: state.members.length, invites: state.invites.length, devices: state.devices.length });
 
       try {
         renderMain(info);
       } catch (e) {
+        addDebug('loadAll.renderMain.failed', { message: e.message || String(e), stack: e.stack || '' });
         renderAuthOnly(`Load failed: ${e.message}`);
       }
     } catch (e) {
+      addDebug('loadAll.failed', { message: e.message || String(e), stack: e.stack || '' });
       if (String(e.message || '').includes('unauthorized')) {
         state.sessionToken = '';
         localStorage.removeItem(SESSION_KEY);
