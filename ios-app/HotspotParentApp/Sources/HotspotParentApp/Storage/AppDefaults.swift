@@ -12,6 +12,7 @@ public enum AppDefaults {
     static let apiBaseURL = "hotspotParent.api.baseURL"
     static let adminToken = "hotspotParent.api.adminToken"
     static let parentSessionToken = "hotspotParent.parent.sessionToken"
+    static let parentId = "hotspotParent.parent.id"
     static let parentPushToken = "hotspotParent.parent.pushToken"
     static let pendingExtraTimeDeviceId = "hotspotParent.push.pendingExtraTime.deviceId"
     static let pendingExtraTimeRequestId = "hotspotParent.push.pendingExtraTime.requestId"
@@ -95,6 +96,14 @@ public enum AppDefaults {
     set { defaults.set(newValue, forKey: Key.parentPushToken) }
   }
 
+  public static var parentId: String? {
+    get {
+      let v = defaults.string(forKey: Key.parentId)
+      return (v?.isEmpty ?? true) ? nil : v
+    }
+    set { defaults.set(newValue, forKey: Key.parentId) }
+  }
+
   public static var pendingExtraTimeDeviceId: String? {
     get {
       let v = defaults.string(forKey: Key.pendingExtraTimeDeviceId)
@@ -149,6 +158,7 @@ public enum AppDefaults {
     defaults.removeObject(forKey: Key.apiBaseURL)
     defaults.removeObject(forKey: Key.adminToken)
     defaults.removeObject(forKey: Key.parentSessionToken)
+    defaults.removeObject(forKey: Key.parentId)
     defaults.removeObject(forKey: Key.parentPushToken)
     defaults.removeObject(forKey: Key.pendingExtraTimeDeviceId)
     defaults.removeObject(forKey: Key.pendingExtraTimeRequestId)

@@ -180,3 +180,29 @@ public struct HouseholdInviteRenameRequest: Encodable {
     self.inviteName = inviteName
   }
 }
+
+public struct ParentMeResponse: Decodable {
+  public struct Parent: Decodable {
+    public var id: String
+    public var email: String?
+    public var displayName: String?
+  }
+
+  public struct Household: Decodable {
+    public var id: String
+    public var name: String?
+    public var role: String
+  }
+
+  public var ok: Bool
+  public var parent: Parent
+  public var household: Household
+}
+
+public struct ParentProfileUpdateRequest: Encodable {
+  public var displayName: String
+
+  public init(displayName: String) {
+    self.displayName = displayName
+  }
+}

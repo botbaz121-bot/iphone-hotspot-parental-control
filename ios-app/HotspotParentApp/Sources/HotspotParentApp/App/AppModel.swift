@@ -24,6 +24,7 @@ public final class AppModel: ObservableObject {
 
   /// Apple user id (best-effort, informational).
   @Published public private(set) var appleUserID: String?
+  @Published public private(set) var currentParentId: String?
 
   // MARK: - Parent state (v1B)
 
@@ -135,6 +136,7 @@ public final class AppModel: ObservableObject {
     if let token { try? KeychainStore.setCodable(token, account: KeychainAccounts.parentSessionToken) }
 
     self.appleUserID = AppDefaults.appleUserID
+    self.currentParentId = AppDefaults.parentId
 
     self.selectedDeviceId = SharedDefaults.selectedDeviceId
 
@@ -209,6 +211,8 @@ public final class AppModel: ObservableObject {
     parentSessionToken = resp.sessionToken
     AppDefaults.parentSessionToken = resp.sessionToken
     try? KeychainStore.setCodable(resp.sessionToken, account: KeychainAccounts.parentSessionToken)
+    currentParentId = resp.parent.id
+    AppDefaults.parentId = resp.parent.id
 
     self.appleUserID = appleUserID
     AppDefaults.appleUserID = appleUserID
@@ -222,6 +226,8 @@ public final class AppModel: ObservableObject {
 
     appleUserID = nil
     AppDefaults.appleUserID = nil
+    currentParentId = nil
+    AppDefaults.parentId = nil
     pendingOpenDeviceDetailsId = nil
     parentDevices = []
     householdMembers = []
@@ -388,13 +394,17 @@ public final class AppModel: ObservableObject {
     defer { parentLoading = false }
 
     do {
+      async let meTask = client.me()
       async let dashTask = client.dashboard()
       async let membersTask = client.householdMembers()
       async let invitesTask = client.householdInvites()
 
+      let me = try await meTask
       let dash = try await dashTask
       let members = try await membersTask
       let invites = try await invitesTask
+      currentParentId = me.parent.id
+      AppDefaults.parentId = me.parent.id
       parentDevices = dash.devices
       householdMembers = members.members
       householdInvites = invites.invites
@@ -532,6 +542,12 @@ public final class AppModel: ObservableObject {
   public func renameHouseholdInvite(inviteId: String, inviteName: String) async throws {
     guard let client = apiClient else { throw APIError.invalidResponse }
     try await client.renameInvite(inviteId: inviteId, inviteName: inviteName)
+    await refreshParentDashboard()
+  }
+
+  public func renameCurrentParentProfile(displayName: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.updateMyProfile(displayName: displayName)
     await refreshParentDashboard()
   }
 

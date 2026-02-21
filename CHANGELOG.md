@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.66 (67) - 2026-02-21
+- Allowed rename for the signed-in parent profile from `Parent Devices`.
+- Added current parent identity tracking (`parentId`) in app state/defaults.
+- Parent tiles now show `Rename` for pending invites and your own profile only.
+
 ## 0.1.65 (66) - 2026-02-21
 - Parent-device photo selection now uses the same crop flow as child photos.
 - Added `ImageCropperView` flow for parent/invite tile photos before saving.

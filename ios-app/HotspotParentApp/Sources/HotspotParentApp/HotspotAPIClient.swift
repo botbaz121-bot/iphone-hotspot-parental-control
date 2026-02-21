@@ -46,6 +46,15 @@ public final class HotspotAPIClient {
     try await HTTP.getJSON(api.url("/api/dashboard"), headers: parentOrAdminHeaders())
   }
 
+  public func me() async throws -> ParentMeResponse {
+    try await HTTP.getJSON(api.url("/api/me"), headers: parentHeaders())
+  }
+
+  public func updateMyProfile(displayName: String) async throws {
+    let req = ParentProfileUpdateRequest(displayName: displayName)
+    let _: OkResponse = try await HTTP.patchJSON(api.url("/api/me/profile"), body: req, headers: parentHeaders())
+  }
+
   public func householdMembers() async throws -> HouseholdMembersResponse {
     try await HTTP.getJSON(api.url("/api/household/members"), headers: parentHeaders())
   }

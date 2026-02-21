@@ -304,13 +304,24 @@ private struct ParentPersonTileView: View {
     }
   }
 
+  private var canRename: Bool {
+    switch entry {
+      case .invite:
+        return true
+      case .member(let m):
+        return model.currentParentId == m.parentId
+    }
+  }
+
   var body: some View {
     Menu {
-      Button {
-        renameText = entry.title
-        showRename = true
-      } label: {
-        Label("Rename", systemImage: "pencil")
+      if canRename {
+        Button {
+          renameText = entry.title
+          showRename = true
+        } label: {
+          Label("Rename", systemImage: "pencil")
+        }
       }
 
       #if canImport(PhotosUI)
@@ -484,8 +495,12 @@ private struct ParentPersonTileView: View {
       switch entry {
         case .invite(let invite):
           try await model.renameHouseholdInvite(inviteId: invite.id, inviteName: newName)
-        case .member:
-          actionError = "Rename is currently supported for pending invites."
+        case .member(let member):
+          guard model.currentParentId == member.parentId else {
+            actionError = "You can only rename your own profile."
+            return
+          }
+          try await model.renameCurrentParentProfile(displayName: newName)
       }
     } catch {
       actionError = userError(error)
