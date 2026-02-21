@@ -149,7 +149,7 @@ body {
 
 .section-title {
   margin: 0;
-  font-size: 52px;
+  font-size: 42px;
   line-height: 0.93;
   letter-spacing: -0.045em;
   font-weight: 780;
@@ -638,6 +638,65 @@ input[type="checkbox"].toggle:checked::after {
   color: #ffb8b1;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  background: rgba(9, 12, 17, 0.72);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  border-radius: 16px;
+  border: 1px solid #2f3642;
+  background: #1b2029;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #2f3642;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #343c4a;
+  background: #242b37;
+  color: #c7cfdb;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 14px 16px;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
 .auth-shell {
   max-width: 860px;
   margin: 0 auto;
@@ -731,7 +790,7 @@ footer.build {
   }
 
   .section-title {
-    font-size: 44px;
+    font-size: 34px;
   }
 
   .tile-title {
@@ -759,7 +818,7 @@ footer.build {
   }
 
   .section-title {
-    font-size: 40px;
+    font-size: 30px;
   }
 
   .time-grid {

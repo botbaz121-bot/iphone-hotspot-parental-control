@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.88 (89) - 2026-02-21
+- Reduced web section header size by 10px:
+- `.section-title` desktop `52px -> 42px`,
+- medium breakpoint `44px -> 34px`,
+- mobile breakpoint `40px -> 30px`.
+- Added base Flowbite-style modal component styling for web dialogs (`modal-backdrop`, `modal-card`, header/body/footer).
+- Updated web cache-bust versions to `styles.css?v=0.1.88` and `app.js?v=0.1.88`.
+
 ## 0.1.87 (88) - 2026-02-21
 - Web header/navigation updates:
 - added top-left SpotChecker logo in web app shell (`web-app/logo-192.png`),
