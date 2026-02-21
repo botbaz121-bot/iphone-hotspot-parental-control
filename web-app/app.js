@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.83-web';
+  const WEB_BUILD = '0.1.85-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -420,7 +420,6 @@
             </div>
           </div>
           <div class="actions-wrap">
-            <button class="btn ghost" data-action="refresh">Refresh</button>
             <button class="btn danger" data-action="signout">Sign out</button>
           </div>
         </header>
@@ -453,7 +452,16 @@
     if (!device) {
       return `
         <div class="screen">
-          <header class="topbar"><button class="btn ghost" data-action="go-dashboard">Back</button></header>
+          <header class="topbar">
+            <div>
+              <h1 class="title">SpotChecker</h1>
+              <div class="meta-row">
+                <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
+                <span class="pill">${escapeHtml(state.household?.role || '')}</span>
+              </div>
+            </div>
+            <button class="btn danger" data-action="signout">Sign out</button>
+          </header>
           <div class="detail-empty">Child not found.</div>
         </div>
       `;
@@ -474,13 +482,25 @@
     return `
       <div class="screen">
         <header class="topbar">
+          <div>
+            <h1 class="title">SpotChecker</h1>
+            <div class="meta-row">
+              <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
+              <span class="pill">${escapeHtml(state.household?.role || '')}</span>
+            </div>
+          </div>
+          <button class="btn danger" data-action="signout">Sign out</button>
+        </header>
+
+        <div class="row spread">
           <div class="row">
-            <button class="btn ghost" data-action="go-dashboard">Back</button>
-            ${isRenamingChild
-              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || device.name || '')}" />`
-              : `<h1 class="title" style="font-size:30px">${escapeHtml(device.name || 'Child')}</h1>`}
+            <button class="btn ghost small" data-action="open-dashboard">Dashboard</button>
+            <span class="pill">Child Settings</span>
           </div>
           <div class="row">
+            ${isRenamingChild
+              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || device.name || '')}" />`
+              : `<h2 style="margin:0;font-size:30px;line-height:1.02;letter-spacing:-0.02em">${escapeHtml(device.name || 'Child')}</h2>`}
             ${isRenamingChild
               ? `
                 <button class="btn ghost small" data-action="rename-child-cancel" data-device-id="${escapeHtml(device.id)}">Cancel</button>
@@ -492,7 +512,7 @@
               ${renderChildMenu(device, canDelete)}
             </div>
           </div>
-        </header>
+        </div>
 
         ${renderBanner()}
 
@@ -589,7 +609,16 @@
     if (!entry) {
       return `
         <div class="screen">
-          <header class="topbar"><button class="btn ghost" data-action="go-dashboard">Back</button></header>
+          <header class="topbar">
+            <div>
+              <h1 class="title">SpotChecker</h1>
+              <div class="meta-row">
+                <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
+                <span class="pill">${escapeHtml(state.household?.role || '')}</span>
+              </div>
+            </div>
+            <button class="btn danger" data-action="signout">Sign out</button>
+          </header>
           <div class="detail-empty">Parent entry not found.</div>
         </div>
       `;
@@ -606,26 +635,37 @@
     return `
       <div class="screen">
         <header class="topbar">
+          <div>
+            <h1 class="title">SpotChecker</h1>
+            <div class="meta-row">
+              <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
+              <span class="pill">${escapeHtml(state.household?.role || '')}</span>
+            </div>
+          </div>
+          <button class="btn danger" data-action="signout">Sign out</button>
+        </header>
+
+        <div class="row spread">
           <div class="row">
-            <button class="btn ghost" data-action="go-dashboard">Back</button>
-            ${isRenamingParent
-              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || entry.title || '')}" />`
-              : `<h1 class="title" style="font-size:30px">${escapeHtml(entry.title)}</h1>`}
+            <button class="btn ghost small" data-action="open-dashboard">Dashboard</button>
+            <span class="pill">Parent Settings</span>
           </div>
           <div class="row">
+            ${isRenamingParent
+              ? `<input id="headerRenameInput" class="field" style="min-width:220px;max-width:360px" value="${escapeHtml(state.renameDraft || entry.title || '')}" />`
+              : `<h2 style="margin:0;font-size:30px;line-height:1.02;letter-spacing:-0.02em">${escapeHtml(entry.title)}</h2>`}
             ${isRenamingParent
               ? `
                 <button class="btn ghost small" data-action="rename-parent-cancel" data-parent-key="${escapeHtml(entry.key)}">Cancel</button>
                 <button class="btn primary small" data-action="rename-parent-save" data-parent-key="${escapeHtml(entry.key)}">Save</button>
               `
               : ''}
-            <button class="btn ghost" data-action="refresh">Refresh</button>
             <div class="menu-wrap">
               <button class="menu-trigger" data-action="toggle-parent-menu" data-parent-key="${escapeHtml(entry.key)}">•••</button>
               ${renderParentMenu(entry, canDelete)}
             </div>
           </div>
-        </header>
+        </div>
 
         ${renderBanner()}
 
@@ -788,8 +828,7 @@
     const action = btn.getAttribute('data-action');
     if (!action) return;
 
-    if (action === 'go-dashboard') return nav('#/dashboard');
-    if (action === 'refresh') return loadAll('Updated.');
+    if (action === 'go-dashboard' || action === 'open-dashboard') return nav('#/dashboard');
 
     if (action === 'signout') {
       state.sessionToken = '';

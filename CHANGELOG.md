@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.85 (86) - 2026-02-21
+- Kept a consistent SpotChecker header/top nav on web child and parent subpages.
+- Removed back buttons from subpages.
+- Added `Dashboard` top-nav action on subpages to return to main dashboard.
+- Updated web cache-bust versions to `styles.css?v=0.1.85` and `app.js?v=0.1.85`.
+
 ## 0.1.83 (84) - 2026-02-21
 - Adjusted web toast placement to top-center within the main content column (instead of viewport right edge).
 - Kept mobile toast anchored near top with full-width inset behavior.
