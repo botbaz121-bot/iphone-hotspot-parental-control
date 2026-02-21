@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.77 (78) - 2026-02-21
+- Refactored web app navigation to app-like separate screens:
+- dashboard at `#/dashboard`,
+- child settings at `#/child/:deviceId`,
+- parent settings at `#/parent/:entryKey`.
+- Replaced inline “quick add” with `+` modal dialogs for child creation and parent invites.
+- Added child/parent top-right dropdown option menus (excluding photo):
+- child: Rename, View Pairing Code, Delete,
+- parent/invite: Rename, View Invite Code (invite), Delete (where allowed).
+- Updated web cache-bust script version to `app.js?v=0.1.77`.
+
 ## 0.1.76 (77) - 2026-02-21
 - Rebuilt `web-app` UI to match iOS visual feel and flows:
 - iOS-style welcome with device-type tiles and `Join by invite` code entry,

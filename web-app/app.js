@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.76-web';
+  const WEB_BUILD = '0.1.77-web';
   const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
@@ -33,12 +33,12 @@
     devices: [],
     eventsByDevice: {},
     pendingByDevice: {},
-    selectedChildId: null,
-    selectedParentKey: null,
     selectedDayByDevice: {},
     notifPrefs: loadNotificationPrefs(),
     notice: null,
     noticeType: 'ok',
+    modal: null,
+    menu: null,
     busy: false
   };
 
@@ -61,13 +61,37 @@
 
   function parseHashSession() {
     const raw = String(location.hash || '').replace(/^#/, '');
-    if (!raw) return;
+    if (!raw || !raw.includes('sessionToken=')) return;
     const p = new URLSearchParams(raw);
     const token = (p.get('sessionToken') || '').trim();
     if (!token) return;
     state.sessionToken = token;
     localStorage.setItem(SESSION_KEY, token);
-    history.replaceState(null, '', location.pathname + location.search);
+    history.replaceState(null, '', location.pathname + location.search + '#/dashboard');
+  }
+
+  function route() {
+    const raw = String(location.hash || '#/dashboard').replace(/^#/, '');
+    const [pathPart] = raw.split('?');
+    const path = pathPart || '/dashboard';
+
+    if (path.startsWith('/child/')) return { view: 'child', id: decodeURIComponent(path.slice('/child/'.length)) };
+    if (path.startsWith('/parent/')) return { view: 'parent', key: decodeURIComponent(path.slice('/parent/'.length)) };
+    return { view: 'dashboard' };
+  }
+
+  function nav(to) {
+    if (location.hash === to) {
+      render();
+      return;
+    }
+    location.hash = to;
+  }
+
+  function setNotice(message, type = 'ok') {
+    state.notice = message ? String(message) : null;
+    state.noticeType = type;
+    render();
   }
 
   function friendlyError(err) {
@@ -80,12 +104,6 @@
     if (m.includes('not_found')) return 'That item was not found.';
     if (m.includes('network')) return 'Network error. Check connection and try again.';
     return String(err?.message || 'Something went wrong.');
-  }
-
-  function setNotice(message, type = 'ok') {
-    state.notice = message ? String(message) : null;
-    state.noticeType = type;
-    render();
   }
 
   function escapeHtml(v) {
@@ -104,9 +122,7 @@
     } catch {
       data = { raw: text };
     }
-    if (!res.ok) {
-      throw new Error(data?.error || data?.detail || data?.message || `HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(data?.error || data?.detail || data?.message || `HTTP ${res.status}`);
     return data;
   }
 
@@ -173,16 +189,16 @@
     return [...members, ...invites];
   }
 
+  function selectedDeviceById(id) {
+    return state.devices.find(d => d.id === id) || null;
+  }
+
+  function selectedParentByKey(key) {
+    return parentEntries().find(x => x.key === key) || null;
+  }
+
   function isCurrentParent(entry) {
     return entry?.type === 'member' && entry.parentId && state.me && entry.parentId === state.me.id;
-  }
-
-  function selectedDevice() {
-    return state.devices.find(d => d.id === state.selectedChildId) || null;
-  }
-
-  function selectedParentEntry() {
-    return parentEntries().find(x => x.key === state.selectedParentKey) || null;
   }
 
   function pickDayWindow(device) {
@@ -201,7 +217,6 @@
 
   function renderWelcome(err = '') {
     const queryInviteCode = (new URL(location.href).searchParams.get('inviteCode') || '').trim().toUpperCase();
-
     app.innerHTML = `
       <div class="screen auth-shell">
         <header class="topbar">
@@ -250,78 +265,63 @@
       </div>
     `;
 
-    const apiInput = document.getElementById('apiBase');
-    const inviteInput = document.getElementById('inviteCode');
+    document.getElementById('parentModeTile')?.addEventListener('click', () => {
+      const apiInput = document.getElementById('apiBase');
+      if (apiInput) {
+        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
+        localStorage.setItem(API_BASE_KEY, state.apiBase);
+      }
+      const nextPath = `${location.pathname}${location.search}`;
+      location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
+    });
 
-    if (inviteInput) {
-      inviteInput.addEventListener('input', () => {
-        const filtered = String(inviteInput.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-        if (inviteInput.value !== filtered) inviteInput.value = filtered;
-      });
-    }
+    document.getElementById('childModeTile')?.addEventListener('click', () => {
+      setNotice('Child setup is available in the iOS app.', 'err');
+    });
 
-    const saveApi = document.getElementById('btnSaveApi');
-    if (saveApi) {
-      saveApi.onclick = () => {
-        if (apiInput) {
-          state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-          localStorage.setItem(API_BASE_KEY, state.apiBase);
-        }
-        setNotice('API base saved.');
-      };
-    }
+    document.getElementById('btnSaveApi')?.addEventListener('click', () => {
+      const apiInput = document.getElementById('apiBase');
+      if (apiInput) {
+        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
+        localStorage.setItem(API_BASE_KEY, state.apiBase);
+      }
+      setNotice('API base saved.');
+    });
 
-    const signIn = document.getElementById('parentModeTile');
-    if (signIn) {
-      signIn.onclick = () => {
-        if (apiInput) {
-          state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-          localStorage.setItem(API_BASE_KEY, state.apiBase);
-        }
-        const nextPath = `${location.pathname}${location.search}`;
-        location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
-      };
-    }
+    document.getElementById('inviteCode')?.addEventListener('input', e => {
+      const el = e.currentTarget;
+      if (!(el instanceof HTMLInputElement)) return;
+      const filtered = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+      if (el.value !== filtered) el.value = filtered;
+    });
 
-    const childTile = document.getElementById('childModeTile');
-    if (childTile) {
-      childTile.onclick = () => {
-        setNotice('Child setup is available in the iOS app.', 'err');
-      };
-    }
-
-    const join = document.getElementById('btnJoin');
-    if (join) {
-      join.onclick = () => {
-        const code = String(inviteInput?.value || '').trim().toUpperCase();
-        if (!/^[A-Z0-9]{4}$/.test(code)) {
-          setNotice('Enter a valid 4-character code.', 'err');
-          return;
-        }
-        if (apiInput) {
-          state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
-          localStorage.setItem(API_BASE_KEY, state.apiBase);
-        }
-        const u = new URL(location.href);
-        u.searchParams.set('inviteCode', code);
-        const nextPath = `${u.pathname}${u.search}`;
-        location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
-      };
-    }
+    document.getElementById('btnJoin')?.addEventListener('click', () => {
+      const apiInput = document.getElementById('apiBase');
+      if (apiInput) {
+        state.apiBase = String(apiInput.value || '').trim() || state.apiBase;
+        localStorage.setItem(API_BASE_KEY, state.apiBase);
+      }
+      const code = String(document.getElementById('inviteCode')?.value || '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) {
+        setNotice('Enter a valid 4-character code.', 'err');
+        return;
+      }
+      const u = new URL(location.href);
+      u.searchParams.set('inviteCode', code);
+      const nextPath = `${u.pathname}${u.search}`;
+      location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
+    });
   }
 
   function renderDeviceTiles() {
-    if (!state.devices.length) return '<div class="inline-note">No child devices yet. Use + to create one.</div>';
+    if (!state.devices.length) return '<div class="inline-note">No child devices yet.</div>';
     return state.devices.map((d, idx) => {
-      const selected = d.id === state.selectedChildId;
       const gradient = CHILD_TILE_GRADIENTS[idx % CHILD_TILE_GRADIENTS.length];
-      const name = d.name || 'Child device';
-      const firstLetter = String(name).trim().charAt(0).toUpperCase() || '?';
-
+      const firstLetter = String(d.name || 'C').trim().charAt(0).toUpperCase() || 'C';
       return `
-        <button class="tile ${selected ? 'selected' : ''}" data-action="select-child" data-device-id="${escapeHtml(d.id)}" style="background:${escapeHtml(gradient)}">
+        <button class="tile" data-action="open-child" data-device-id="${escapeHtml(d.id)}" style="background:${escapeHtml(gradient)}">
           <span class="avatar-badge">${escapeHtml(firstLetter)}</span>
-          <p class="tile-title">${escapeHtml(name)}</p>
+          <p class="tile-title">${escapeHtml(d.name || 'Child device')}</p>
         </button>
       `;
     }).join('');
@@ -329,15 +329,12 @@
 
   function renderParentTiles() {
     const entries = parentEntries();
-    if (!entries.length) return '<div class="inline-note">No parent devices or invites yet. Use + to create an invite.</div>';
-
+    if (!entries.length) return '<div class="inline-note">No parent devices or invites yet.</div>';
     return entries.map((p, idx) => {
-      const selected = p.key === state.selectedParentKey;
       const gradient = PARENT_TILE_GRADIENTS[idx % PARENT_TILE_GRADIENTS.length];
-      const first = String(p.title || '').trim().charAt(0).toUpperCase() || '?';
-
+      const first = String(p.title || 'P').trim().charAt(0).toUpperCase() || 'P';
       return `
-        <button class="tile ${selected ? 'selected' : ''}" data-action="select-parent" data-parent-key="${escapeHtml(p.key)}" style="background:${escapeHtml(gradient)}">
+        <button class="tile" data-action="open-parent" data-parent-key="${escapeHtml(p.key)}" style="background:${escapeHtml(gradient)}">
           <span class="avatar-badge">${escapeHtml(first)}</span>
           <div>
             <p class="tile-title" style="font-size:34px">${escapeHtml(p.title)}</p>
@@ -348,234 +345,70 @@
     }).join('');
   }
 
-  function scheduleSummary(device) {
-    const out = pickDayWindow(device);
-    return `${DAY_LABEL[out.day]} ${out.start} - ${out.end}`;
+  function renderModal() {
+    if (!state.modal) return '';
+
+    if (state.modal.type === 'add-child') {
+      return `
+        <div class="modal-backdrop" data-action="close-modal">
+          <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Add Child Device</h3>
+            <p class="panel-sub">Enter your child's name.</p>
+            <input id="modalChildName" class="field" placeholder="Enter your child's name" />
+            <div class="actions-wrap" style="margin-top:10px">
+              <button class="btn ghost" data-action="close-modal">Cancel</button>
+              <button class="btn primary" data-action="submit-add-child">Add Child</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (state.modal.type === 'add-parent') {
+      return `
+        <div class="modal-backdrop" data-action="close-modal">
+          <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Create Parent Invite</h3>
+            <p class="panel-sub">Invite name is required.</p>
+            <input id="modalInviteName" class="field" placeholder="Invite name" />
+            <div class="actions-wrap" style="margin-top:10px">
+              <button class="btn ghost" data-action="close-modal">Cancel</button>
+              <button class="btn primary" data-action="submit-add-parent">Create Invite</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return '';
   }
 
-  function renderChildDetail(device) {
-    const dayWindow = pickDayWindow(device);
-    const pending = state.pendingByDevice[device.id] || null;
-    const events = state.eventsByDevice[device.id] || [];
-
-    const daily = device.dailyLimit;
-    const dailySummary = (daily && daily.limitMinutes != null)
-      ? `${minsToHm(daily.usedMinutes || 0)} / ${minsToHm(daily.limitMinutes)} used (${minsToHm(daily.remainingMinutes || 0)} left)`
-      : 'Not set';
-
-    const canDelete = String(state.household?.role || '').toLowerCase() === 'owner';
-
+  function renderChildMenu(device, canDelete) {
+    if (!state.menu || state.menu !== `child:${device.id}`) return '';
     return `
-      <section class="panel stack">
-        <div class="row spread">
-          <div>
-            <h2>${escapeHtml(device.name || 'Child device')}</h2>
-            <p class="panel-sub">${escapeHtml(device.statusMessage || 'No status yet.')}</p>
-          </div>
-          <span class="pill ${device.enforce ? 'ok' : 'warn'}">${device.enforce ? 'Protection On' : 'Protection Off'}</span>
-        </div>
-
-        <div class="actions-wrap">
-          <button class="btn ghost" data-action="open-pairing" data-device-id="${escapeHtml(device.id)}">View Pairing Code</button>
-          <button class="btn ghost" data-action="refresh-events" data-device-id="${escapeHtml(device.id)}">Refresh Activity</button>
-          ${canDelete ? `<button class="btn danger" data-action="delete-child" data-device-id="${escapeHtml(device.id)}">Delete Child</button>` : ''}
-        </div>
-
-        <div class="rules">
-          <h3>Rules</h3>
-
-          <div class="toggle-row">
-            <div>
-              <label for="ruleLockApps">Lock Apps</label>
-              <div class="helper">Block certain apps. Set list on child phone.</div>
-            </div>
-            <input id="ruleLockApps" class="toggle" type="checkbox" ${device.actions?.activateProtection ? 'checked' : ''} />
-          </div>
-
-          <div class="toggle-row">
-            <div><label for="ruleHotspot">Turn Hotspot off</label></div>
-            <input id="ruleHotspot" class="toggle" type="checkbox" ${device.actions?.setHotspotOff ? 'checked' : ''} />
-          </div>
-
-          <div class="toggle-row">
-            <div><label for="ruleWifi">Turn Wi-Fi Off</label></div>
-            <input id="ruleWifi" class="toggle" type="checkbox" ${device.actions?.setWifiOff ? 'checked' : ''} />
-          </div>
-
-          <div class="toggle-row">
-            <div><label for="ruleData">Turn Mobile Data Off</label></div>
-            <input id="ruleData" class="toggle" type="checkbox" ${device.actions?.setMobileDataOff ? 'checked' : ''} />
-          </div>
-        </div>
-
-        <div class="rules">
-          <div class="row spread">
-            <h3>Rules Enforcement Schedule</h3>
-            <span class="pill">${escapeHtml(scheduleSummary(device))}</span>
-          </div>
-
-          <div class="chip-row">
-            ${DAY_KEYS.map(key => `<button class="chip ${key === dayWindow.day ? 'active' : ''}" data-action="set-day" data-device-id="${escapeHtml(device.id)}" data-day="${key}">${DAY_LABEL[key]}</button>`).join('')}
-          </div>
-
-          <div class="time-grid">
-            <div>
-              <p class="kicker">Start</p>
-              <input id="scheduleStart" class="time-field" type="time" value="${escapeHtml(dayWindow.start)}" />
-            </div>
-            <div>
-              <p class="kicker">End</p>
-              <input id="scheduleEnd" class="time-field" type="time" value="${escapeHtml(dayWindow.end)}" />
-            </div>
-            <div>
-              <p class="kicker">Total daily limit</p>
-              <select id="dailyLimit" class="select">
-                <option value="0" ${dayWindow.dailyLimitMinutes === 0 ? 'selected' : ''}>Off</option>
-                ${Array.from({ length: 32 }, (_, i) => (i + 1) * 15).map(m => `<option value="${m}" ${dayWindow.dailyLimitMinutes === m ? 'selected' : ''}>${minsToHm(m)}</option>`).join('')}
-              </select>
-            </div>
-          </div>
-
-          <div class="row spread">
-            <span class="inline-note">Daily usage: ${escapeHtml(dailySummary)}</span>
-            <div class="actions-wrap">
-              <button class="btn ghost" data-action="copy-day" data-device-id="${escapeHtml(device.id)}">Copy to all days</button>
-              <button class="btn primary" data-action="save-device" data-device-id="${escapeHtml(device.id)}">Save Rules</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="rules">
-          <h3>Extra Time</h3>
-          <p class="panel-sub">Temporarily disable enforcement for this child.</p>
-
-          ${pending ? `
-            <div class="help-card">
-              <div class="row spread">
-                <div>
-                  <strong>You have a pending request</strong>
-                  <p class="panel-sub">Requested ${minsToHm(pending.requestedMinutes)} at ${formatDateTime(pending.requestedAt)}</p>
-                </div>
-                <span class="pill warn">Pending</span>
-              </div>
-              <div class="actions-wrap" style="margin-top:10px">
-                <button class="btn primary" data-action="approve-request" data-request-id="${escapeHtml(pending.id)}" data-device-id="${escapeHtml(device.id)}">Approve</button>
-                <button class="btn danger" data-action="deny-request" data-request-id="${escapeHtml(pending.id)}" data-device-id="${escapeHtml(device.id)}">Deny</button>
-              </div>
-            </div>
-          ` : '<div class="inline-note">No pending request.</div>'}
-
-          <div class="form-row">
-            <label for="extraMinutes" class="kicker" style="margin:0">Amount</label>
-            <select id="extraMinutes" class="select" style="max-width:180px">
-              ${Array.from({ length: 49 }, (_, i) => i * 5).map(m => `<option value="${m}">${minsToHm(m)}</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="actions-wrap">
-            <button class="btn primary" data-action="apply-extra" data-device-id="${escapeHtml(device.id)}">Apply extra time</button>
-          </div>
-
-          <div class="inline-note">
-            ${device.activeExtraTime?.endsAt ? `Extra time active until ${formatDateTime(device.activeExtraTime.endsAt)}.` : 'No active extra time.'}
-          </div>
-        </div>
-
-        <div class="rules">
-          <div class="row spread">
-            <h3>Recent activity</h3>
-            <span class="pill">${events.length} events</span>
-          </div>
-          <ul class="activity-list">
-            ${events.length ? events.slice(0, 12).map(ev => `
-              <li class="activity-row">
-                <span class="activity-time">${escapeHtml(formatDateTime(ev.ts))}</span>
-                <span class="activity-label">${escapeHtml(eventLabel(ev.trigger))}</span>
-              </li>
-            `).join('') : '<li class="inline-note">No activity yet.</li>'}
-          </ul>
-        </div>
-      </section>
+      <div class="menu-popover">
+        <button class="menu-item" data-action="menu-child-rename" data-device-id="${escapeHtml(device.id)}">Rename</button>
+        <button class="menu-item" data-action="pairing" data-device-id="${escapeHtml(device.id)}">View Pairing Code</button>
+        ${canDelete ? `<button class="menu-item danger" data-action="delete-child" data-device-id="${escapeHtml(device.id)}">Delete</button>` : ''}
+      </div>
     `;
   }
 
-  function renderParentDetail(entry) {
-    const current = isCurrentParent(entry);
-    const isOwner = String(state.household?.role || '').toLowerCase() === 'owner';
-
-    const prefKey = entry.type === 'member' ? entry.parentId : `invite:${entry.id}`;
-    const prefs = state.notifPrefs[prefKey] || { extraTime: true, tamper: true };
-
+  function renderParentMenu(entry, canDelete) {
+    if (!state.menu || state.menu !== `parent:${entry.key}`) return '';
+    const renameDisabled = (!isCurrentParent(entry) && entry.type !== 'invite') ? 'disabled' : '';
     return `
-      <section class="panel stack">
-        <div class="row spread">
-          <div>
-            <h2>${escapeHtml(entry.title)}</h2>
-            <p class="panel-sub">${escapeHtml(entry.subtitle)}</p>
-          </div>
-          <span class="pill">${entry.type === 'invite' ? 'Invite' : 'Parent'}</span>
-        </div>
-
-        <div class="rules">
-          <h3>${entry.type === 'invite' ? 'Invite Settings' : 'Profile'}</h3>
-
-          <div class="form-row">
-            <input id="renameInput" class="field" value="${escapeHtml(entry.title)}" placeholder="Name" ${(!current && entry.type !== 'invite') ? 'disabled' : ''} />
-            <button class="btn primary" data-action="save-parent-name" data-parent-key="${escapeHtml(entry.key)}" ${(!current && entry.type !== 'invite') ? 'disabled' : ''}>Save name</button>
-          </div>
-
-          ${entry.type === 'invite' ? `
-            <div class="stack">
-              <div class="inline-note">Invite code</div>
-              <div class="pill" style="font-size:18px;letter-spacing:0.12em">${escapeHtml(entry.code || '----')}</div>
-              <div class="inline-note">Expires ${formatDateTime(entry.expiresAt)}</div>
-            </div>
-          ` : ''}
-        </div>
-
-        <div class="rules">
-          <h3>Notification Settings</h3>
-          ${!current && entry.type === 'member' ? '<p class="panel-sub">Visible here, but only this parent can change their own settings.</p>' : ''}
-
-          <div class="toggle-row">
-            <div><label for="notifyExtra">Extra time requests</label></div>
-            <input id="notifyExtra" class="toggle" type="checkbox" ${prefs.extraTime ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} />
-          </div>
-          <div class="toggle-row">
-            <div><label for="notifyTamper">Tamper alerts</label></div>
-            <input id="notifyTamper" class="toggle" type="checkbox" ${prefs.tamper ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} />
-          </div>
-        </div>
-
-        <div class="actions-wrap">
-          ${entry.type === 'invite' ? `<button class="btn danger" data-action="delete-parent-entry" data-parent-key="${escapeHtml(entry.key)}">Delete Invite</button>` : ''}
-          ${entry.type === 'member' && entry.canDelete && isOwner ? `<button class="btn danger" data-action="delete-parent-entry" data-parent-key="${escapeHtml(entry.key)}">Delete Parent</button>` : ''}
-        </div>
-      </section>
+      <div class="menu-popover">
+        <button class="menu-item" data-action="menu-parent-rename" data-parent-key="${escapeHtml(entry.key)}" ${renameDisabled}>Rename</button>
+        ${entry.type === 'invite' ? `<button class="menu-item" data-action="menu-parent-view-code" data-parent-key="${escapeHtml(entry.key)}">View Invite Code</button>` : ''}
+        ${canDelete ? `<button class="menu-item danger" data-action="delete-parent-entry" data-parent-key="${escapeHtml(entry.key)}">Delete</button>` : ''}
+      </div>
     `;
   }
 
-  function renderDetailPanel() {
-    const device = selectedDevice();
-    if (device) return renderChildDetail(device);
-
-    const parentEntry = selectedParentEntry();
-    if (parentEntry) return renderParentDetail(parentEntry);
-
-    return `
-      <section class="detail-empty">
-        <div>
-          <p>Select a child or parent tile to open settings.</p>
-          <p class="inline-note">This mirrors the iOS edit flow while keeping desktop-friendly spacing.</p>
-        </div>
-      </section>
-    `;
-  }
-
-  function renderDashboard() {
+  function renderDashboardPage() {
     const who = state.me?.displayName || state.me?.email || 'Parent';
-
-    app.innerHTML = `
+    return `
       <div class="screen">
         <header class="topbar">
           <div>
@@ -586,458 +419,632 @@
             </div>
           </div>
           <div class="actions-wrap">
-            <button class="btn ghost" id="refreshDash">Refresh</button>
-            <button class="btn danger" id="signOut">Sign out</button>
+            <button class="btn ghost" data-action="refresh">Refresh</button>
+            <button class="btn danger" data-action="signout">Sign out</button>
           </div>
         </header>
 
         ${renderBanner()}
 
-        <div class="main-grid">
-          <div class="stack">
-            <section class="section-card tile-section">
-              <div class="section-title-row">
-                <h2 class="section-title">Child Devices</h2>
-              <button class="icon-plus" id="addChild" aria-label="Add child">+</button>
+        <section class="section-card tile-section">
+          <div class="section-title-row">
+            <h2 class="section-title">Child Devices</h2>
+            <button class="icon-plus" data-action="show-add-child" aria-label="Add child">+</button>
+          </div>
+          <div class="tiles-grid">${renderDeviceTiles()}</div>
+        </section>
+
+        <section class="section-card tile-section">
+          <div class="section-title-row">
+            <h2 class="section-title">Parent Devices</h2>
+            <button class="icon-plus" data-action="show-add-parent" aria-label="Add parent">+</button>
+          </div>
+          <div class="tiles-grid">${renderParentTiles()}</div>
+        </section>
+
+        <footer class="build">Build ${escapeHtml(WEB_BUILD)}</footer>
+      </div>
+      ${renderModal()}
+    `;
+  }
+
+  function renderChildPage(device) {
+    if (!device) {
+      return `
+        <div class="screen">
+          <header class="topbar"><button class="btn ghost" data-action="go-dashboard">Back</button></header>
+          <div class="detail-empty">Child not found.</div>
+        </div>
+      `;
+    }
+
+    const dayWindow = pickDayWindow(device);
+    const pending = state.pendingByDevice[device.id] || null;
+    const events = state.eventsByDevice[device.id] || [];
+    const daily = device.dailyLimit;
+    const dailySummary = (daily && daily.limitMinutes != null)
+      ? `${minsToHm(daily.usedMinutes || 0)} / ${minsToHm(daily.limitMinutes)} used (${minsToHm(daily.remainingMinutes || 0)} left)`
+      : 'Not set';
+
+    const canDelete = String(state.household?.role || '').toLowerCase() === 'owner';
+
+    return `
+      <div class="screen">
+        <header class="topbar">
+          <div class="row">
+            <button class="btn ghost" data-action="go-dashboard">Back</button>
+            <h1 class="title" style="font-size:30px">${escapeHtml(device.name || 'Child')}</h1>
+          </div>
+          <div class="row">
+            <button class="btn ghost" data-action="refresh-child" data-device-id="${escapeHtml(device.id)}">Update</button>
+            <div class="menu-wrap">
+              <button class="menu-trigger" data-action="toggle-child-menu" data-device-id="${escapeHtml(device.id)}">•••</button>
+              ${renderChildMenu(device, canDelete)}
             </div>
-            <div id="childTiles" class="tiles-grid">${renderDeviceTiles()}</div>
-          </section>
+          </div>
+        </header>
 
-            <section class="section-card tile-section">
-              <div class="section-title-row">
-                <h2 class="section-title">Parent Devices</h2>
-                <button class="icon-plus" id="addParentInvite" aria-label="Add parent invite">+</button>
-              </div>
-              <div id="parentTiles" class="tiles-grid">${renderParentTiles()}</div>
-            </section>
+        ${renderBanner()}
 
-            <section class="panel stack">
-              <h3>Quick Actions</h3>
-              <div class="form-row">
-                <input id="newChildName" class="field" placeholder="Enter your child's name" />
-                <button class="btn primary" id="createChildBtn">Add Child</button>
-              </div>
-              <div class="form-row">
-                <input id="inviteName" class="field" placeholder="Invite name" />
-                <button class="btn primary" id="createInviteBtn">Create Invite</button>
-              </div>
-              <div class="form-row">
-                <input id="joinCode" maxlength="4" class="field code-input" placeholder="ABCD" />
-                <button class="btn ghost" id="joinCodeBtn">Join by code</button>
-              </div>
-              <div class="form-row">
-                <input id="apiBase" class="field" value="${escapeHtml(state.apiBase)}" />
-                <button class="btn ghost" id="saveApiBtn">Save API Base</button>
-              </div>
-            </section>
+        <section class="panel stack">
+          <div class="row spread">
+            <div>
+              <h2>Rules</h2>
+              <p class="panel-sub">${escapeHtml(device.statusMessage || 'No status yet.')}</p>
+            </div>
+            <span class="pill ${device.enforce ? 'ok' : 'warn'}">${device.enforce ? 'Protection On' : 'Protection Off'}</span>
           </div>
 
-          <div id="detailPanel">${renderDetailPanel()}</div>
-        </div>
+          <div class="actions-wrap">
+            <button class="btn ghost" data-action="pairing" data-device-id="${escapeHtml(device.id)}">View Pairing Code</button>
+            ${canDelete ? `<button class="btn danger" data-action="delete-child" data-device-id="${escapeHtml(device.id)}">Delete Child</button>` : ''}
+          </div>
+
+          <div class="rules">
+            <div class="toggle-row"><div><label>Lock Apps</label><div class="helper">Block certain apps. Set list on child phone.</div></div><input id="ruleLockApps" class="toggle" type="checkbox" ${device.actions?.activateProtection ? 'checked' : ''} /></div>
+            <div class="toggle-row"><div><label>Turn Hotspot off</label></div><input id="ruleHotspot" class="toggle" type="checkbox" ${device.actions?.setHotspotOff ? 'checked' : ''} /></div>
+            <div class="toggle-row"><div><label>Turn Wi-Fi Off</label></div><input id="ruleWifi" class="toggle" type="checkbox" ${device.actions?.setWifiOff ? 'checked' : ''} /></div>
+            <div class="toggle-row"><div><label>Turn Mobile Data Off</label></div><input id="ruleData" class="toggle" type="checkbox" ${device.actions?.setMobileDataOff ? 'checked' : ''} /></div>
+          </div>
+
+          <div class="rules">
+            <div class="row spread">
+              <h3>Rules Enforcement Schedule</h3>
+              <span class="pill">${DAY_LABEL[dayWindow.day]} ${escapeHtml(dayWindow.start)} - ${escapeHtml(dayWindow.end)}</span>
+            </div>
+
+            <div class="chip-row">
+              ${DAY_KEYS.map(key => `<button class="chip ${key === dayWindow.day ? 'active' : ''}" data-action="set-day" data-device-id="${escapeHtml(device.id)}" data-day="${key}">${DAY_LABEL[key]}</button>`).join('')}
+            </div>
+
+            <div class="time-grid">
+              <div><p class="kicker">Start</p><input id="scheduleStart" class="time-field" type="time" value="${escapeHtml(dayWindow.start)}" /></div>
+              <div><p class="kicker">End</p><input id="scheduleEnd" class="time-field" type="time" value="${escapeHtml(dayWindow.end)}" /></div>
+              <div>
+                <p class="kicker">Total daily limit</p>
+                <select id="dailyLimit" class="select">
+                  <option value="0" ${dayWindow.dailyLimitMinutes === 0 ? 'selected' : ''}>Off</option>
+                  ${Array.from({ length: 32 }, (_, i) => (i + 1) * 15).map(m => `<option value="${m}" ${dayWindow.dailyLimitMinutes === m ? 'selected' : ''}>${minsToHm(m)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="row spread">
+              <span class="inline-note">Daily usage: ${escapeHtml(dailySummary)}</span>
+              <div class="actions-wrap">
+                <button class="btn ghost" data-action="copy-day" data-device-id="${escapeHtml(device.id)}">Copy to all days</button>
+                <button class="btn primary" data-action="save-child" data-device-id="${escapeHtml(device.id)}">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="rules">
+            <h3>Extra Time</h3>
+            <p class="panel-sub">Temporarily disable enforcement for this child.</p>
+            ${pending ? `
+              <div class="help-card">
+                <strong>You have a pending request</strong>
+                <p class="panel-sub">Requested ${minsToHm(pending.requestedMinutes)} at ${formatDateTime(pending.requestedAt)}</p>
+                <div class="actions-wrap">
+                  <button class="btn primary" data-action="approve-request" data-request-id="${escapeHtml(pending.id)}" data-device-id="${escapeHtml(device.id)}">Approve</button>
+                  <button class="btn danger" data-action="deny-request" data-request-id="${escapeHtml(pending.id)}" data-device-id="${escapeHtml(device.id)}">Deny</button>
+                </div>
+              </div>
+            ` : '<div class="inline-note">No pending request.</div>'}
+
+            <div class="form-row">
+              <label class="kicker" style="margin:0">Amount</label>
+              <select id="extraMinutes" class="select" style="max-width:180px">
+                ${Array.from({ length: 49 }, (_, i) => i * 5).map(m => `<option value="${m}">${minsToHm(m)}</option>`).join('')}
+              </select>
+            </div>
+
+            <button class="btn primary" data-action="apply-extra" data-device-id="${escapeHtml(device.id)}">Apply extra time</button>
+            <div class="inline-note">${device.activeExtraTime?.endsAt ? `Extra time active until ${formatDateTime(device.activeExtraTime.endsAt)}.` : 'No active extra time.'}</div>
+          </div>
+
+          <div class="rules">
+            <div class="row spread"><h3>Recent activity</h3><button class="btn ghost small" data-action="refresh-events" data-device-id="${escapeHtml(device.id)}">Refresh</button></div>
+            <ul class="activity-list">
+              ${events.length ? events.slice(0, 12).map(ev => `<li class="activity-row"><span class="activity-time">${escapeHtml(formatDateTime(ev.ts))}</span><span class="activity-label">${escapeHtml(eventLabel(ev.trigger))}</span></li>`).join('') : '<li class="inline-note">No activity yet.</li>'}
+            </ul>
+          </div>
+        </section>
 
         <footer class="build">Build ${escapeHtml(WEB_BUILD)}</footer>
       </div>
     `;
-
-    bindStaticHandlers();
   }
 
-  function bindStaticHandlers() {
-    const refresh = document.getElementById('refreshDash');
-    if (refresh) refresh.onclick = () => loadAll('Updated.');
-
-    const signOut = document.getElementById('signOut');
-    if (signOut) {
-      signOut.onclick = () => {
-        state.sessionToken = '';
-        localStorage.removeItem(SESSION_KEY);
-        state.notice = null;
-        renderWelcome();
-      };
+  function renderParentPage(entry) {
+    if (!entry) {
+      return `
+        <div class="screen">
+          <header class="topbar"><button class="btn ghost" data-action="go-dashboard">Back</button></header>
+          <div class="detail-empty">Parent entry not found.</div>
+        </div>
+      `;
     }
 
-    const saveApi = document.getElementById('saveApiBtn');
-    if (saveApi) {
-      saveApi.onclick = () => {
-        const value = String(document.getElementById('apiBase')?.value || '').trim();
-        if (!value) return;
-        state.apiBase = value;
-        localStorage.setItem(API_BASE_KEY, value);
-        setNotice('API base saved.');
-      };
+    const current = isCurrentParent(entry);
+    const isOwner = String(state.household?.role || '').toLowerCase() === 'owner';
+    const canDelete = (entry.type === 'invite') || (entry.type === 'member' && entry.canDelete && isOwner);
+    const prefKey = entry.type === 'member' ? entry.parentId : `invite:${entry.id}`;
+    const prefs = state.notifPrefs[prefKey] || { extraTime: true, tamper: true };
+
+    return `
+      <div class="screen">
+        <header class="topbar">
+          <div class="row">
+            <button class="btn ghost" data-action="go-dashboard">Back</button>
+            <h1 class="title" style="font-size:30px">${escapeHtml(entry.title)}</h1>
+          </div>
+          <div class="row">
+            <button class="btn ghost" data-action="refresh">Refresh</button>
+            <div class="menu-wrap">
+              <button class="menu-trigger" data-action="toggle-parent-menu" data-parent-key="${escapeHtml(entry.key)}">•••</button>
+              ${renderParentMenu(entry, canDelete)}
+            </div>
+          </div>
+        </header>
+
+        ${renderBanner()}
+
+        <section class="panel stack">
+          <div class="rules">
+            <h3>${entry.type === 'invite' ? 'Invite Settings' : 'Profile'}</h3>
+            <div class="form-row">
+              <input id="renameInput" class="field" value="${escapeHtml(entry.title)}" placeholder="Name" ${(!current && entry.type !== 'invite') ? 'disabled' : ''} />
+              <button class="btn primary" data-action="save-parent-name" data-parent-key="${escapeHtml(entry.key)}" ${(!current && entry.type !== 'invite') ? 'disabled' : ''}>Save name</button>
+            </div>
+
+            ${entry.type === 'invite' ? `
+              <div class="stack">
+                <div class="inline-note">View Pairing Code</div>
+                <div class="pill" style="font-size:18px;letter-spacing:0.12em">${escapeHtml(entry.code || '----')}</div>
+                <div class="inline-note">Expires ${formatDateTime(entry.expiresAt)}</div>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="rules">
+            <h3>Notification Settings</h3>
+            ${!current && entry.type === 'member' ? '<p class="panel-sub">Visible here, but only this parent can change their own settings.</p>' : ''}
+            <div class="toggle-row"><div><label>Extra time requests</label></div><input id="notifyExtra" class="toggle" type="checkbox" ${prefs.extraTime ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} /></div>
+            <div class="toggle-row"><div><label>Tamper alerts</label></div><input id="notifyTamper" class="toggle" type="checkbox" ${prefs.tamper ? 'checked' : ''} ${(!current && entry.type === 'member') ? 'disabled' : ''} /></div>
+          </div>
+
+          <div class="actions-wrap">
+            ${entry.type === 'invite' ? `<button class="btn danger" data-action="delete-parent-entry" data-parent-key="${escapeHtml(entry.key)}">Delete Invite</button>` : ''}
+            ${entry.type === 'member' && entry.canDelete && isOwner ? `<button class="btn danger" data-action="delete-parent-entry" data-parent-key="${escapeHtml(entry.key)}">Delete Parent</button>` : ''}
+          </div>
+        </section>
+
+        <footer class="build">Build ${escapeHtml(WEB_BUILD)}</footer>
+      </div>
+    `;
+  }
+
+  function renderAuthenticated() {
+    const r = route();
+    if (r.view === 'child') {
+      app.innerHTML = renderChildPage(selectedDeviceById(r.id));
+      bindHandlers();
+      return;
+    }
+    if (r.view === 'parent') {
+      app.innerHTML = renderParentPage(selectedParentByKey(r.key));
+      bindHandlers();
+      return;
     }
 
-    const joinCodeInput = document.getElementById('joinCode');
-    if (joinCodeInput) {
-      joinCodeInput.oninput = () => {
-        const filtered = String(joinCodeInput.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-        if (joinCodeInput.value !== filtered) joinCodeInput.value = filtered;
-      };
-    }
+    app.innerHTML = renderDashboardPage();
+    bindHandlers();
+  }
 
-    const addChild = document.getElementById('addChild');
-    if (addChild) addChild.onclick = () => document.getElementById('newChildName')?.focus();
-
-    const addParentInvite = document.getElementById('addParentInvite');
-    if (addParentInvite) addParentInvite.onclick = () => document.getElementById('inviteName')?.focus();
-
-    const createChild = document.getElementById('createChildBtn');
-    if (createChild) {
-      createChild.onclick = async () => {
-        const name = String(document.getElementById('newChildName')?.value || '').trim();
-        if (!name) {
-          setNotice('Enter a child name first.', 'err');
-          return;
-        }
-        try {
-          await api('/api/devices', { method: 'POST', body: JSON.stringify({ name }) });
-          await loadAll('Child added.');
-        } catch (e) {
-          setNotice(`Couldn’t add child: ${friendlyError(e)}`, 'err');
-        }
-      };
-    }
-
-    const createInvite = document.getElementById('createInviteBtn');
-    if (createInvite) {
-      createInvite.onclick = async () => {
-        const inviteName = String(document.getElementById('inviteName')?.value || '').trim();
-        if (!inviteName) {
-          setNotice('Invite name is required.', 'err');
-          return;
-        }
-        try {
-          await api('/api/household/invites', { method: 'POST', body: JSON.stringify({ inviteName }) });
-          await loadAll('Invite created.');
-        } catch (e) {
-          setNotice(`Couldn’t create invite: ${friendlyError(e)}`, 'err');
-        }
-      };
-    }
-
-    const joinCode = document.getElementById('joinCodeBtn');
-    if (joinCode) {
-      joinCode.onclick = async () => {
-        const code = String(document.getElementById('joinCode')?.value || '').trim().toUpperCase();
-        if (!/^[A-Z0-9]{4}$/.test(code)) {
-          setNotice('Invite code must be 4 characters.', 'err');
-          return;
-        }
-        try {
-          await api('/api/household/invite-code/accept', { method: 'POST', body: JSON.stringify({ code }) });
-          await loadAll('Joined household.');
-        } catch (e) {
-          setNotice(`Join failed: ${friendlyError(e)}`, 'err');
-        }
-      };
-    }
-
-    app.querySelectorAll('[data-action="select-child"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        if (!id) return;
-        state.selectedChildId = id;
-        state.selectedParentKey = null;
-        renderDashboard();
-        await refreshDeviceEvents(id);
-        await refreshPendingForDevice(id);
-        renderDashboard();
-      });
-    });
-
-    app.querySelectorAll('[data-action="select-parent"]').forEach(el => {
-      el.addEventListener('click', () => {
-        const key = el.getAttribute('data-parent-key');
-        if (!key) return;
-        state.selectedParentKey = key;
-        state.selectedChildId = null;
-        renderDashboard();
-      });
-    });
-
-    app.querySelectorAll('[data-action="set-day"]').forEach(el => {
-      el.addEventListener('click', () => {
-        const id = el.getAttribute('data-device-id');
-        const day = el.getAttribute('data-day');
-        if (!id || !day) return;
-        state.selectedDayByDevice[id] = day;
-        renderDashboard();
-      });
-    });
-
-    app.querySelectorAll('[data-action="copy-day"]').forEach(el => {
-      el.addEventListener('click', () => {
-        const id = el.getAttribute('data-device-id');
-        const d = state.devices.find(x => x.id === id);
-        if (!d) return;
-        const selectedDay = state.selectedDayByDevice[id] || d.quietDay || 'mon';
-        const start = String(document.getElementById('scheduleStart')?.value || '22:00');
-        const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
-        const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
-
-        const quietDays = { ...(d.quietDays || {}) };
-        DAY_KEYS.forEach(day => {
-          quietDays[day] = day === selectedDay
-            ? { start, end, dailyLimitMinutes }
-            : { start, end, dailyLimitMinutes };
-        });
-        d.quietDays = quietDays;
-        setNotice('Copied to all days.');
-        renderDashboard();
-      });
-    });
-
-    app.querySelectorAll('[data-action="save-device"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        const device = state.devices.find(x => x.id === id);
-        if (!device) return;
-
-        const activateProtection = !!document.getElementById('ruleLockApps')?.checked;
-        const setHotspotOff = !!document.getElementById('ruleHotspot')?.checked;
-        const setWifiOff = !!document.getElementById('ruleWifi')?.checked;
-        const setMobileDataOff = !!document.getElementById('ruleData')?.checked;
-        const start = String(document.getElementById('scheduleStart')?.value || '22:00');
-        const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
-        const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
-
-        const day = state.selectedDayByDevice[id] || device.quietDay || 'mon';
-
-        const existing = device.quietDays || {};
-        const quietDays = {};
-        DAY_KEYS.forEach(k => {
-          const src = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
-          quietDays[k] = {
-            start: src.start || '22:00',
-            end: src.end || '07:00',
-            dailyLimitMinutes: Number(src.dailyLimitMinutes || 0)
-          };
-        });
-        quietDays[day] = { start, end, dailyLimitMinutes };
-
-        try {
-          await api(`/api/devices/${id}/policy`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              activateProtection,
-              setHotspotOff,
-              setWifiOff,
-              setMobileDataOff,
-              quietDays,
-              tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
-            })
-          });
-          await loadAll('Saved.');
-          state.selectedChildId = id;
-          renderDashboard();
-        } catch (e) {
-          setNotice(`Couldn’t save rules: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="open-pairing"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        if (!id) return;
-        try {
-          const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
-          setNotice(`Pairing code ${out.code} (expires ${formatDateTime(out.expiresAt)}).`);
-        } catch (e) {
-          setNotice(`Couldn’t create pairing code: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="refresh-events"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        if (!id) return;
-        await refreshDeviceEvents(id);
-        renderDashboard();
-        setNotice('Updated.');
-      });
-    });
-
-    app.querySelectorAll('[data-action="delete-child"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        if (!id) return;
-        if (!window.confirm('Delete this child device?')) return;
-        try {
-          await api(`/api/devices/${id}`, { method: 'DELETE' });
-          if (state.selectedChildId === id) state.selectedChildId = null;
-          await loadAll('Child deleted.');
-        } catch (e) {
-          setNotice(`Couldn’t delete child: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="apply-extra"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const id = el.getAttribute('data-device-id');
-        if (!id) return;
-        const minutes = Number(document.getElementById('extraMinutes')?.value || 0);
-        try {
-          await api(`/api/devices/${id}/extra-time/grant`, { method: 'POST', body: JSON.stringify({ minutes }) });
-          await loadAll(minutes > 0 ? 'Extra time applied.' : 'Extra time cleared.');
-          state.selectedChildId = id;
-          await refreshDeviceEvents(id);
-          renderDashboard();
-        } catch (e) {
-          setNotice(`Couldn’t apply extra time: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="approve-request"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const requestId = el.getAttribute('data-request-id');
-        const deviceId = el.getAttribute('data-device-id');
-        const grantedMinutes = Number(document.getElementById('extraMinutes')?.value || 0);
-        if (!requestId || !deviceId) return;
-        try {
-          await api(`/api/extra-time/requests/${requestId}/decision`, {
-            method: 'POST',
-            body: JSON.stringify({ decision: 'approve', grantedMinutes })
-          });
-          await loadAll('Request approved.');
-          state.selectedChildId = deviceId;
-          await refreshDeviceEvents(deviceId);
-          renderDashboard();
-        } catch (e) {
-          setNotice(`Couldn’t approve request: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="deny-request"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const requestId = el.getAttribute('data-request-id');
-        const deviceId = el.getAttribute('data-device-id');
-        if (!requestId || !deviceId) return;
-        try {
-          await api(`/api/extra-time/requests/${requestId}/decision`, {
-            method: 'POST',
-            body: JSON.stringify({ decision: 'deny' })
-          });
-          await loadAll('Request denied.');
-          state.selectedChildId = deviceId;
-          await refreshDeviceEvents(deviceId);
-          renderDashboard();
-        } catch (e) {
-          setNotice(`Couldn’t deny request: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="save-parent-name"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const key = el.getAttribute('data-parent-key');
-        const entry = parentEntries().find(x => x.key === key);
-        const name = String(document.getElementById('renameInput')?.value || '').trim();
-        if (!entry || !name) return;
-        try {
-          if (entry.type === 'invite') {
-            await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name }) });
-          } else if (isCurrentParent(entry)) {
-            await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name }) });
-          }
-          await loadAll('Name updated.');
-          state.selectedParentKey = key;
-          renderDashboard();
-        } catch (e) {
-          setNotice(`Couldn’t update name: ${friendlyError(e)}`, 'err');
-        }
-      });
-    });
-
-    app.querySelectorAll('[data-action="delete-parent-entry"]').forEach(el => {
-      el.addEventListener('click', async () => {
-        const key = el.getAttribute('data-parent-key');
-        const entry = parentEntries().find(x => x.key === key);
-        if (!entry) return;
-        const prompt = entry.type === 'invite' ? 'Delete this invite?' : 'Delete this parent from household?';
-        if (!window.confirm(prompt)) return;
-
-        try {
-          if (entry.type === 'invite') {
-            await api(`/api/household/invites/${entry.id}`, { method: 'DELETE' });
-          } else {
-            await api(`/api/household/members/${entry.id}`, { method: 'DELETE' });
-          }
-          if (state.selectedParentKey === key) state.selectedParentKey = null;
-          await loadAll('Deleted.');
-        } catch (e) {
-          setNotice(`Couldn’t delete: ${friendlyError(e)}`, 'err');
-        }
-      });
+  function bindHandlers() {
+    app.querySelectorAll('[data-action]').forEach(el => {
+      if (el.dataset.bound === '1') return;
+      el.dataset.bound = '1';
+      el.addEventListener('click', handleActionClick);
     });
 
     const notifyExtra = document.getElementById('notifyExtra');
     const notifyTamper = document.getElementById('notifyTamper');
-    if (notifyExtra || notifyTamper) {
-      const entry = selectedParentEntry();
-      if (entry) {
-        const prefKey = entry.type === 'member' ? entry.parentId : `invite:${entry.id}`;
-
-        if (notifyExtra) {
-          notifyExtra.onchange = () => {
-            if (!state.notifPrefs[prefKey]) state.notifPrefs[prefKey] = { extraTime: true, tamper: true };
-            state.notifPrefs[prefKey].extraTime = !!notifyExtra.checked;
-            saveNotificationPrefs();
-          };
-        }
-
-        if (notifyTamper) {
-          notifyTamper.onchange = () => {
-            if (!state.notifPrefs[prefKey]) state.notifPrefs[prefKey] = { extraTime: true, tamper: true };
-            state.notifPrefs[prefKey].tamper = !!notifyTamper.checked;
-            saveNotificationPrefs();
-          };
-        }
+    const r = route();
+    const parent = r.view === 'parent' ? selectedParentByKey(r.key) : null;
+    if (parent && (notifyExtra || notifyTamper)) {
+      const prefKey = parent.type === 'member' ? parent.parentId : `invite:${parent.id}`;
+      if (notifyExtra) {
+        notifyExtra.addEventListener('change', () => {
+          if (!state.notifPrefs[prefKey]) state.notifPrefs[prefKey] = { extraTime: true, tamper: true };
+          state.notifPrefs[prefKey].extraTime = !!notifyExtra.checked;
+          saveNotificationPrefs();
+        });
+      }
+      if (notifyTamper) {
+        notifyTamper.addEventListener('change', () => {
+          if (!state.notifPrefs[prefKey]) state.notifPrefs[prefKey] = { extraTime: true, tamper: true };
+          state.notifPrefs[prefKey].tamper = !!notifyTamper.checked;
+          saveNotificationPrefs();
+        });
       }
     }
   }
 
-  async function refreshDeviceEvents(deviceId) {
-    try {
-      const out = await api(`/api/devices/${deviceId}/events`);
-      state.eventsByDevice[deviceId] = Array.isArray(out.events) ? out.events : [];
-    } catch {
-      state.eventsByDevice[deviceId] = [];
+  async function handleActionClick(ev) {
+    const btn = ev.currentTarget;
+    if (!(btn instanceof HTMLElement)) return;
+    const action = btn.getAttribute('data-action');
+    if (!action) return;
+
+    if (action === 'go-dashboard') return nav('#/dashboard');
+    if (action === 'refresh') return loadAll('Updated.');
+
+    if (action === 'signout') {
+      state.sessionToken = '';
+      localStorage.removeItem(SESSION_KEY);
+      state.notice = null;
+      renderWelcome();
+      return;
+    }
+
+    if (action === 'show-add-child') {
+      state.menu = null;
+      state.modal = { type: 'add-child' };
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'show-add-parent') {
+      state.menu = null;
+      state.modal = { type: 'add-parent' };
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'close-modal') {
+      state.modal = null;
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'toggle-child-menu') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      state.menu = state.menu === `child:${id}` ? null : `child:${id}`;
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'toggle-parent-menu') {
+      const key = btn.getAttribute('data-parent-key');
+      if (!key) return;
+      state.menu = state.menu === `parent:${key}` ? null : `parent:${key}`;
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'menu-child-rename') {
+      const id = btn.getAttribute('data-device-id');
+      const device = selectedDeviceById(id);
+      const current = device?.name || '';
+      if (!id || !device) return;
+      const name = window.prompt('Rename child device', current);
+      if (!name || !name.trim()) return;
+      try {
+        await api(`/api/devices/${id}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }) });
+        state.menu = null;
+        await loadAll('Name updated.');
+        nav(`#/child/${encodeURIComponent(id)}`);
+      } catch (e) {
+        setNotice(`Couldn’t rename child: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'menu-parent-rename') {
+      const key = btn.getAttribute('data-parent-key');
+      const entry = selectedParentByKey(key);
+      if (!key || !entry) return;
+      if (!isCurrentParent(entry) && entry.type !== 'invite') return;
+      const name = window.prompt('Rename', entry.title || '');
+      if (!name || !name.trim()) return;
+      try {
+        if (entry.type === 'invite') {
+          await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name.trim() }) });
+        } else {
+          await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name.trim() }) });
+        }
+        state.menu = null;
+        await loadAll('Name updated.');
+        nav(`#/parent/${encodeURIComponent(key)}`);
+      } catch (e) {
+        setNotice(`Couldn’t rename: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'menu-parent-view-code') {
+      const key = btn.getAttribute('data-parent-key');
+      const entry = selectedParentByKey(key);
+      if (!entry || entry.type !== 'invite') return;
+      setNotice(`Invite code: ${entry.code || '----'}`);
+      state.menu = null;
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'submit-add-child') {
+      const name = String(document.getElementById('modalChildName')?.value || '').trim();
+      if (!name) return setNotice('Enter a child name first.', 'err');
+      try {
+        await api('/api/devices', { method: 'POST', body: JSON.stringify({ name }) });
+        state.modal = null;
+        await loadAll('Child added.');
+      } catch (e) {
+        setNotice(`Couldn’t add child: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'submit-add-parent') {
+      const inviteName = String(document.getElementById('modalInviteName')?.value || '').trim();
+      if (!inviteName) return setNotice('Invite name is required.', 'err');
+      try {
+        await api('/api/household/invites', { method: 'POST', body: JSON.stringify({ inviteName }) });
+        state.modal = null;
+        await loadAll('Invite created.');
+      } catch (e) {
+        setNotice(`Couldn’t create invite: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'open-child') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      state.menu = null;
+      await ensureChildData(id);
+      return nav(`#/child/${encodeURIComponent(id)}`);
+    }
+
+    if (action === 'open-parent') {
+      const key = btn.getAttribute('data-parent-key');
+      if (!key) return;
+      state.menu = null;
+      return nav(`#/parent/${encodeURIComponent(key)}`);
+    }
+
+    if (action === 'set-day') {
+      const id = btn.getAttribute('data-device-id');
+      const day = btn.getAttribute('data-day');
+      if (!id || !day) return;
+      state.selectedDayByDevice[id] = day;
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'copy-day') {
+      const id = btn.getAttribute('data-device-id');
+      const d = selectedDeviceById(id);
+      if (!d) return;
+      const start = String(document.getElementById('scheduleStart')?.value || '22:00');
+      const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
+      const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
+      const quietDays = {};
+      DAY_KEYS.forEach(day => {
+        quietDays[day] = { start, end, dailyLimitMinutes };
+      });
+      d.quietDays = quietDays;
+      setNotice('Copied to all days.');
+      renderAuthenticated();
+      return;
+    }
+
+    if (action === 'save-child') {
+      const id = btn.getAttribute('data-device-id');
+      const device = selectedDeviceById(id);
+      if (!device) return;
+
+      const activateProtection = !!document.getElementById('ruleLockApps')?.checked;
+      const setHotspotOff = !!document.getElementById('ruleHotspot')?.checked;
+      const setWifiOff = !!document.getElementById('ruleWifi')?.checked;
+      const setMobileDataOff = !!document.getElementById('ruleData')?.checked;
+      const start = String(document.getElementById('scheduleStart')?.value || '22:00');
+      const end = String(document.getElementById('scheduleEnd')?.value || '07:00');
+      const dailyLimitMinutes = Number(document.getElementById('dailyLimit')?.value || 0);
+      const day = state.selectedDayByDevice[id] || device.quietDay || 'mon';
+
+      const existing = device.quietDays || {};
+      const quietDays = {};
+      DAY_KEYS.forEach(k => {
+        const src = existing[k] || { start: '22:00', end: '07:00', dailyLimitMinutes: 0 };
+        quietDays[k] = { start: src.start || '22:00', end: src.end || '07:00', dailyLimitMinutes: Number(src.dailyLimitMinutes || 0) };
+      });
+      quietDays[day] = { start, end, dailyLimitMinutes };
+
+      try {
+        await api(`/api/devices/${id}/policy`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            activateProtection,
+            setHotspotOff,
+            setWifiOff,
+            setMobileDataOff,
+            quietDays,
+            tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris'
+          })
+        });
+        await loadAll('Saved.');
+        await ensureChildData(id);
+        nav(`#/child/${encodeURIComponent(id)}`);
+      } catch (e) {
+        setNotice(`Couldn’t save rules: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'pairing') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      try {
+        const out = await api(`/api/devices/${id}/pairing-code`, { method: 'POST', body: JSON.stringify({ ttlMinutes: 10 }) });
+        setNotice(`Pairing code ${out.code} (expires ${formatDateTime(out.expiresAt)}).`);
+      } catch (e) {
+        setNotice(`Couldn’t create pairing code: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'delete-child') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      if (!window.confirm('Delete this child device?')) return;
+      try {
+        await api(`/api/devices/${id}`, { method: 'DELETE' });
+        await loadAll('Child deleted.');
+        nav('#/dashboard');
+      } catch (e) {
+        setNotice(`Couldn’t delete child: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'apply-extra') {
+      const id = btn.getAttribute('data-device-id');
+      if (!id) return;
+      const minutes = Number(document.getElementById('extraMinutes')?.value || 0);
+      try {
+        await api(`/api/devices/${id}/extra-time/grant`, { method: 'POST', body: JSON.stringify({ minutes }) });
+        await loadAll(minutes > 0 ? 'Extra time applied.' : 'Extra time cleared.');
+        await ensureChildData(id);
+        nav(`#/child/${encodeURIComponent(id)}`);
+      } catch (e) {
+        setNotice(`Couldn’t apply extra time: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'approve-request' || action === 'deny-request') {
+      const requestId = btn.getAttribute('data-request-id');
+      const deviceId = btn.getAttribute('data-device-id');
+      if (!requestId || !deviceId) return;
+
+      try {
+        if (action === 'approve-request') {
+          const grantedMinutes = Number(document.getElementById('extraMinutes')?.value || 0);
+          await api(`/api/extra-time/requests/${requestId}/decision`, { method: 'POST', body: JSON.stringify({ decision: 'approve', grantedMinutes }) });
+          await loadAll('Request approved.');
+        } else {
+          await api(`/api/extra-time/requests/${requestId}/decision`, { method: 'POST', body: JSON.stringify({ decision: 'deny' }) });
+          await loadAll('Request denied.');
+        }
+        await ensureChildData(deviceId);
+        nav(`#/child/${encodeURIComponent(deviceId)}`);
+      } catch (e) {
+        setNotice(`Couldn’t update request: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'refresh-events' || action === 'refresh-child') {
+      const id = btn.getAttribute('data-device-id') || route().id;
+      if (!id) return;
+      await ensureChildData(id);
+      renderAuthenticated();
+      setNotice('Updated.');
+      return;
+    }
+
+    if (action === 'save-parent-name') {
+      const key = btn.getAttribute('data-parent-key');
+      const entry = selectedParentByKey(key);
+      const name = String(document.getElementById('renameInput')?.value || '').trim();
+      if (!entry || !name) return;
+      try {
+        if (entry.type === 'invite') {
+          await api(`/api/household/invites/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ inviteName: name }) });
+        } else if (isCurrentParent(entry)) {
+          await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName: name }) });
+        }
+        await loadAll('Name updated.');
+        nav(`#/parent/${encodeURIComponent(key)}`);
+      } catch (e) {
+        setNotice(`Couldn’t update name: ${friendlyError(e)}`, 'err');
+      }
+      return;
+    }
+
+    if (action === 'delete-parent-entry') {
+      const key = btn.getAttribute('data-parent-key');
+      const entry = selectedParentByKey(key);
+      if (!entry) return;
+      const prompt = entry.type === 'invite' ? 'Delete this invite?' : 'Delete this parent from household?';
+      if (!window.confirm(prompt)) return;
+      try {
+        if (entry.type === 'invite') await api(`/api/household/invites/${entry.id}`, { method: 'DELETE' });
+        else await api(`/api/household/members/${entry.id}`, { method: 'DELETE' });
+        await loadAll('Deleted.');
+        nav('#/dashboard');
+      } catch (e) {
+        setNotice(`Couldn’t delete: ${friendlyError(e)}`, 'err');
+      }
+      return;
     }
   }
 
-  async function refreshPendingForDevice(deviceId) {
+  async function ensureChildData(deviceId) {
     try {
-      const out = await api(`/api/extra-time/requests?status=pending&deviceId=${encodeURIComponent(deviceId)}`);
-      const list = Array.isArray(out.requests) ? out.requests : [];
+      const [events, pending] = await Promise.all([
+        api(`/api/devices/${deviceId}/events`),
+        api(`/api/extra-time/requests?status=pending&deviceId=${encodeURIComponent(deviceId)}`)
+      ]);
+      state.eventsByDevice[deviceId] = Array.isArray(events.events) ? events.events : [];
+      const list = Array.isArray(pending.requests) ? pending.requests : [];
       state.pendingByDevice[deviceId] = list.length ? list[0] : null;
     } catch {
-      state.pendingByDevice[deviceId] = null;
+      if (!state.eventsByDevice[deviceId]) state.eventsByDevice[deviceId] = [];
+      if (!state.pendingByDevice[deviceId]) state.pendingByDevice[deviceId] = null;
     }
   }
 
   async function processInviteFromUrl() {
     const url = new URL(location.href);
-
     const code = String(url.searchParams.get('inviteCode') || '').trim().toUpperCase();
     if (/^[A-Z0-9]{4}$/.test(code)) {
       await api('/api/household/invite-code/accept', { method: 'POST', body: JSON.stringify({ code }) });
       url.searchParams.delete('inviteCode');
-      history.replaceState(null, '', `${url.pathname}${url.search}`);
+      history.replaceState(null, '', `${url.pathname}${url.search}#/dashboard`);
       state.notice = 'Invite joined.';
       state.noticeType = 'ok';
       return;
     }
-
     const token = String(url.searchParams.get('token') || '').trim();
     if (token) {
       await api(`/api/household/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' });
       url.searchParams.delete('token');
-      history.replaceState(null, '', `${url.pathname}${url.search}`);
+      history.replaceState(null, '', `${url.pathname}${url.search}#/dashboard`);
       state.notice = 'Invite joined.';
       state.noticeType = 'ok';
     }
@@ -1046,7 +1053,6 @@
   async function loadAll(info = '') {
     if (state.busy) return;
     state.busy = true;
-
     try {
       await processInviteFromUrl();
 
@@ -1070,21 +1076,15 @@
       });
       state.pendingByDevice = pendingMap;
 
-      if (!state.selectedChildId && state.devices.length) state.selectedChildId = state.devices[0].id;
-      if (state.selectedChildId && !state.devices.some(d => d.id === state.selectedChildId)) state.selectedChildId = state.devices[0]?.id || null;
-
-      if (state.selectedParentKey && !parentEntries().some(x => x.key === state.selectedParentKey)) state.selectedParentKey = null;
-
-      if (state.selectedChildId && !state.eventsByDevice[state.selectedChildId]) {
-        await refreshDeviceEvents(state.selectedChildId);
-      }
+      const r = route();
+      if (r.view === 'child' && r.id) await ensureChildData(r.id);
 
       if (info) {
         state.notice = info;
         state.noticeType = 'ok';
       }
 
-      renderDashboard();
+      renderAuthenticated();
     } catch (e) {
       const msg = friendlyError(e);
       if (msg.toLowerCase().includes('sign in again')) {
@@ -1101,8 +1101,18 @@
 
   function render() {
     if (!state.sessionToken) renderWelcome();
-    else renderDashboard();
+    else renderAuthenticated();
   }
+
+  window.addEventListener('hashchange', async () => {
+    if (!state.sessionToken) {
+      renderWelcome();
+      return;
+    }
+    const r = route();
+    if (r.view === 'child' && r.id) await ensureChildData(r.id);
+    renderAuthenticated();
+  });
 
   async function boot() {
     parseHashSession();
@@ -1110,6 +1120,7 @@
       renderWelcome();
       return;
     }
+    if (!location.hash) location.hash = '#/dashboard';
     await loadAll();
   }
 
