@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.68 (69) - 2026-02-21
+- Fixed parent sign-in return path:
+- if session exists and `appMode` is nil after auth handoff, app now auto-enters Parent mode.
+- Added this fallback on app active, sign-in state change, and initial load.
+
 ## 0.1.67 (68) - 2026-02-21
 - Parent devices UX consistency:
 - parent tiles now open a details sheet (like child flow),

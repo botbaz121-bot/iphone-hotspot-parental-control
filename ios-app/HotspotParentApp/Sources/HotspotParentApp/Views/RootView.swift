@@ -29,14 +29,25 @@ public struct RootView: View {
         if phase == .active {
           model.syncFromSharedDefaults()
           consumePendingExtraTimePushIfPresent()
+          if model.isSignedIn, model.appMode == nil {
+            model.setAppMode(.parent)
+          }
           Task {
             await model.reconcileScreenTimeProtection()
             await model.syncPushRegistrationIfNeeded()
           }
         }
       }
+      .onChange(of: model.isSignedIn) { signedIn in
+        if signedIn, model.appMode == nil {
+          model.setAppMode(.parent)
+        }
+      }
       .task {
         consumePendingExtraTimePushIfPresent()
+        if model.isSignedIn, model.appMode == nil {
+          model.setAppMode(.parent)
+        }
         await model.reconcileScreenTimeProtection()
         await model.syncPushRegistrationIfNeeded()
       }
