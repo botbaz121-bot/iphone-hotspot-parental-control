@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.52 (53) - 2026-02-20
+- Added Docker deployment support for web app (`web-app/`) for Coolify Docker mode:
+- `web-app/Dockerfile` (nginx alpine static serve),
+- `web-app/nginx.conf` with routes for `/invite` and SPA fallback to `/index.html`.
+
 ## 0.1.51 (52) - 2026-02-20
 - Fixed backend startup crash in household bootstrap migration (`ReferenceError: Cannot access 'id' before initialization`):
 - replaced early bootstrap `id()` calls with `crypto.randomUUID()` before `id` helper initialization.
