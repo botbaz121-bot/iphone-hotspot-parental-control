@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.97 (98) - 2026-02-21
+- Updated web helper/subtext spacing: `.panel-sub` now uses `margin-top: 20px`.
+- Updated web cache-bust versions to `styles.css?v=0.1.97` and `app.js?v=0.1.97`.
+
 ## 0.1.96 (97) - 2026-02-21
 - Child settings: moved Protection On/Off indicator to the top-right corner of the main panel box.
 - Parent settings header: removed `Parent Settings` subtitle pill and moved parent name/title to the left.
