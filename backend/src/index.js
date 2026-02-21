@@ -67,9 +67,31 @@ CREATE TABLE IF NOT EXISTS parents (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS households (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  created_by_parent_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(created_by_parent_id) REFERENCES parents(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS household_members (
+  id TEXT PRIMARY KEY,
+  household_id TEXT NOT NULL,
+  parent_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'coparent',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(household_id, parent_id),
+  FOREIGN KEY(household_id) REFERENCES households(id) ON DELETE CASCADE,
+  FOREIGN KEY(parent_id) REFERENCES parents(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS devices (
   id TEXT PRIMARY KEY,
   parent_id TEXT,
+  household_id TEXT,
   name TEXT NOT NULL DEFAULT '',
   icon TEXT,
   device_token TEXT NOT NULL UNIQUE,
@@ -155,6 +177,24 @@ CREATE TABLE IF NOT EXISTS child_push_tokens (
   FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS household_invites (
+  id TEXT PRIMARY KEY,
+  household_id TEXT NOT NULL,
+  invited_by_parent_id TEXT NOT NULL,
+  email TEXT,
+  token TEXT NOT NULL UNIQUE,
+  code TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  expires_at INTEGER NOT NULL,
+  accepted_at INTEGER,
+  accepted_by_parent_id TEXT,
+  revoked_at INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY(household_id) REFERENCES households(id) ON DELETE CASCADE,
+  FOREIGN KEY(invited_by_parent_id) REFERENCES parents(id) ON DELETE CASCADE,
+  FOREIGN KEY(accepted_by_parent_id) REFERENCES parents(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS device_daily_usage (
   device_id TEXT PRIMARY KEY,
   day_key TEXT NOT NULL,
@@ -177,7 +217,12 @@ CREATE INDEX IF NOT EXISTS idx_extra_time_status ON extra_time_requests(status);
 CREATE INDEX IF NOT EXISTS idx_extra_time_ends ON extra_time_requests(ends_at);
 CREATE INDEX IF NOT EXISTS idx_parent_push_tokens_parent ON parent_push_tokens(parent_id);
 CREATE INDEX IF NOT EXISTS idx_child_push_tokens_device ON child_push_tokens(device_id);
+CREATE INDEX IF NOT EXISTS idx_household_invites_household ON household_invites(household_id);
+CREATE INDEX IF NOT EXISTS idx_household_invites_status ON household_invites(status);
 CREATE INDEX IF NOT EXISTS idx_device_daily_usage_day ON device_daily_usage(day_key);
+CREATE INDEX IF NOT EXISTS idx_household_members_household ON household_members(household_id);
+CREATE INDEX IF NOT EXISTS idx_household_members_parent ON household_members(parent_id);
+CREATE INDEX IF NOT EXISTS idx_devices_household ON devices(household_id);
 `);
 
 // Lightweight migration for existing DBs
@@ -209,6 +254,9 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
   if (!tableHasColumn('devices', 'parent_id')) {
     db.exec('ALTER TABLE devices ADD COLUMN parent_id TEXT');
   }
+  if (!tableHasColumn('devices', 'household_id')) {
+    db.exec('ALTER TABLE devices ADD COLUMN household_id TEXT');
+  }
 }
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_daily_usage'").get()) {
@@ -218,6 +266,64 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
   if (!tableHasColumn('device_daily_usage', 'daily_limit_warn_5m_sent_at')) {
     db.exec('ALTER TABLE device_daily_usage ADD COLUMN daily_limit_warn_5m_sent_at INTEGER');
   }
+}
+
+// Bootstrap household data for existing installs.
+if (
+  db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='parents'").get() &&
+  db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='households'").get() &&
+  db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='household_members'").get()
+) {
+  const tx = db.transaction(() => {
+    const parents = db.prepare('SELECT id, email FROM parents').all();
+    for (const p of parents) {
+      const active = db
+        .prepare(
+          `
+          SELECT hm.household_id
+          FROM household_members hm
+          WHERE hm.parent_id = ? AND hm.status = 'active'
+          ORDER BY hm.created_at ASC
+          LIMIT 1
+          `
+        )
+        .get(p.id);
+      if (!active) {
+        const householdId = id();
+        const defaultName = p.email ? `${p.email}'s Household` : 'SpotChecker Household';
+        db.prepare('INSERT INTO households (id, name, created_by_parent_id) VALUES (?, ?, ?)').run(householdId, defaultName, p.id);
+        db
+          .prepare(
+            `
+            INSERT INTO household_members (id, household_id, parent_id, role, status)
+            VALUES (?, ?, ?, 'owner', 'active')
+            `
+          )
+          .run(id(), householdId, p.id);
+      }
+    }
+
+    // Backfill devices -> household using legacy parent_id relation.
+    const devices = db.prepare('SELECT id, parent_id, household_id FROM devices').all();
+    for (const d of devices) {
+      if (d.household_id) continue;
+      if (!d.parent_id) continue;
+      const hm = db
+        .prepare(
+          `
+          SELECT household_id
+          FROM household_members
+          WHERE parent_id = ? AND status = 'active'
+          ORDER BY created_at ASC
+          LIMIT 1
+          `
+        )
+        .get(d.parent_id);
+      if (!hm) continue;
+      db.prepare('UPDATE devices SET household_id = ? WHERE id = ?').run(hm.household_id, d.id);
+    }
+  });
+  tx();
 }
 
 const app = express();
@@ -359,6 +465,51 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
+function ensureActiveHouseholdForParent(parent) {
+  let membership = db
+    .prepare(
+      `
+      SELECT hm.id, hm.household_id, hm.role, hm.status, h.name AS household_name
+      FROM household_members hm
+      JOIN households h ON h.id = hm.household_id
+      WHERE hm.parent_id = ? AND hm.status = 'active'
+      ORDER BY CASE hm.role WHEN 'owner' THEN 0 ELSE 1 END, hm.created_at ASC
+      LIMIT 1
+      `
+    )
+    .get(parent.id);
+
+  if (!membership) {
+    const householdId = id();
+    const defaultName = parent.email ? `${parent.email}'s Household` : 'SpotChecker Household';
+    db.prepare('INSERT INTO households (id, name, created_by_parent_id) VALUES (?, ?, ?)').run(householdId, defaultName, parent.id);
+    db
+      .prepare(
+        `
+        INSERT INTO household_members (id, household_id, parent_id, role, status)
+        VALUES (?, ?, ?, 'owner', 'active')
+        `
+      )
+      .run(id(), householdId, parent.id);
+
+    db.prepare('UPDATE devices SET household_id = ? WHERE household_id IS NULL AND parent_id = ?').run(householdId, parent.id);
+
+    membership = {
+      id: null,
+      household_id: householdId,
+      role: 'owner',
+      status: 'active',
+      household_name: defaultName
+    };
+  }
+
+  return {
+    id: membership.household_id,
+    name: membership.household_name || null,
+    role: membership.role || 'coparent'
+  };
+}
+
 async function requireParent(req, res, next) {
   try {
     const token = String(req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
@@ -374,6 +525,7 @@ async function requireParent(req, res, next) {
     if (!parent) return res.status(401).json({ error: 'unauthorized' });
 
     req.parent = parent;
+    req.household = ensureActiveHouseholdForParent(parent);
     return next();
   } catch (e) {
     return res.status(401).json({ error: 'unauthorized' });
@@ -704,8 +856,14 @@ app.post('/auth/apple/native', async (req, res) => {
       parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parent.id);
     }
 
+    const household = ensureActiveHouseholdForParent(parent);
     const sessionToken = await mintSessionJwt({ parentId: parent.id, appleSub, secret: SESSION_JWT_SECRET });
-    return res.json({ ok: true, parent: { id: parent.id, email: parent.email || null, appleSubHash: hashSub(appleSub) }, sessionToken });
+    return res.json({
+      ok: true,
+      parent: { id: parent.id, email: parent.email || null, appleSubHash: hashSub(appleSub) },
+      household,
+      sessionToken
+    });
   } catch (e) {
     return res.status(400).json({ ok: false, error: String(e?.message || e) });
   }
@@ -1423,7 +1581,241 @@ app.post('/pair', (req, res, next) => {
 
 // Parent dashboard summary (scoped to parent).
 app.get('/api/me', requireParent, (req, res) => {
-  return res.json({ ok: true, parent: { id: req.parent.id, email: req.parent.email || null, created_at: req.parent.created_at } });
+  return res.json({
+    ok: true,
+    parent: { id: req.parent.id, email: req.parent.email || null, created_at: req.parent.created_at },
+    household: { id: req.household.id, name: req.household.name, role: req.household.role }
+  });
+});
+
+app.get('/api/household/me', requireParent, (req, res) => {
+  return res.json({
+    ok: true,
+    household: { id: req.household.id, name: req.household.name, role: req.household.role }
+  });
+});
+
+app.get('/api/household/members', requireParent, (req, res) => {
+  const members = db
+    .prepare(
+      `
+      SELECT hm.id, hm.parent_id, hm.role, hm.status, hm.created_at, p.email
+      FROM household_members hm
+      JOIN parents p ON p.id = hm.parent_id
+      WHERE hm.household_id = ?
+      ORDER BY CASE hm.role WHEN 'owner' THEN 0 ELSE 1 END, hm.created_at ASC
+      `
+    )
+    .all(req.household.id)
+    .map(m => ({
+      id: m.id,
+      parentId: m.parent_id,
+      email: m.email || null,
+      role: m.role,
+      status: m.status,
+      createdAt: m.created_at
+    }));
+  return res.json({ ok: true, members });
+});
+
+app.get('/api/household/invites', requireParent, (req, res) => {
+  const invites = db
+    .prepare(
+      `
+      SELECT hi.id, hi.email, hi.token, hi.code, hi.status, hi.expires_at, hi.accepted_at, hi.revoked_at, hi.created_at,
+             p.email AS invited_by_email
+      FROM household_invites hi
+      LEFT JOIN parents p ON p.id = hi.invited_by_parent_id
+      WHERE hi.household_id = ?
+      ORDER BY hi.created_at DESC
+      LIMIT 200
+      `
+    )
+    .all(req.household.id)
+    .map(r => ({
+      id: r.id,
+      email: r.email || null,
+      token: r.token,
+      code: r.code,
+      status: r.status,
+      expiresAt: Number(r.expires_at || 0),
+      acceptedAt: r.accepted_at != null ? Number(r.accepted_at) : null,
+      revokedAt: r.revoked_at != null ? Number(r.revoked_at) : null,
+      createdAt: r.created_at,
+      invitedByEmail: r.invited_by_email || null
+    }));
+  return res.json({ ok: true, invites });
+});
+
+app.post('/api/household/invites', requireParent, (req, res, next) => {
+  try {
+    const schema = z.object({
+      email: z.string().email().optional(),
+      ttlDays: z.number().int().min(1).max(30).optional().default(7)
+    });
+    const body = schema.parse(req.body || {});
+    const now = Date.now();
+    const expiresAt = now + body.ttlDays * 24 * 60 * 60 * 1000;
+
+    let token = '';
+    let code = '';
+    let ok = false;
+    for (let i = 0; i < 10; i++) {
+      token = crypto.randomBytes(24).toString('hex');
+      code = randomPairingCode(6);
+      try {
+        db.prepare(
+          `
+          INSERT INTO household_invites (
+            id, household_id, invited_by_parent_id, email, token, code, status, expires_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+          `
+        ).run(id(), req.household.id, req.parent.id, body.email || null, token, code, expiresAt);
+        ok = true;
+        break;
+      } catch (e) {
+        if (!String(e?.message || '').toLowerCase().includes('unique')) throw e;
+      }
+    }
+    if (!ok) return res.status(503).json({ error: 'invite_generation_failed' });
+
+    const inviteUrl = `https://web.spotchecker.app/invite?token=${encodeURIComponent(token)}`;
+    return res.status(201).json({
+      ok: true,
+      invite: {
+        token,
+        code,
+        email: body.email || null,
+        expiresAt,
+        inviteUrl
+      }
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get('/api/household/invites/:token', (req, res) => {
+  const token = String(req.params.token || '').trim();
+  if (!token) return res.status(400).json({ error: 'invalid_token' });
+
+  const row = db
+    .prepare(
+      `
+      SELECT hi.id, hi.email, hi.status, hi.expires_at, hi.accepted_at, hi.revoked_at, h.id AS household_id, h.name AS household_name
+      FROM household_invites hi
+      JOIN households h ON h.id = hi.household_id
+      WHERE hi.token = ?
+      LIMIT 1
+      `
+    )
+    .get(token);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+
+  const now = Date.now();
+  const expired = Number(row.expires_at || 0) <= now;
+  const available = row.status === 'pending' && !row.revoked_at && !expired;
+  return res.json({
+    ok: true,
+    invite: {
+      householdId: row.household_id,
+      householdName: row.household_name || null,
+      email: row.email || null,
+      status: row.status,
+      expiresAt: Number(row.expires_at || 0),
+      acceptedAt: row.accepted_at != null ? Number(row.accepted_at) : null,
+      revokedAt: row.revoked_at != null ? Number(row.revoked_at) : null,
+      available
+    }
+  });
+});
+
+function acceptHouseholdInviteForParent({ inviteRow, parent }) {
+  const now = Date.now();
+  if (!inviteRow) return { ok: false, status: 404, error: 'not_found' };
+  if (inviteRow.revoked_at != null || inviteRow.status === 'revoked') return { ok: false, status: 409, error: 'invite_revoked' };
+  if (inviteRow.status !== 'pending') return { ok: false, status: 409, error: 'invite_not_pending' };
+  if (Number(inviteRow.expires_at || 0) <= now) return { ok: false, status: 410, error: 'invite_expired' };
+
+  const active = db
+    .prepare(
+      `
+      SELECT household_id
+      FROM household_members
+      WHERE parent_id = ? AND status = 'active'
+      ORDER BY created_at ASC
+      LIMIT 1
+      `
+    )
+    .get(parent.id);
+
+  if (active && active.household_id !== inviteRow.household_id) {
+    return { ok: false, status: 409, error: 'already_in_other_household' };
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare(
+      `
+      INSERT INTO household_members (id, household_id, parent_id, role, status, updated_at)
+      VALUES (?, ?, ?, 'coparent', 'active', datetime('now'))
+      ON CONFLICT(household_id, parent_id) DO UPDATE SET
+        status = 'active',
+        updated_at = datetime('now')
+      `
+    ).run(id(), inviteRow.household_id, parent.id);
+
+    db.prepare(
+      `
+      UPDATE household_invites
+      SET status = 'accepted',
+          accepted_at = ?,
+          accepted_by_parent_id = ?
+      WHERE id = ?
+      `
+    ).run(now, parent.id, inviteRow.id);
+  });
+  tx();
+
+  return { ok: true };
+}
+
+app.post('/api/household/invites/:token/accept', requireParent, (req, res) => {
+  const token = String(req.params.token || '').trim();
+  if (!token) return res.status(400).json({ error: 'invalid_token' });
+
+  const invite = db
+    .prepare(
+      `
+      SELECT id, household_id, status, expires_at, revoked_at
+      FROM household_invites
+      WHERE token = ?
+      LIMIT 1
+      `
+    )
+    .get(token);
+
+  const out = acceptHouseholdInviteForParent({ inviteRow: invite, parent: req.parent });
+  if (!out.ok) return res.status(out.status).json({ error: out.error });
+  return res.json({ ok: true });
+});
+
+app.post('/api/household/invite-code/accept', requireParent, (req, res) => {
+  const schema = z.object({ code: z.string().trim().min(4).max(12) });
+  const { code } = schema.parse(req.body || {});
+  const invite = db
+    .prepare(
+      `
+      SELECT id, household_id, status, expires_at, revoked_at
+      FROM household_invites
+      WHERE code = ?
+      LIMIT 1
+      `
+    )
+    .get(String(code).toUpperCase());
+
+  const out = acceptHouseholdInviteForParent({ inviteRow: invite, parent: req.parent });
+  if (!out.ok) return res.status(out.status).json({ error: out.error });
+  return res.json({ ok: true });
 });
 
 app.post('/api/push/register', requireParent, (req, res, next) => {
@@ -1481,8 +1873,8 @@ app.post('/api/push/register-child', requireShortcutAuth, (req, res, next) => {
 });
 
 app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
-  const parentId = req.parent?.id || null;
-  const where = parentId ? 'WHERE d.parent_id = ?' : '';
+  const householdId = req.parent?.id ? req.household.id : null;
+  const where = householdId ? 'WHERE d.household_id = ?' : '';
   const rows = db
     .prepare(
       `
@@ -1516,7 +1908,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       ORDER BY d.created_at DESC
       `
     )
-    .all(...(parentId ? [parentId] : []));
+    .all(...(householdId ? [householdId] : []));
 
   const now = Date.now();
   const devices = rows.map(r => {
@@ -1623,11 +2015,11 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
 });
 
 app.get('/api/devices', requireParentOrAdmin, (req, res) => {
-  const parentId = req.parent?.id || null;
-  const devices = parentId
+  const householdId = req.parent?.id ? req.household.id : null;
+  const devices = householdId
     ? db
-        .prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices WHERE parent_id = ? ORDER BY created_at DESC')
-        .all(parentId)
+        .prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices WHERE household_id = ? ORDER BY created_at DESC')
+        .all(householdId)
     : db.prepare('SELECT id, name, device_token, created_at, last_seen_at FROM devices ORDER BY created_at DESC').all();
   res.json({ devices });
 });
@@ -1644,9 +2036,10 @@ app.post('/api/devices', requireParentOrAdmin, (req, res) => {
   const deviceToken = crypto.randomBytes(16).toString('hex');
   const deviceSecret = crypto.randomBytes(32).toString('hex');
 
-  db.prepare('INSERT INTO devices (id, parent_id, name, device_token, device_secret) VALUES (?, ?, ?, ?, ?)').run(
+  db.prepare('INSERT INTO devices (id, parent_id, household_id, name, device_token, device_secret) VALUES (?, ?, ?, ?, ?, ?)').run(
     deviceId,
     req.parent?.id || null,
+    req.parent?.id ? req.household.id : null,
     name,
     deviceToken,
     deviceSecret
@@ -1669,7 +2062,7 @@ app.patch('/api/devices/:deviceId', requireParentOrAdmin, (req, res, next) => {
     const { deviceId } = req.params;
 
     const device = req.parent
-      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
       : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
     if (!device) return res.status(404).json({ error: 'not_found' });
 
@@ -1704,9 +2097,12 @@ app.patch('/api/devices/:deviceId', requireParentOrAdmin, (req, res, next) => {
 app.delete('/api/devices/:deviceId', requireParentOrAdmin, (req, res, next) => {
   try {
     const { deviceId } = req.params;
+    if (req.parent && req.household.role !== 'owner') {
+      return res.status(403).json({ error: 'owner_required' });
+    }
 
     const device = req.parent
-      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
       : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
     if (!device) return res.status(404).json({ error: 'not_found' });
 
@@ -1724,7 +2120,7 @@ app.post('/api/devices/:deviceId/pairing-code', requireParentOrAdmin, (req, res,
     const { ttlMinutes } = schema.parse(req.body || {});
 
     const device = req.parent
-      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
       : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
 
     if (!device) return res.status(404).json({ error: 'not_found' });
@@ -1761,7 +2157,7 @@ app.post('/api/devices/:deviceId/pairing-code', requireParentOrAdmin, (req, res,
 app.patch('/api/devices/:deviceId/policy', requireParentOrAdmin, (req, res) => {
   const { deviceId } = req.params;
   const device = req.parent
-    ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+    ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
     : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
   if (!device) return res.status(404).json({ error: 'not_found' });
 
@@ -1855,7 +2251,7 @@ app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, 
   try {
     const { deviceId } = req.params;
     const device = req.parent
-      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
       : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
     if (!device) return res.status(404).json({ error: 'not_found' });
 
@@ -1919,7 +2315,7 @@ app.post('/api/devices/:deviceId/extra-time/grant', requireParentOrAdmin, (req, 
 app.get('/api/devices/:deviceId/events', requireParentOrAdmin, (req, res) => {
   const { deviceId } = req.params;
   const device = req.parent
-    ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(deviceId, req.parent.id)
+    ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(deviceId, req.household.id)
     : db.prepare('SELECT id FROM devices WHERE id = ?').get(deviceId);
   if (!device) return res.status(404).json({ error: 'not_found' });
 
@@ -1954,8 +2350,8 @@ app.get('/api/extra-time/requests', requireParentOrAdmin, (req, res) => {
   const values = [];
 
   if (req.parent) {
-    where.push('d.parent_id = ?');
-    values.push(req.parent.id);
+    where.push('d.household_id = ?');
+    values.push(req.household.id);
   }
   if (q.deviceId) {
     where.push('r.device_id = ?');
@@ -2025,10 +2421,10 @@ app.post('/api/extra-time/requests/:requestId/decision', requireParentOrAdmin, (
             SELECT r.id, r.device_id, r.requested_minutes, r.status
             FROM extra_time_requests r
             JOIN devices d ON d.id = r.device_id
-            WHERE r.id = ? AND d.parent_id = ?
+            WHERE r.id = ? AND d.household_id = ?
             `
           )
-          .get(req.params.requestId, req.parent.id)
+          .get(req.params.requestId, req.household.id)
       : db.prepare('SELECT id, device_id, requested_minutes, status FROM extra_time_requests WHERE id = ?').get(req.params.requestId);
 
     if (!row) return res.status(404).json({ error: 'not_found' });
@@ -2572,12 +2968,20 @@ async function runDailyLimitWarningSweep() {
 }
 
 async function notifyParentExtraTimeRequest({ deviceId, requestId, requestedMinutes, reason }) {
-  const device = db.prepare('SELECT id, parent_id, name FROM devices WHERE id = ?').get(deviceId);
-  if (!device || !device.parent_id) return { ok: false, skipped: 'no_parent' };
+  const device = db.prepare('SELECT id, household_id, name FROM devices WHERE id = ?').get(deviceId);
+  if (!device || !device.household_id) return { ok: false, skipped: 'no_household' };
 
   const tokens = db
-    .prepare('SELECT token FROM parent_push_tokens WHERE parent_id = ? ORDER BY updated_at DESC')
-    .all(device.parent_id);
+    .prepare(
+      `
+      SELECT DISTINCT ppt.token
+      FROM parent_push_tokens ppt
+      JOIN household_members hm ON hm.parent_id = ppt.parent_id
+      WHERE hm.household_id = ? AND hm.status = 'active'
+      ORDER BY ppt.updated_at DESC
+      `
+    )
+    .all(device.household_id);
   if (!tokens.length) return { ok: false, skipped: 'no_tokens' };
 
   const title = 'Extra time requested';
@@ -2650,7 +3054,7 @@ app.post('/api/push/test', requireParentOrAdmin, async (req, res, next) => {
     });
     const body = schema.parse(req.body || {});
     const device = req.parent
-      ? db.prepare('SELECT id FROM devices WHERE id = ? AND parent_id = ?').get(body.deviceId, req.parent.id)
+      ? db.prepare('SELECT id FROM devices WHERE id = ? AND household_id = ?').get(body.deviceId, req.household.id)
       : db.prepare('SELECT id FROM devices WHERE id = ?').get(body.deviceId);
     if (!device) return res.status(404).json({ error: 'not_found' });
 

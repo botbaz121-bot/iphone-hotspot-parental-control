@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.48 (49) - 2026-02-20
+- Added household architecture foundations on backend:
+- new `households` and `household_members` models, auth context now resolves active household + member role.
+- migrated parent-scoped device access to household scope across dashboard/devices/policy/events/extra-time/push test endpoints.
+- added owner-only delete protection (`DELETE /api/devices/:id` requires household role `owner`).
+- added household bootstrap/backfill migration logic for existing data (`devices.household_id` populated from legacy `parent_id` ownership).
+- Added co-parent invite backend (token + code):
+- `GET /api/household/me`, `GET /api/household/members`,
+- `GET /api/household/invites`, `POST /api/household/invites`,
+- `GET /api/household/invites/:token`,
+- `POST /api/household/invites/:token/accept`,
+- `POST /api/household/invite-code/accept`.
+- Parent push fan-out now targets all active household members for extra-time requests.
+
 ## 0.1.47 (48) - 2026-02-20
 - Fixed protection status grammar so single `Apps` action now reads `Apps are protected.` (while singular actions keep `is protected`).
 
