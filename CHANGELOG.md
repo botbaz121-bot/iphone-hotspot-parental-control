@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.71 (72) - 2026-02-21
+- Adjusted parent tile vertical spacing:
+- added explicit spacing between title/subtitle,
+- increased parent tile height to avoid cramped rows.
+
 ## 0.1.70 (71) - 2026-02-21
 - Added parent sign-in diagnostics:
 - in-app debug line on welcome screen showing mode/signed-in/parentId and last auth event.

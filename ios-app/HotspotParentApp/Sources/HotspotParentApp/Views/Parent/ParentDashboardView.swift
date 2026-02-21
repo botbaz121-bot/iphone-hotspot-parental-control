@@ -470,21 +470,23 @@ private struct ParentPersonTileView: View {
 
           Spacer(minLength: 0)
 
-          Text(entry.title)
-            .font(.system(size: 18, weight: .bold))
-            .foregroundStyle(.white.opacity(0.95))
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
+          VStack(alignment: .leading, spacing: 4) {
+            Text(entry.title)
+              .font(.system(size: 18, weight: .bold))
+              .foregroundStyle(.white.opacity(0.95))
+              .lineLimit(2)
+              .frame(maxWidth: .infinity, alignment: .leading)
 
-          Text(entry.subtitle)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.white.opacity(0.82))
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(entry.subtitle)
+              .font(.system(size: 12, weight: .medium))
+              .foregroundStyle(.white.opacity(0.82))
+              .lineLimit(1)
+              .frame(maxWidth: .infinity, alignment: .leading)
+          }
         }
         .padding(14)
       }
-      .frame(height: 110)
+      .frame(height: 118)
     }
     .buttonStyle(.plain)
   }
