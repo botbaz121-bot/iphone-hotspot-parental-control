@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.90 (91) - 2026-02-21
+- Increased web logo header text size to `47px` (`.title`).
+- Added top margin to section title rows: `.section-title-row { margin-top: 20px; }`.
+- Updated web cache-bust versions to `styles.css?v=0.1.90` and `app.js?v=0.1.90`.
+
 ## 0.1.89 (90) - 2026-02-21
 - Updated web welcome copy:
 - subtitle changed from `Choose device type` to `Choose user type`,

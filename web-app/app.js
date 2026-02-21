@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.89-web';
+  const WEB_BUILD = '0.1.90-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
