@@ -842,6 +842,9 @@ app.get('/admin', (req, res) => {
         <th>Turn Wi-Fi Off</th>
         <th>Turn Mobile Data Off</th>
         <th>Rotate password</th>
+        <th>Daily limit</th>
+        <th>Child push</th>
+        <th>5m warning</th>
         <th>Last event</th>
         <th>Protection status</th>
         <th>Gap?</th>
@@ -936,6 +939,17 @@ app.get('/admin', (req, res) => {
         const setMobileDataOff = d.actions && d.actions.setMobileDataOff ? true : false;
         const rotatePassword = d.actions && d.actions.rotatePassword ? true : false;
         const protectionStatus = d.statusMessage || '';
+        const dailyLimit = d.dailyLimit || null;
+        const childPush = d.childPush || {};
+        const warn5m = d.dailyLimitWarn5m || {};
+
+        const dailyLimitCell = dailyLimit && (dailyLimit.limitMinutes != null)
+          ? ('limit ' + escapeHtml(String(dailyLimit.limitMinutes)) + 'm · used ' + escapeHtml(String(dailyLimit.usedMinutes ?? 0)) + 'm · rem ' + escapeHtml(String(dailyLimit.remainingMinutes ?? 0)) + 'm' + (dailyLimit.reached ? ' · reached' : ''))
+          : 'off';
+        const childPushCell = 'tokens ' + escapeHtml(String(childPush.tokens ?? 0)) + (childPush.lastUpdatedAt ? (' · updated ' + escapeHtml(String(childPush.lastUpdatedAt))) : '');
+        const warnCell = warn5m && warn5m.dayKey
+          ? ('day ' + escapeHtml(String(warn5m.dayKey)) + (warn5m.sentAt ? (' · ' + escapeHtml(new Date(Number(warn5m.sentAt)).toISOString())) : ''))
+          : 'none';
 
         tr.innerHTML =
           '<td>' + escapeHtml(d.name||'') + '</td>' +
@@ -960,6 +974,9 @@ app.get('/admin', (req, res) => {
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setWifiOff" ' + (setWifiOff ? 'checked' : '') + ' >Turn Wi-Fi Off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="setMobileDataOff" ' + (setMobileDataOff ? 'checked' : '') + ' >Turn Mobile Data Off</label></td>' +
           '<td><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="rotatePassword" ' + (rotatePassword ? 'checked' : '') + ' />Rotate password</label></td>' +
+          '<td>' + dailyLimitCell + '</td>' +
+          '<td>' + childPushCell + '</td>' +
+          '<td>' + warnCell + '</td>' +
           '<td>' + escapeHtml(d.last_event_at||'') + '</td>' +
           '<td>' + escapeHtml(protectionStatus) + '</td>' +
           '<td>' + (d.gap ? '<b>YES</b>' : 'no') + '</td>' +
@@ -1476,6 +1493,8 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         d.created_at,
         d.last_seen_at,
         MAX(e.ts) AS last_event_ts,
+        COALESCE((SELECT COUNT(1) FROM child_push_tokens cpt WHERE cpt.device_id = d.id), 0) AS child_push_tokens_count,
+        (SELECT MAX(cpt.updated_at) FROM child_push_tokens cpt WHERE cpt.device_id = d.id) AS child_push_last_updated_at,
         p.set_hotspot_off AS set_hotspot_off,
         p.set_wifi_off AS set_wifi_off,
         p.set_mobile_data_off AS set_mobile_data_off,
@@ -1485,10 +1504,13 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
         p.quiet_end AS quiet_end,
         p.quiet_days AS quiet_days,
         p.tz AS tz,
-        p.gap_ms AS gap_ms
+        p.gap_ms AS gap_ms,
+        u.daily_limit_warn_5m_day_key AS daily_limit_warn_5m_day_key,
+        u.daily_limit_warn_5m_sent_at AS daily_limit_warn_5m_sent_at
       FROM devices d
       LEFT JOIN device_events e ON e.device_id = d.id
       LEFT JOIN device_policies p ON p.device_id = d.id
+      LEFT JOIN device_daily_usage u ON u.device_id = d.id
       ${where}
       GROUP BY d.id
       ORDER BY d.created_at DESC
@@ -1575,6 +1597,14 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       inQuietHours: inQuiet,
       statusMessage,
       dailyLimit,
+      childPush: {
+        tokens: Number(r.child_push_tokens_count || 0),
+        lastUpdatedAt: r.child_push_last_updated_at || null
+      },
+      dailyLimitWarn5m: {
+        dayKey: r.daily_limit_warn_5m_day_key || null,
+        sentAt: r.daily_limit_warn_5m_sent_at != null ? Number(r.daily_limit_warn_5m_sent_at) : null
+      },
       activeExtraTime: activeExtraTime
         ? {
             requestId: activeExtraTime.id,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.46 (47) - 2026-02-20
+- Updated `/admin` device table to show daily-limit warning pipeline diagnostics per child:
+- daily-limit state (`limit/used/remaining/reached`),
+- child push token count + last token update timestamp,
+- last sent 5-minute warning day/timestamp.
+- Extended `/api/dashboard` payload with `childPush` and `dailyLimitWarn5m` fields used by `/admin`.
+
 ## 0.1.45 (46) - 2026-02-20
 - Moved child 5-minute daily-limit warning delivery to backend APNS (server-side minute sweep) for higher reliability.
 - Added backend child push token registration endpoint (`POST /api/push/register-child`) authenticated by child `device_secret`.
