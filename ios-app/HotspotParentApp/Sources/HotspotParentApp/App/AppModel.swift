@@ -31,6 +31,8 @@ public final class AppModel: ObservableObject {
   @Published public var parentDevices: [DashboardDevice] = []
   @Published public var householdMembers: [HouseholdMember] = []
   @Published public var householdInvites: [HouseholdInvite] = []
+  @Published public var households: [ParentHousehold] = []
+  @Published public var activeHouseholdId: String?
   @Published public var parentLoading: Bool = false
   @Published public var parentLastError: String?
   @Published public var pendingOpenDeviceDetailsId: String?
@@ -120,6 +122,12 @@ public final class AppModel: ObservableObject {
   @Published public var extraTimePrefillMinutesByDeviceId: [String: Int] = [:]
   @Published public var extraTimePendingRequestIdByDeviceId: [String: String] = [:]
   @Published public var lastRegisteredPushToken: String?
+  @Published public var parentNotifyExtraTimeRequests: Bool {
+    didSet { AppDefaults.parentNotifyExtraTime = parentNotifyExtraTimeRequests }
+  }
+  @Published public var parentNotifyTamperAlerts: Bool {
+    didSet { AppDefaults.parentNotifyTamper = parentNotifyTamperAlerts }
+  }
 
   // MARK: - Init
 
@@ -163,6 +171,8 @@ public final class AppModel: ObservableObject {
     self.apiBaseURL = AppDefaults.apiBaseURL
     self.adminToken = AppDefaults.adminToken ?? ""
     self.lastRegisteredPushToken = AppDefaults.parentPushToken
+    self.parentNotifyExtraTimeRequests = AppDefaults.parentNotifyExtraTime
+    self.parentNotifyTamperAlerts = AppDefaults.parentNotifyTamper
   }
 
   // MARK: - Mode switching
@@ -232,6 +242,8 @@ public final class AppModel: ObservableObject {
     parentDevices = []
     householdMembers = []
     householdInvites = []
+    households = []
+    activeHouseholdId = nil
     extraTimePrefillMinutesByDeviceId = [:]
     extraTimePendingRequestIdByDeviceId = [:]
   }
@@ -395,16 +407,20 @@ public final class AppModel: ObservableObject {
 
     do {
       async let meTask = client.me()
+      async let householdsTask = client.households()
       async let dashTask = client.dashboard()
       async let membersTask = client.householdMembers()
       async let invitesTask = client.householdInvites()
 
       let me = try await meTask
+      let householdsOut = try await householdsTask
       let dash = try await dashTask
       let members = try await membersTask
       let invites = try await invitesTask
       currentParentId = me.parent.id
       AppDefaults.parentId = me.parent.id
+      activeHouseholdId = householdsOut.activeHouseholdId
+      households = householdsOut.households
       parentDevices = dash.devices
       householdMembers = members.members
       householdInvites = invites.invites
@@ -549,6 +565,19 @@ public final class AppModel: ObservableObject {
     guard let client = apiClient else { throw APIError.invalidResponse }
     try await client.updateMyProfile(displayName: displayName)
     await refreshParentDashboard()
+  }
+
+  public func switchActiveHousehold(householdId: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.setActiveHousehold(householdId)
+    await refreshParentDashboard()
+  }
+
+  public func createHouseholdInvite(email: String?, inviteName: String?) async throws -> CreateHouseholdInviteResponse.Invite {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    let resp = try await client.createHouseholdInvite(email: email, inviteName: inviteName)
+    await refreshParentDashboard()
+    return resp.invite
   }
 
   public func deleteHouseholdInvite(inviteId: String) async throws {

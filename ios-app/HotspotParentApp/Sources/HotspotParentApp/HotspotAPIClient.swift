@@ -55,6 +55,20 @@ public final class HotspotAPIClient {
     let _: OkResponse = try await HTTP.patchJSON(api.url("/api/me/profile"), body: req, headers: parentHeaders())
   }
 
+  public func households() async throws -> HouseholdsResponse {
+    try await HTTP.getJSON(api.url("/api/households"), headers: parentHeaders())
+  }
+
+  public func setActiveHousehold(_ householdId: String) async throws {
+    let req = SetActiveHouseholdRequest(householdId: householdId)
+    let _: OkResponse = try await HTTP.patchJSON(api.url("/api/households/active"), body: req, headers: parentHeaders())
+  }
+
+  public func createHouseholdInvite(email: String?, inviteName: String?) async throws -> CreateHouseholdInviteResponse {
+    let req = CreateHouseholdInviteRequest(email: email, inviteName: inviteName)
+    return try await HTTP.postJSON(api.url("/api/household/invites"), body: req, headers: parentHeaders())
+  }
+
   public func householdMembers() async throws -> HouseholdMembersResponse {
     try await HTTP.getJSON(api.url("/api/household/members"), headers: parentHeaders())
   }

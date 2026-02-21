@@ -11,6 +11,8 @@ public struct ParentDashboardView: View {
   @EnvironmentObject private var model: AppModel
 
   @State private var detailsDeviceId: String?
+  @State private var detailsParentEntryId: String?
+  @State private var showCreateInviteSheet: Bool = false
 
   public init() {}
 
@@ -67,6 +69,19 @@ public struct ParentDashboardView: View {
             .environmentObject(model)
         }
       }
+      .sheet(item: Binding(
+        get: { detailsParentEntryId.map { ParentPersonDetailsSheet.ID(rawValue: $0) } },
+        set: { detailsParentEntryId = $0?.rawValue }
+      )) { id in
+        if let entry = parentEntries.first(where: { $0.id == id.rawValue }) {
+          ParentPersonDetailsSheet(entry: entry)
+            .environmentObject(model)
+        }
+      }
+      .sheet(isPresented: $showCreateInviteSheet) {
+        CreateParentInviteSheet()
+          .environmentObject(model)
+      }
       .task {
         await model.refreshParentDashboard()
         if let openId = model.pendingOpenDeviceDetailsId {
@@ -108,9 +123,23 @@ public struct ParentDashboardView: View {
 
   private var parentDevicesSection: some View {
     VStack(alignment: .leading, spacing: 10) {
-      Text("Parent Devices")
-        .font(.system(size: 34, weight: .bold))
-        .padding(.top, 14)
+      HStack(alignment: .top) {
+        Text("Parent Devices")
+          .font(.system(size: 34, weight: .bold))
+          .padding(.top, 14)
+        Spacer()
+        Button {
+          showCreateInviteSheet = true
+        } label: {
+          Image(systemName: "plus")
+            .font(.title3.weight(.semibold))
+            .frame(width: 44, height: 44)
+            .background(Color.white.opacity(0.08))
+            .clipShape(Circle())
+        }
+        .accessibilityLabel("Add parent invite")
+        .padding(.top, 12)
+      }
 
       if parentEntries.isEmpty {
         Text("No parent devices or invites yet.")
@@ -119,7 +148,9 @@ public struct ParentDashboardView: View {
       } else {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
           ForEach(Array(parentEntries.enumerated()), id: \.element.id) { idx, entry in
-            ParentPersonTileView(entry: entry, colorIndex: idx)
+            ParentPersonTileView(entry: entry, colorIndex: idx) {
+              detailsParentEntryId = entry.id
+            }
               .environmentObject(model)
           }
         }
@@ -137,6 +168,106 @@ public struct ParentDashboardView: View {
       .map { .invite($0) })
 
     return out
+  }
+}
+
+private struct CreateParentInviteSheet: View {
+  @EnvironmentObject private var model: AppModel
+  @Environment(\.dismiss) private var dismiss
+
+  @State private var inviteName: String = ""
+  @State private var inviteEmail: String = ""
+  @State private var creating: Bool = false
+  @State private var createdCode: String?
+  @State private var errorText: String?
+
+  var body: some View {
+    NavigationStack {
+      VStack(alignment: .leading, spacing: 14) {
+        Text("Create Invite")
+          .font(.system(size: 24, weight: .bold))
+
+        TextField("Name (optional)", text: $inviteName)
+          .textInputAutocapitalization(.words)
+          .disableAutocorrection(true)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
+          .background(Color.primary.opacity(0.06))
+          .clipShape(RoundedRectangle(cornerRadius: 12))
+
+        TextField("Email (optional)", text: $inviteEmail)
+          .textInputAutocapitalization(.never)
+          .keyboardType(.emailAddress)
+          .autocorrectionDisabled(true)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
+          .background(Color.primary.opacity(0.06))
+          .clipShape(RoundedRectangle(cornerRadius: 12))
+
+        if let code = createdCode {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Invite code")
+              .font(.system(size: 14))
+              .foregroundStyle(.secondary)
+            Text(code)
+              .font(.system(size: 20, weight: .bold))
+              .monospacedDigit()
+          }
+          .padding(12)
+          .background(Color.primary.opacity(0.06))
+          .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+
+        if let errorText {
+          Text(errorText)
+            .font(.system(size: 14))
+            .foregroundStyle(.red)
+        }
+
+        Button {
+          Task { await createInvite() }
+        } label: {
+          if creating {
+            ProgressView()
+              .frame(maxWidth: .infinity)
+          } else {
+            Text("Create Invite")
+              .frame(maxWidth: .infinity)
+          }
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(creating)
+
+        Spacer()
+      }
+      .padding(18)
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Done") { dismiss() }
+        }
+      }
+    }
+  }
+
+  @MainActor
+  private func createInvite() async {
+    creating = true
+    errorText = nil
+    defer { creating = false }
+    do {
+      let invite = try await model.createHouseholdInvite(
+        email: inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines),
+        inviteName: inviteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : inviteName.trimmingCharacters(in: .whitespacesAndNewlines)
+      )
+      createdCode = invite.code
+    } catch {
+      if let apiErr = error as? APIError {
+        errorText = apiErr.userMessage
+      } else {
+        errorText = "Couldn’t create invite. Please try again."
+      }
+    }
   }
 }
 
@@ -260,29 +391,30 @@ private enum ParentTileEntry: Identifiable {
       case .invite: return "Invite pending"
     }
   }
+
+  func isCurrentParent(_ currentParentId: String?) -> Bool {
+    switch self {
+      case .member(let m):
+        return currentParentId == m.parentId
+      case .invite:
+        return false
+    }
+  }
+
+  var canDelete: Bool {
+    switch self {
+      case .invite:
+        return true
+      case .member(let m):
+        return m.role.lowercased() != "owner"
+    }
+  }
 }
 
 private struct ParentPersonTileView: View {
-  @EnvironmentObject private var model: AppModel
   let entry: ParentTileEntry
   let colorIndex: Int
-
-  @State private var showRename: Bool = false
-  @State private var renameText: String = ""
-  @State private var showDeleteConfirm: Bool = false
-  @State private var showInviteCode: Bool = false
-  @State private var inviteCodeText: String = ""
-  @State private var actionError: String?
-
-  #if canImport(PhotosUI)
-  @State private var pickedPhoto: PhotosPickerItem?
-  @State private var showPhotoPicker: Bool = false
-  #endif
-
-  #if canImport(UIKit)
-  @State private var imageToCrop: UIImage?
-  @State private var showCropper: Bool = false
-  #endif
+  var onTap: () -> Void
 
   private var gradient: LinearGradient {
     let palette: [LinearGradient] = [
@@ -295,64 +427,9 @@ private struct ParentPersonTileView: View {
     return palette[idx]
   }
 
-  private var canDelete: Bool {
-    switch entry {
-      case .invite:
-        return true
-      case .member(let m):
-        return m.role.lowercased() != "owner"
-    }
-  }
-
-  private var canRename: Bool {
-    switch entry {
-      case .invite:
-        return true
-      case .member(let m):
-        return model.currentParentId == m.parentId
-    }
-  }
-
   var body: some View {
-    Menu {
-      if canRename {
-        Button {
-          renameText = entry.title
-          showRename = true
-        } label: {
-          Label("Rename", systemImage: "pencil")
-        }
-      }
-
-      #if canImport(PhotosUI)
-      Button {
-        showPhotoPicker = true
-      } label: {
-        Label("Choose Photo", systemImage: "photo")
-      }
-      #endif
-
-      Button {
-        switch entry {
-          case .invite(let invite):
-            inviteCodeText = invite.code
-          case .member:
-            inviteCodeText = "No invite code for active parents."
-        }
-        showInviteCode = true
-      } label: {
-        Label("View Invite Code", systemImage: "qrcode")
-      }
-
-      if canDelete {
-        Divider()
-
-        Button(role: .destructive) {
-          showDeleteConfirm = true
-        } label: {
-          Label("Delete", systemImage: "trash")
-        }
-      }
+    Button {
+      onTap()
     } label: {
       ZStack {
         RoundedRectangle(cornerRadius: 22)
@@ -398,43 +475,93 @@ private struct ParentPersonTileView: View {
             .foregroundStyle(.white.opacity(0.95))
             .lineLimit(2)
             .frame(maxWidth: .infinity, alignment: .leading)
+
+          Text(entry.subtitle)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white.opacity(0.82))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
       }
       .frame(height: 110)
     }
     .buttonStyle(.plain)
-    .alert("Rename", isPresented: $showRename) {
-      TextField("Name", text: $renameText)
-      Button("Save") {
-        Task { await saveRename() }
+  }
+}
+
+private struct ParentPersonDetailsSheet: View {
+  struct ID: Identifiable {
+    let rawValue: String
+    var id: String { rawValue }
+  }
+
+  @EnvironmentObject private var model: AppModel
+  @Environment(\.dismiss) private var dismiss
+
+  let entry: ParentTileEntry
+
+  @State private var showRename: Bool = false
+  @State private var renameText: String = ""
+  @State private var showDeleteConfirm: Bool = false
+  @State private var showInviteCode: Bool = false
+  @State private var inviteCodeText: String = ""
+  @State private var actionError: String?
+  @State private var switchingHousehold: Bool = false
+  @State private var selectedHouseholdId: String = ""
+
+  #if canImport(PhotosUI)
+  @State private var pickedPhoto: PhotosPickerItem?
+  @State private var showPhotoPicker: Bool = false
+  #endif
+
+  #if canImport(UIKit)
+  @State private var imageToCrop: UIImage?
+  @State private var showCropper: Bool = false
+  #endif
+
+  private var isCurrentParent: Bool { entry.isCurrentParent(model.currentParentId) }
+  private var canRename: Bool {
+    switch entry {
+      case .invite: return true
+      case .member: return isCurrentParent
+    }
+  }
+
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+          if isCurrentParent {
+            currentParentSettingsCard
+          }
+
+          infoCard
+        }
+        .padding(.top, 18)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 32)
       }
-      Button("Cancel", role: .cancel) {}
-    } message: {
-      Text("Update the displayed parent name.")
-    }
-    .alert("Invite code", isPresented: $showInviteCode) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      Text(inviteCodeText)
-    }
-    .confirmationDialog(
-      "Delete this item?",
-      isPresented: $showDeleteConfirm,
-      titleVisibility: .visible
-    ) {
-      Button("Delete", role: .destructive) {
-        Task { await deleteEntry() }
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .principal) {
+          titleMenu
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Done") { dismiss() }
+        }
       }
-      Button("Cancel", role: .cancel) {}
-    }
-    .alert("Action failed", isPresented: Binding(
-      get: { actionError != nil },
-      set: { if !$0 { actionError = nil } }
-    )) {
-      Button("OK", role: .cancel) { actionError = nil }
-    } message: {
-      Text(actionError ?? "Unknown error")
+      .onAppear {
+        selectedHouseholdId = model.activeHouseholdId ?? model.households.first?.id ?? ""
+      }
+      .alert("Action failed", isPresented: Binding(
+        get: { actionError != nil },
+        set: { if !$0 { actionError = nil } }
+      )) {
+        Button("OK", role: .cancel) { actionError = nil }
+      } message: {
+        Text(actionError ?? "Unknown error")
+      }
     }
     #if canImport(PhotosUI)
     .photosPicker(
@@ -485,6 +612,198 @@ private struct ParentPersonTileView: View {
       }
     }
     #endif
+    .alert("Rename", isPresented: $showRename) {
+      TextField("Name", text: $renameText)
+      Button("Save") { Task { await saveRename() } }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text("Update the displayed parent name.")
+    }
+    .alert("Invite code", isPresented: $showInviteCode) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(inviteCodeText)
+    }
+    .confirmationDialog(
+      "Delete this item?",
+      isPresented: $showDeleteConfirm,
+      titleVisibility: .visible
+    ) {
+      Button("Delete", role: .destructive) {
+        Task { await deleteEntry() }
+      }
+      Button("Cancel", role: .cancel) {}
+    }
+  }
+
+  private var titleMenu: some View {
+    Menu {
+      if canRename {
+        Button {
+          renameText = entry.title
+          showRename = true
+        } label: {
+          Label("Rename", systemImage: "pencil")
+        }
+      }
+
+      #if canImport(PhotosUI)
+      Button {
+        showPhotoPicker = true
+      } label: {
+        Label("Choose Photo", systemImage: "photo")
+      }
+      #endif
+
+      Button {
+        switch entry {
+          case .invite(let invite):
+            inviteCodeText = invite.code
+          case .member:
+            inviteCodeText = "No invite code for active parents."
+        }
+        showInviteCode = true
+      } label: {
+        Label("View Invite Code", systemImage: "qrcode")
+      }
+
+      if entry.canDelete {
+        Divider()
+        Button(role: .destructive) {
+          showDeleteConfirm = true
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
+      }
+    } label: {
+      HStack(spacing: 8) {
+        #if canImport(UIKit)
+        if let img = DevicePhotoStore.getUIImage(deviceId: entry.photoKey) {
+          Image(uiImage: img)
+            .resizable()
+            .scaledToFill()
+            .frame(width: 26, height: 26)
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .overlay(
+              RoundedRectangle(cornerRadius: 7)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+        } else {
+          ZStack {
+            RoundedRectangle(cornerRadius: 7)
+              .fill(Color.white.opacity(0.10))
+              .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                  .stroke(Color.white.opacity(0.12), lineWidth: 1)
+              )
+            Text(String(entry.title.prefix(1)).uppercased())
+              .font(.system(size: 13, weight: .bold))
+              .foregroundStyle(.white.opacity(0.9))
+          }
+          .frame(width: 26, height: 26)
+        }
+        #endif
+
+        Text(entry.title)
+          .font(.headline.weight(.semibold))
+          .lineLimit(1)
+          .truncationMode(.tail)
+
+        Image(systemName: "chevron.down")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var currentParentSettingsCard: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text("Parent Settings")
+        .font(.headline)
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Active Household")
+          .font(.system(size: 16, weight: .semibold))
+        if model.households.isEmpty {
+          Text("No households available.")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+        } else {
+          Picker("Active household", selection: $selectedHouseholdId) {
+            ForEach(model.households, id: \.id) { h in
+              Text(h.name ?? "Household").tag(h.id)
+            }
+          }
+          .pickerStyle(.menu)
+          .onChange(of: selectedHouseholdId) { v in
+            guard !v.isEmpty else { return }
+            Task { await applyHouseholdSwitch(v) }
+          }
+          if switchingHousehold {
+            ProgressView()
+              .scaleEffect(0.9)
+          }
+        }
+      }
+
+      Toggle(isOn: $model.parentNotifyExtraTimeRequests) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Extra time request notifications")
+            .font(.system(size: 16, weight: .semibold))
+          Text("Show parent alerts when child requests more time.")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+        }
+      }
+
+      Toggle(isOn: $model.parentNotifyTamperAlerts) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Tamper notifications")
+            .font(.system(size: 16, weight: .semibold))
+          Text("Show tamper alerts when available.")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+        }
+      }
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var infoCard: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(entry.subtitle)
+        .font(.system(size: 16, weight: .semibold))
+      switch entry {
+        case .member(let member):
+          Text(member.email ?? "No email")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+        case .invite(let invite):
+          Text("Invite code: \(invite.code)")
+            .font(.system(size: 14, weight: .semibold))
+          Text(invite.email ?? "No email")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+      }
+    }
+    .padding(18)
+    .background(Color.primary.opacity(0.06))
+    .clipShape(RoundedRectangle(cornerRadius: 22))
+  }
+
+  @MainActor
+  private func applyHouseholdSwitch(_ householdId: String) async {
+    switchingHousehold = true
+    defer { switchingHousehold = false }
+    do {
+      try await model.switchActiveHousehold(householdId: householdId)
+      selectedHouseholdId = model.activeHouseholdId ?? householdId
+    } catch {
+      actionError = userError(error)
+      selectedHouseholdId = model.activeHouseholdId ?? selectedHouseholdId
+    }
   }
 
   @MainActor
@@ -495,8 +814,8 @@ private struct ParentPersonTileView: View {
       switch entry {
         case .invite(let invite):
           try await model.renameHouseholdInvite(inviteId: invite.id, inviteName: newName)
-        case .member(let member):
-          guard model.currentParentId == member.parentId else {
+        case .member:
+          guard isCurrentParent else {
             actionError = "You can only rename your own profile."
             return
           }
@@ -513,8 +832,10 @@ private struct ParentPersonTileView: View {
       switch entry {
         case .invite(let invite):
           try await model.deleteHouseholdInvite(inviteId: invite.id)
+          dismiss()
         case .member(let member):
           try await model.deleteHouseholdMember(memberId: member.id)
+          dismiss()
       }
     } catch {
       actionError = userError(error)

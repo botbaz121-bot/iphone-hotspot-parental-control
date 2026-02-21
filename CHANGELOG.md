@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.67 (68) - 2026-02-21
+- Parent devices UX consistency:
+- parent tiles now open a details sheet (like child flow),
+- parent actions moved into a name dropdown in the sheet title.
+- Added parent-level settings in that details screen:
+- active household selector (multi-household switch),
+- notification toggles (extra time, tamper placeholder).
+- Added `+` button on Parent Devices to create invites from iOS (shows generated code).
+- Landing title updated from `SpotCheck` to `SpotChecker`.
+
 ## 0.1.66 (67) - 2026-02-21
 - Allowed rename for the signed-in parent profile from `Parent Devices`.
 - Added current parent identity tracking (`parentId`) in app state/defaults.

@@ -1758,6 +1758,62 @@ app.get('/api/household/me', requireParent, (req, res) => {
   });
 });
 
+app.get('/api/households', requireParent, (req, res) => {
+  const active = db.prepare('SELECT active_household_id FROM parents WHERE id = ?').get(req.parent.id);
+  const activeHouseholdId = String(active?.active_household_id || '').trim() || req.household.id;
+
+  const households = db
+    .prepare(
+      `
+      SELECT h.id, h.name, hm.role, hm.status
+      FROM household_members hm
+      JOIN households h ON h.id = hm.household_id
+      WHERE hm.parent_id = ? AND hm.status = 'active'
+      ORDER BY CASE hm.role WHEN 'owner' THEN 0 ELSE 1 END, hm.created_at ASC
+      `
+    )
+    .all(req.parent.id)
+    .map(r => ({
+      id: r.id,
+      name: r.name || null,
+      role: r.role,
+      status: r.status,
+      active: r.id === activeHouseholdId
+    }));
+
+  return res.json({ ok: true, households, activeHouseholdId });
+});
+
+app.patch('/api/households/active', requireParent, (req, res, next) => {
+  try {
+    const schema = z.object({
+      householdId: z.string().min(3).max(128)
+    });
+    const { householdId } = schema.parse(req.body || {});
+
+    const member = db
+      .prepare(
+        `
+        SELECT hm.household_id, hm.role, h.name
+        FROM household_members hm
+        JOIN households h ON h.id = hm.household_id
+        WHERE hm.parent_id = ? AND hm.household_id = ? AND hm.status = 'active'
+        LIMIT 1
+        `
+      )
+      .get(req.parent.id, householdId);
+    if (!member) return res.status(404).json({ error: 'household_not_found' });
+
+    db.prepare('UPDATE parents SET active_household_id = ? WHERE id = ?').run(householdId, req.parent.id);
+    return res.json({
+      ok: true,
+      household: { id: member.household_id, name: member.name || null, role: member.role }
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get('/api/household/members', requireParent, (req, res) => {
   const members = db
     .prepare(

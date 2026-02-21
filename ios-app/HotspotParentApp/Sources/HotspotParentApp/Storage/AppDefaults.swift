@@ -13,6 +13,8 @@ public enum AppDefaults {
     static let adminToken = "hotspotParent.api.adminToken"
     static let parentSessionToken = "hotspotParent.parent.sessionToken"
     static let parentId = "hotspotParent.parent.id"
+    static let parentNotifyExtraTime = "hotspotParent.parent.notifyExtraTime"
+    static let parentNotifyTamper = "hotspotParent.parent.notifyTamper"
     static let parentPushToken = "hotspotParent.parent.pushToken"
     static let pendingExtraTimeDeviceId = "hotspotParent.push.pendingExtraTime.deviceId"
     static let pendingExtraTimeRequestId = "hotspotParent.push.pendingExtraTime.requestId"
@@ -104,6 +106,22 @@ public enum AppDefaults {
     set { defaults.set(newValue, forKey: Key.parentId) }
   }
 
+  public static var parentNotifyExtraTime: Bool {
+    get {
+      if defaults.object(forKey: Key.parentNotifyExtraTime) == nil { return true }
+      return defaults.bool(forKey: Key.parentNotifyExtraTime)
+    }
+    set { defaults.set(newValue, forKey: Key.parentNotifyExtraTime) }
+  }
+
+  public static var parentNotifyTamper: Bool {
+    get {
+      if defaults.object(forKey: Key.parentNotifyTamper) == nil { return true }
+      return defaults.bool(forKey: Key.parentNotifyTamper)
+    }
+    set { defaults.set(newValue, forKey: Key.parentNotifyTamper) }
+  }
+
   public static var pendingExtraTimeDeviceId: String? {
     get {
       let v = defaults.string(forKey: Key.pendingExtraTimeDeviceId)
@@ -159,6 +177,8 @@ public enum AppDefaults {
     defaults.removeObject(forKey: Key.adminToken)
     defaults.removeObject(forKey: Key.parentSessionToken)
     defaults.removeObject(forKey: Key.parentId)
+    defaults.removeObject(forKey: Key.parentNotifyExtraTime)
+    defaults.removeObject(forKey: Key.parentNotifyTamper)
     defaults.removeObject(forKey: Key.parentPushToken)
     defaults.removeObject(forKey: Key.pendingExtraTimeDeviceId)
     defaults.removeObject(forKey: Key.pendingExtraTimeRequestId)

@@ -206,3 +206,48 @@ public struct ParentProfileUpdateRequest: Encodable {
     self.displayName = displayName
   }
 }
+
+public struct HouseholdsResponse: Decodable {
+  public var ok: Bool
+  public var households: [ParentHousehold]
+  public var activeHouseholdId: String
+}
+
+public struct ParentHousehold: Decodable {
+  public var id: String
+  public var name: String?
+  public var role: String
+  public var status: String
+  public var active: Bool
+}
+
+public struct SetActiveHouseholdRequest: Encodable {
+  public var householdId: String
+
+  public init(householdId: String) {
+    self.householdId = householdId
+  }
+}
+
+public struct CreateHouseholdInviteRequest: Encodable {
+  public var email: String?
+  public var inviteName: String?
+
+  public init(email: String? = nil, inviteName: String? = nil) {
+    self.email = email
+    self.inviteName = inviteName
+  }
+}
+
+public struct CreateHouseholdInviteResponse: Decodable {
+  public struct Invite: Decodable {
+    public var token: String
+    public var code: String
+    public var email: String?
+    public var inviteName: String?
+    public var expiresAt: Int
+  }
+
+  public var ok: Bool
+  public var invite: Invite
+}

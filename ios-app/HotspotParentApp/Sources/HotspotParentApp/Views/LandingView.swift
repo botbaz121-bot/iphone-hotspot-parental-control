@@ -20,7 +20,7 @@ public struct LandingView: View {
   public var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 14) {
-        Text("SpotCheck")
+        Text("SpotChecker")
           .font(.system(size: 34, weight: .bold))
           .padding(.top, 2)
 

@@ -17,6 +17,7 @@ public struct RootView: View {
         Task { await model.registerParentPushTokenIfPossible(token) }
       }
       .onReceive(NotificationCenter.default.publisher(for: PushEventNames.didReceiveExtraTimeRequest)) { note in
+        guard model.parentNotifyExtraTimeRequests else { return }
         guard let deviceId = note.userInfo?["deviceId"] as? String, !deviceId.isEmpty else { return }
         let requestIdRaw = note.userInfo?["requestId"] as? String
         let requestId = (requestIdRaw?.isEmpty ?? true) ? nil : requestIdRaw
