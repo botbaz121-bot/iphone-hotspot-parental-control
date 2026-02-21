@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.59 (60) - 2026-02-21
+- Fixed household invite code length mismatch:
+- backend now generates 4-character invite codes (was 6),
+- aligns with web code-entry UI and join flow.
+
 ## 0.1.58 (59) - 2026-02-21
 - Added code-first entry flow on `web.spotchecker.app`:
 - sign-in screen now supports entering a 4-character invite code before Apple login,

@@ -1797,7 +1797,7 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
     let ok = false;
     for (let i = 0; i < 10; i++) {
       token = crypto.randomBytes(24).toString('hex');
-      code = randomPairingCode(6);
+      code = randomPairingCode(4);
       try {
         db.prepare(
           `
