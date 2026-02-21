@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.72 (73) - 2026-02-21
+- Added explicit vertical outer margin to parent tiles to ensure visible gap between parent rows.
+
 ## 0.1.71 (72) - 2026-02-21
 - Adjusted parent tile vertical spacing:
 - added explicit spacing between title/subtitle,

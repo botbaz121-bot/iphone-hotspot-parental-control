@@ -489,6 +489,7 @@ private struct ParentPersonTileView: View {
       .frame(height: 118)
     }
     .buttonStyle(.plain)
+    .padding(.vertical, 6)
   }
 }
 
