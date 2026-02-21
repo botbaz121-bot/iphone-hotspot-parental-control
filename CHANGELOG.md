@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.50 (51) - 2026-02-20
+- Fixed backend startup migration ordering for household rollout:
+- delayed creation of `idx_devices_household` index until after legacy `devices.household_id` column backfill/migration.
+- resolves restart loop on existing SQLite databases (`SqliteError: no such column: household_id`).
+
 ## 0.1.49 (50) - 2026-02-20
 - Added initial web parent app scaffold at `web-app/` for `web.spotchecker.app`:
 - dashboard shell with child list and policy editing controls,

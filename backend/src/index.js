@@ -224,7 +224,6 @@ CREATE INDEX IF NOT EXISTS idx_household_invites_status ON household_invites(sta
 CREATE INDEX IF NOT EXISTS idx_device_daily_usage_day ON device_daily_usage(day_key);
 CREATE INDEX IF NOT EXISTS idx_household_members_household ON household_members(household_id);
 CREATE INDEX IF NOT EXISTS idx_household_members_parent ON household_members(parent_id);
-CREATE INDEX IF NOT EXISTS idx_devices_household ON devices(household_id);
 `);
 
 // Lightweight migration for existing DBs
@@ -258,6 +257,9 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
   }
   if (!tableHasColumn('devices', 'household_id')) {
     db.exec('ALTER TABLE devices ADD COLUMN household_id TEXT');
+  }
+  if (tableHasColumn('devices', 'household_id')) {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_devices_household ON devices(household_id)');
   }
 }
 
