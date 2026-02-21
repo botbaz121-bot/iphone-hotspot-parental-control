@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.49 (50) - 2026-02-20
+- Added initial web parent app scaffold at `web-app/` for `web.spotchecker.app`:
+- dashboard shell with child list and policy editing controls,
+- household members and invite management,
+- dedicated `/invite` page for token/code acceptance.
+- Added backend web auth improvements:
+- Apple web callback now verifies identity token, mints session JWT, and redirects to web app with session hash.
+- `/auth/apple/start` now supports `next` path round-trip for invite flows.
+- Added backend CORS allowlist support for web app (`CORS_ALLOW_ORIGINS`).
+- Added deployment notes in `web-app/README.md`.
+
 ## 0.1.48 (49) - 2026-02-20
 - Added household architecture foundations on backend:
 - new `households` and `household_members` models, auth context now resolves active household + member role.

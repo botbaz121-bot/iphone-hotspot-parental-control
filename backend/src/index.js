@@ -42,6 +42,8 @@ const APNS_ENV = String(env('APNS_ENV', 'sandbox')).toLowerCase(); // sandbox | 
 const BACKEND_BUILD_VERSION = env('BACKEND_BUILD_VERSION', env('APP_VERSION', 'dev'));
 const BACKEND_BUILD_COMMIT = env('COOLIFY_GIT_COMMIT', env('RENDER_GIT_COMMIT', env('GIT_COMMIT', 'local'))).slice(0, 12);
 const BACKEND_BOOTED_AT = new Date().toISOString();
+const WEB_APP_REDIRECT_URL = env('WEB_APP_REDIRECT_URL', 'https://web.spotchecker.app/');
+const CORS_ALLOW_ORIGINS = splitCsv(env('CORS_ALLOW_ORIGINS', 'https://web.spotchecker.app,http://localhost:5173,http://localhost:3000'));
 
 const MAX_SKEW_MS = Number(env('MAX_SKEW_MS', String(5 * 60 * 1000)));
 const LOG_REQUEST_BODIES = env('LOG_REQUEST_BODIES', '0') === '1';
@@ -330,6 +332,20 @@ const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: false, contentSecurityPolicy: false }));
 app.use(morgan('dev'));
+
+// CORS for web dashboard/app.
+app.use((req, res, next) => {
+  const origin = String(req.header('Origin') || '').trim();
+  if (origin && CORS_ALLOW_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Device-Token, X-TS, X-Signature');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  return next();
+});
 
 // Raw body capture for HMAC auth
 app.use(
@@ -745,21 +761,26 @@ function randomState() {
 db.exec(`
 CREATE TABLE IF NOT EXISTS apple_oauth_states (
   state TEXT PRIMARY KEY,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  next_path TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_apple_oauth_states_created ON apple_oauth_states(created_at);
 `);
 
-function appleStoreState(state) {
-  db.prepare('INSERT INTO apple_oauth_states (state, created_at) VALUES (?, ?)').run(state, Date.now());
+if (tableHasColumn('apple_oauth_states', 'next_path') === false) {
+  db.exec('ALTER TABLE apple_oauth_states ADD COLUMN next_path TEXT');
+}
+
+function appleStoreState(state, nextPath = null) {
+  db.prepare('INSERT INTO apple_oauth_states (state, created_at, next_path) VALUES (?, ?, ?)').run(state, Date.now(), nextPath || null);
 }
 
 function appleConsumeState(state, maxAgeMs = 10 * 60 * 1000) {
-  const row = db.prepare('SELECT state, created_at FROM apple_oauth_states WHERE state = ?').get(state);
-  if (!row) return false;
+  const row = db.prepare('SELECT state, created_at, next_path FROM apple_oauth_states WHERE state = ?').get(state);
+  if (!row) return null;
   db.prepare('DELETE FROM apple_oauth_states WHERE state = ?').run(state);
-  if (Date.now() - Number(row.created_at) > maxAgeMs) return false;
-  return true;
+  if (Date.now() - Number(row.created_at) > maxAgeMs) return null;
+  return row;
 }
 
 // Start web auth: redirects user to Apple.
@@ -768,7 +789,9 @@ app.get('/auth/apple/start', (req, res) => {
     if (!APPLE_SERVICE_ID) return res.status(500).json({ error: 'missing APPLE_SERVICE_ID' });
 
     const state = randomState();
-    appleStoreState(state);
+    const nextPathRaw = String(req.query?.next || '').trim();
+    const safeNextPath = nextPathRaw.startsWith('/') ? nextPathRaw : null;
+    appleStoreState(state, safeNextPath);
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -786,12 +809,11 @@ app.get('/auth/apple/start', (req, res) => {
   }
 });
 
-// For now, we expose a minimal callback that exchanges the code and returns tokens.
-// Next step is to validate id_token, create a session, and redirect back to the app.
 app.all('/auth/apple/callback', async (req, res) => {
   try {
     const state = String(req.body?.state || req.query?.state || '').trim();
-    if (!state || !appleConsumeState(state)) {
+    const stateRow = state ? appleConsumeState(state) : null;
+    if (!stateRow) {
       return res.status(400).json({ error: 'invalid state' });
     }
 
@@ -799,9 +821,10 @@ app.all('/auth/apple/callback', async (req, res) => {
     if (!code) return res.status(400).json({ error: 'missing code' });
 
     const out = await appleTokenExchange(code);
+    const idToken = String(out?.id_token || '');
+    if (!idToken) return res.status(400).json({ ok: false, error: 'missing_id_token' });
 
     // Apple only sends name/email (in req.body.user) the first time per user+app.
-    // Keep it visible for debugging now.
     let user = null;
     try {
       if (req.body?.user) user = typeof req.body.user === 'string' ? JSON.parse(req.body.user) : req.body.user;
@@ -809,7 +832,49 @@ app.all('/auth/apple/callback', async (req, res) => {
       user = { raw: req.body?.user };
     }
 
-    return res.json({ ok: true, apple: out, user });
+    if (!APPLE_AUDIENCES.length) return res.status(500).json({ ok: false, error: 'missing_APPLE_AUDIENCES' });
+    if (!SESSION_JWT_SECRET) return res.status(500).json({ ok: false, error: 'missing_SESSION_JWT_SECRET' });
+
+    let payload = null;
+    for (const aud of APPLE_AUDIENCES) {
+      try {
+        payload = await verifyAppleIdentityToken({ identityToken: idToken, audience: aud });
+        break;
+      } catch {
+        // try next audience
+      }
+    }
+    if (!payload) return res.status(401).json({ ok: false, error: 'invalid_identity_token' });
+
+    const appleSub = String(payload.sub || '');
+    if (!appleSub) return res.status(401).json({ ok: false, error: 'invalid_identity_token' });
+
+    const email = user && typeof user.email === 'string' ? user.email : (payload.email ? String(payload.email) : null);
+
+    let parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
+    if (!parent) {
+      const parentId = id();
+      db.prepare('INSERT INTO parents (id, apple_sub, email) VALUES (?, ?, ?)').run(parentId, appleSub, email || null);
+      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parentId);
+    } else if (email && (!parent.email || String(parent.email).trim() === '')) {
+      db.prepare('UPDATE parents SET email = ? WHERE id = ?').run(email, parent.id);
+      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parent.id);
+    }
+
+    const household = ensureActiveHouseholdForParent(parent);
+    const sessionToken = await mintSessionJwt({ parentId: parent.id, appleSub, secret: SESSION_JWT_SECRET });
+    const target = new URL(WEB_APP_REDIRECT_URL);
+    if (stateRow.next_path) {
+      const nextUrl = new URL(stateRow.next_path, WEB_APP_REDIRECT_URL);
+      target.pathname = nextUrl.pathname;
+      target.search = nextUrl.search;
+    }
+    target.hash = new URLSearchParams({
+      sessionToken,
+      parentId: parent.id,
+      householdId: household.id
+    }).toString();
+    return res.redirect(target.toString());
   } catch (e) {
     return res.status(400).json({ ok: false, error: String(e?.message || e) });
   }

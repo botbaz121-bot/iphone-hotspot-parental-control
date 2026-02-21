@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SpotChecker Invite</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div id="app" class="app"></div>
+  <script>
+    (() => {
+      const API_BASE_KEY = 'spotchecker.web.apiBase';
+      const SESSION_KEY = 'spotchecker.web.sessionToken';
+      let apiBase = localStorage.getItem(API_BASE_KEY) || 'https://api.spotchecker.app';
+      let sessionToken = localStorage.getItem(SESSION_KEY) || '';
+
+      const app = document.getElementById('app');
+
+      function parseHashSession() {
+        const raw = (location.hash || '').replace(/^#/, '');
+        if (!raw) return;
+        const p = new URLSearchParams(raw);
+        const tok = (p.get('sessionToken') || '').trim();
+        if (tok) {
+          sessionToken = tok;
+          localStorage.setItem(SESSION_KEY, tok);
+          history.replaceState(null, '', location.pathname + location.search);
+        }
+      }
+
+      async function api(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+        if (sessionToken) headers.Authorization = `Bearer ${sessionToken}`;
+        const res = await fetch(apiBase + path, { ...opts, headers });
+        const txt = await res.text();
+        let data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch { data = { raw: txt }; }
+        if (!res.ok) throw new Error(data?.error || data?.detail || `HTTP ${res.status}`);
+        return data;
+      }
+
+      function tokenFromQuery() {
+        return (new URL(location.href)).searchParams.get('token') || '';
+      }
+
+      function render(msg = '', err = '') {
+        const token = tokenFromQuery();
+        app.innerHTML = `
+          <div class="top"><h1>SpotChecker Invite</h1></div>
+          <section class="card half">
+            <p class="muted">Join a household using invite token or code.</p>
+            ${msg ? `<p class="ok">${msg}</p>` : ''}
+            ${err ? `<p class="err">${err}</p>` : ''}
+
+            <div class="col">
+              <label class="muted">API Base</label>
+              <input id="apiBase" value="${apiBase}" />
+              <div class="row">
+                <button id="saveApi">Save API</button>
+                <button id="signIn" class="primary">Sign in with Apple</button>
+                <button id="goDash">Open Dashboard</button>
+              </div>
+            </div>
+
+            <hr class="sep" />
+
+            <div class="col">
+              <label class="muted">Invite token (from URL or pasted)</label>
+              <input id="inviteToken" value="${token}" />
+              <button id="acceptToken" class="primary">Accept token invite</button>
+            </div>
+
+            <hr class="sep" />
+
+            <div class="col">
+              <label class="muted">Invite code</label>
+              <input id="inviteCode" placeholder="Enter code" />
+              <button id="acceptCode">Accept code invite</button>
+            </div>
+          </section>
+        `;
+
+        document.getElementById('saveApi').onclick = () => {
+          apiBase = document.getElementById('apiBase').value.trim();
+          localStorage.setItem(API_BASE_KEY, apiBase);
+          render();
+        };
+
+        document.getElementById('signIn').onclick = () => {
+          apiBase = document.getElementById('apiBase').value.trim();
+          localStorage.setItem(API_BASE_KEY, apiBase);
+          const nextPath = `${location.pathname}${location.search}`;
+          location.href = `${apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
+        };
+
+        document.getElementById('goDash').onclick = () => {
+          location.href = '/';
+        };
+
+        document.getElementById('acceptToken').onclick = async () => {
+          try {
+            const t = document.getElementById('inviteToken').value.trim();
+            if (!t) throw new Error('missing token');
+            await api(`/api/household/invites/${encodeURIComponent(t)}/accept`, { method: 'POST' });
+            render('Invite accepted.');
+          } catch (e) {
+            render('', e.message || 'accept failed');
+          }
+        };
+
+        document.getElementById('acceptCode').onclick = async () => {
+          try {
+            const code = document.getElementById('inviteCode').value.trim().toUpperCase();
+            if (!code) throw new Error('missing code');
+            await api('/api/household/invite-code/accept', {
+              method: 'POST',
+              body: JSON.stringify({ code })
+            });
+            render('Invite accepted.');
+          } catch (e) {
+            render('', e.message || 'accept failed');
+          }
+        };
+      }
+
+      parseHashSession();
+      render();
+    })();
+  </script>
+</body>
+</html>
