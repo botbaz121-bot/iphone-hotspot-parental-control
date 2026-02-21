@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.51 (52) - 2026-02-20
+- Fixed backend startup crash in household bootstrap migration (`ReferenceError: Cannot access 'id' before initialization`):
+- replaced early bootstrap `id()` calls with `crypto.randomUUID()` before `id` helper initialization.
+
 ## 0.1.50 (51) - 2026-02-20
 - Fixed backend startup migration ordering for household rollout:
 - delayed creation of `idx_devices_household` index until after legacy `devices.household_id` column backfill/migration.

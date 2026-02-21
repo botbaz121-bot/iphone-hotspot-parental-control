@@ -293,7 +293,7 @@ if (
         )
         .get(p.id);
       if (!active) {
-        const householdId = id();
+        const householdId = crypto.randomUUID();
         const defaultName = p.email ? `${p.email}'s Household` : 'SpotChecker Household';
         db.prepare('INSERT INTO households (id, name, created_by_parent_id) VALUES (?, ?, ?)').run(householdId, defaultName, p.id);
         db
@@ -303,7 +303,7 @@ if (
             VALUES (?, ?, ?, 'owner', 'active')
             `
           )
-          .run(id(), householdId, p.id);
+          .run(crypto.randomUUID(), householdId, p.id);
       }
     }
 
