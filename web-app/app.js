@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.86-web';
+  const WEB_BUILD = '0.1.87-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -244,13 +244,22 @@
     return `<div class="toast ${state.toastType === 'err' ? 'err' : 'ok'}">${escapeHtml(state.toast)}</div>`;
   }
 
+  function renderBrandLink() {
+    return `
+      <a class="brand-link" href="#/dashboard" data-action="open-dashboard">
+        <img class="brand-logo" src="./logo-192.png" alt="SpotChecker logo" />
+        <h1 class="title">SpotChecker</h1>
+      </a>
+    `;
+  }
+
   function renderWelcome(err = '') {
     const queryInviteCode = (new URL(location.href).searchParams.get('inviteCode') || '').trim().toUpperCase();
     app.innerHTML = `
       <div class="screen auth-shell">
         <header class="topbar">
           <div>
-            <h1 class="title">SpotChecker</h1>
+            ${renderBrandLink()}
             <p class="subtitle">Choose device type</p>
           </div>
         </header>
@@ -408,16 +417,11 @@
   }
 
   function renderDashboardPage() {
-    const who = state.me?.displayName || state.me?.email || 'Parent';
     return `
       <div class="screen">
         <header class="topbar">
           <div>
-            <h1 class="title">SpotChecker</h1>
-            <div class="meta-row">
-              <span class="pill">${escapeHtml(who)}</span>
-              <span class="pill">${escapeHtml(state.household?.role || '')}</span>
-            </div>
+            ${renderBrandLink()}
           </div>
           <div class="actions-wrap">
             <button class="btn danger" data-action="signout">Sign out</button>
@@ -454,11 +458,7 @@
         <div class="screen">
           <header class="topbar">
             <div>
-              <h1 class="title">SpotChecker</h1>
-              <div class="meta-row">
-                <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
-                <span class="pill">${escapeHtml(state.household?.role || '')}</span>
-              </div>
+              ${renderBrandLink()}
             </div>
             <button class="btn danger" data-action="signout">Sign out</button>
           </header>
@@ -483,18 +483,13 @@
       <div class="screen">
         <header class="topbar">
           <div>
-            <h1 class="title">SpotChecker</h1>
-            <div class="meta-row">
-              <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
-              <span class="pill">${escapeHtml(state.household?.role || '')}</span>
-            </div>
+            ${renderBrandLink()}
           </div>
           <button class="btn danger" data-action="signout">Sign out</button>
         </header>
 
         <div class="row spread">
           <div class="row">
-            <button class="btn ghost small" data-action="open-dashboard">Dashboard</button>
             <span class="pill">Child Settings</span>
           </div>
           <div class="row">
@@ -611,11 +606,7 @@
         <div class="screen">
           <header class="topbar">
             <div>
-              <h1 class="title">SpotChecker</h1>
-              <div class="meta-row">
-                <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
-                <span class="pill">${escapeHtml(state.household?.role || '')}</span>
-              </div>
+              ${renderBrandLink()}
             </div>
             <button class="btn danger" data-action="signout">Sign out</button>
           </header>
@@ -636,18 +627,13 @@
       <div class="screen">
         <header class="topbar">
           <div>
-            <h1 class="title">SpotChecker</h1>
-            <div class="meta-row">
-              <span class="pill">${escapeHtml(state.me?.displayName || state.me?.email || 'Parent')}</span>
-              <span class="pill">${escapeHtml(state.household?.role || '')}</span>
-            </div>
+            ${renderBrandLink()}
           </div>
           <button class="btn danger" data-action="signout">Sign out</button>
         </header>
 
         <div class="row spread">
           <div class="row">
-            <button class="btn ghost small" data-action="open-dashboard">Dashboard</button>
             <span class="pill">Parent Settings</span>
           </div>
           <div class="row">

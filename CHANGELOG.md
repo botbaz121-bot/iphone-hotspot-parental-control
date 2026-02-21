@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.87 (88) - 2026-02-21
+- Web header/navigation updates:
+- added top-left SpotChecker logo in web app shell (`web-app/logo-192.png`),
+- made `logo + SpotChecker` in header navigate back to dashboard,
+- removed explicit `Dashboard` subnav button from child/parent subpages.
+- Removed the profile/role line under the logo header on authenticated pages (e.g. “Mr One Hundredzzddd Coparent”).
+- Updated web cache-bust versions to `styles.css?v=0.1.87` and `app.js?v=0.1.87`.
+
 ## 0.1.86 (87) - 2026-02-21
 - Tightened web desktop content width:
 - reduced main container max-width from `1160px` to `920px`.

@@ -57,6 +57,21 @@ body {
   gap: 12px;
 }
 
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
 .title {
   margin: 0;
   font-size: 36px;
