@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.47 (48) - 2026-02-20
+- Fixed protection status grammar so single `Apps` action now reads `Apps are protected.` (while singular actions keep `is protected`).
+
 ## 0.1.46 (47) - 2026-02-20
 - Updated `/admin` device table to show daily-limit warning pipeline diagnostics per child:
 - daily-limit state (`limit/used/remaining/reached`),

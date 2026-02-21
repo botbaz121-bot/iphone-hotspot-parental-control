@@ -2331,7 +2331,10 @@ function formatProtectedActions({ activateProtection, setHotspotOff, setWifiOff,
   if (setMobileDataOff) labels.push('Mobile Data');
 
   if (!labels.length) return 'No protections are configured.';
-  if (labels.length === 1) return `${labels[0]} is protected.`;
+  if (labels.length === 1) {
+    const singular = labels[0] !== 'Apps';
+    return `${labels[0]} ${singular ? 'is' : 'are'} protected.`;
+  }
   if (labels.length === 2) return `${labels[0]} and ${labels[1]} are protected.`;
   return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]} are protected.`;
 }
