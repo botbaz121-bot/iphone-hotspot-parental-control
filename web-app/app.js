@@ -114,7 +114,7 @@
       return `
         <div class="device-card">
           <div class="row" style="justify-content:space-between">
-            <strong>${escapeHtml(i.email || 'Manual invite')}</strong>
+            <strong>${escapeHtml(i.inviteName || i.email || 'Manual invite')}</strong>
             <span class="badge">${escapeHtml(i.status)}</span>
           </div>
           <div class="muted">Expires: ${new Date(i.expiresAt).toLocaleString()}</div>
@@ -130,7 +130,7 @@
     return state.members.map(m => `
       <div class="row" style="justify-content:space-between; border:1px solid var(--line); border-radius:10px; padding:8px 10px;">
         <div>
-          <strong>${escapeHtml(m.email || m.parentId)}</strong>
+          <strong>${escapeHtml(m.displayName || m.email || m.parentId)}</strong>
           <div class="muted">${escapeHtml(m.parentId)}</div>
         </div>
         <div class="row">
@@ -218,6 +218,7 @@
       <div class="top">
         <div>
           <h1>SpotChecker Parent Dashboard (Web)</h1>
+          <div class="muted">Signed in as ${escapeHtml(state.me?.displayName || state.me?.email || state.me?.id || '')}</div>
           <div class="muted">Household: ${escapeHtml(state.household?.name || '')} · Role: ${escapeHtml(state.household?.role || '')}</div>
         </div>
         <div class="row">
@@ -242,9 +243,18 @@
 
       <div class="grid">
         <section class="card half">
+          <h2>Profile</h2>
+          <div class="row">
+            <input id="displayName" placeholder="Your display name" value="${escapeHtml(state.me?.displayName || '')}" style="flex:1" />
+            <button id="saveDisplayName" class="primary">Save Name</button>
+          </div>
+        </section>
+
+        <section class="card half">
           <h2>Invite Co-parent</h2>
           <p class="muted">Send by email, or share code/link. It can be entered at <code>web.spotchecker.app/invite</code>.</p>
           <div class="row">
+            <input id="inviteName" placeholder="name (optional)" style="flex:1" />
             <input id="inviteEmail" placeholder="email (optional)" style="flex:1" />
             <button id="createInvite" class="primary">Create Invite</button>
           </div>
@@ -302,10 +312,25 @@
       };
     }
 
+    document.getElementById('saveDisplayName').onclick = async () => {
+      const displayName = document.getElementById('displayName').value.trim();
+      if (!displayName) return;
+      try {
+        await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify({ displayName }) });
+        await loadAll('Display name updated.');
+      } catch (e) {
+        alert(`Save name failed: ${e.message}`);
+      }
+    };
+
     document.getElementById('createInvite').onclick = async () => {
       const email = document.getElementById('inviteEmail').value.trim();
+      const inviteName = document.getElementById('inviteName').value.trim();
       try {
-        await api('/api/household/invites', { method: 'POST', body: JSON.stringify({ email: email || undefined }) });
+        await api('/api/household/invites', {
+          method: 'POST',
+          body: JSON.stringify({ email: email || undefined, inviteName: inviteName || undefined })
+        });
         await loadAll('Invite created.');
       } catch (e) {
         alert(`Invite failed: ${e.message}`);

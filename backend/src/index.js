@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS parents (
   id TEXT PRIMARY KEY,
   apple_sub TEXT NOT NULL UNIQUE,
   email TEXT,
+  display_name TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -184,6 +185,7 @@ CREATE TABLE IF NOT EXISTS household_invites (
   household_id TEXT NOT NULL,
   invited_by_parent_id TEXT NOT NULL,
   email TEXT,
+  invite_name TEXT,
   token TEXT NOT NULL UNIQUE,
   code TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -230,6 +232,12 @@ CREATE INDEX IF NOT EXISTS idx_household_members_parent ON household_members(par
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devices'").get()) {
   if (!tableHasColumn('devices', 'icon')) {
     db.exec("ALTER TABLE devices ADD COLUMN icon TEXT");
+  }
+}
+
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='parents'").get()) {
+  if (!tableHasColumn('parents', 'display_name')) {
+    db.exec('ALTER TABLE parents ADD COLUMN display_name TEXT');
   }
 }
 
@@ -328,6 +336,12 @@ if (
     }
   });
   tx();
+}
+
+if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='household_invites'").get()) {
+  if (!tableHasColumn('household_invites', 'invite_name')) {
+    db.exec('ALTER TABLE household_invites ADD COLUMN invite_name TEXT');
+  }
 }
 
 const app = express();
@@ -539,7 +553,7 @@ async function requireParent(req, res, next) {
     const parentId = String(payload.parentId || '');
     if (!appleSub || !parentId) return res.status(401).json({ error: 'unauthorized' });
 
-    const parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ? AND apple_sub = ?').get(parentId, appleSub);
+    const parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE id = ? AND apple_sub = ?').get(parentId, appleSub);
     if (!parent) return res.status(401).json({ error: 'unauthorized' });
 
     req.parent = parent;
@@ -852,15 +866,31 @@ app.all('/auth/apple/callback', async (req, res) => {
     if (!appleSub) return res.status(401).json({ ok: false, error: 'invalid_identity_token' });
 
     const email = user && typeof user.email === 'string' ? user.email : (payload.email ? String(payload.email) : null);
+    const firstName = user && typeof user.name?.firstName === 'string' ? user.name.firstName.trim() : '';
+    const lastName = user && typeof user.name?.lastName === 'string' ? user.name.lastName.trim() : '';
+    const displayName = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
-    let parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
+    let parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
     if (!parent) {
       const parentId = id();
-      db.prepare('INSERT INTO parents (id, apple_sub, email) VALUES (?, ?, ?)').run(parentId, appleSub, email || null);
-      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parentId);
-    } else if (email && (!parent.email || String(parent.email).trim() === '')) {
-      db.prepare('UPDATE parents SET email = ? WHERE id = ?').run(email, parent.id);
-      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parent.id);
+      db.prepare('INSERT INTO parents (id, apple_sub, email, display_name) VALUES (?, ?, ?, ?)').run(parentId, appleSub, email || null, displayName);
+      parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE id = ?').get(parentId);
+    } else {
+      const updates = [];
+      const vals = [];
+      if (email && (!parent.email || String(parent.email).trim() === '')) {
+        updates.push('email = ?');
+        vals.push(email);
+      }
+      if (displayName && (!parent.display_name || String(parent.display_name).trim() === '')) {
+        updates.push('display_name = ?');
+        vals.push(displayName);
+      }
+      if (updates.length) {
+        vals.push(parent.id);
+        db.prepare(`UPDATE parents SET ${updates.join(', ')} WHERE id = ?`).run(...vals);
+        parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE id = ?').get(parent.id);
+      }
     }
 
     const household = ensureActiveHouseholdForParent(parent);
@@ -891,7 +921,7 @@ app.post('/auth/apple/native', async (req, res) => {
       email: z.string().email().optional(),
       fullName: z.string().max(200).optional()
     });
-    const { identityToken, email } = schema.parse(req.body || {});
+    const { identityToken, email, fullName } = schema.parse(req.body || {});
 
     if (!APPLE_AUDIENCES.length) return res.status(500).json({ error: 'missing_APPLE_AUDIENCES' });
     if (!SESSION_JWT_SECRET) return res.status(500).json({ error: 'missing_SESSION_JWT_SECRET' });
@@ -913,21 +943,35 @@ app.post('/auth/apple/native', async (req, res) => {
     if (!appleSub) return res.status(401).json({ error: 'invalid_identity_token' });
 
     // Upsert parent.
-    let parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
+    const displayName = fullName ? String(fullName).trim() : null;
+    let parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE apple_sub = ?').get(appleSub);
     if (!parent) {
       const parentId = id();
-      db.prepare('INSERT INTO parents (id, apple_sub, email) VALUES (?, ?, ?)').run(parentId, appleSub, email || null);
-      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parentId);
-    } else if (email && (!parent.email || String(parent.email).trim() === '')) {
-      db.prepare('UPDATE parents SET email = ? WHERE id = ?').run(email, parent.id);
-      parent = db.prepare('SELECT id, apple_sub, email, created_at FROM parents WHERE id = ?').get(parent.id);
+      db.prepare('INSERT INTO parents (id, apple_sub, email, display_name) VALUES (?, ?, ?, ?)').run(parentId, appleSub, email || null, displayName);
+      parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE id = ?').get(parentId);
+    } else {
+      const updates = [];
+      const vals = [];
+      if (email && (!parent.email || String(parent.email).trim() === '')) {
+        updates.push('email = ?');
+        vals.push(email);
+      }
+      if (displayName && (!parent.display_name || String(parent.display_name).trim() === '')) {
+        updates.push('display_name = ?');
+        vals.push(displayName);
+      }
+      if (updates.length) {
+        vals.push(parent.id);
+        db.prepare(`UPDATE parents SET ${updates.join(', ')} WHERE id = ?`).run(...vals);
+        parent = db.prepare('SELECT id, apple_sub, email, display_name, created_at FROM parents WHERE id = ?').get(parent.id);
+      }
     }
 
     const household = ensureActiveHouseholdForParent(parent);
     const sessionToken = await mintSessionJwt({ parentId: parent.id, appleSub, secret: SESSION_JWT_SECRET });
     return res.json({
       ok: true,
-      parent: { id: parent.id, email: parent.email || null, appleSubHash: hashSub(appleSub) },
+      parent: { id: parent.id, email: parent.email || null, displayName: parent.display_name || null, appleSubHash: hashSub(appleSub) },
       household,
       sessionToken
     });
@@ -1650,9 +1694,28 @@ app.post('/pair', (req, res, next) => {
 app.get('/api/me', requireParent, (req, res) => {
   return res.json({
     ok: true,
-    parent: { id: req.parent.id, email: req.parent.email || null, created_at: req.parent.created_at },
+    parent: {
+      id: req.parent.id,
+      email: req.parent.email || null,
+      displayName: req.parent.display_name || null,
+      created_at: req.parent.created_at
+    },
     household: { id: req.household.id, name: req.household.name, role: req.household.role }
   });
+});
+
+app.patch('/api/me/profile', requireParent, (req, res, next) => {
+  try {
+    const schema = z.object({
+      displayName: z.string().trim().min(1).max(120)
+    });
+    const { displayName } = schema.parse(req.body || {});
+    db.prepare('UPDATE parents SET display_name = ? WHERE id = ?').run(displayName, req.parent.id);
+    req.parent.display_name = displayName;
+    return res.json({ ok: true, parent: { id: req.parent.id, displayName } });
+  } catch (e) {
+    next(e);
+  }
 });
 
 app.get('/api/household/me', requireParent, (req, res) => {
@@ -1667,6 +1730,7 @@ app.get('/api/household/members', requireParent, (req, res) => {
     .prepare(
       `
       SELECT hm.id, hm.parent_id, hm.role, hm.status, hm.created_at, p.email
+           , p.display_name
       FROM household_members hm
       JOIN parents p ON p.id = hm.parent_id
       WHERE hm.household_id = ?
@@ -1678,6 +1742,7 @@ app.get('/api/household/members', requireParent, (req, res) => {
       id: m.id,
       parentId: m.parent_id,
       email: m.email || null,
+      displayName: m.display_name || null,
       role: m.role,
       status: m.status,
       createdAt: m.created_at
@@ -1690,6 +1755,7 @@ app.get('/api/household/invites', requireParent, (req, res) => {
     .prepare(
       `
       SELECT hi.id, hi.email, hi.token, hi.code, hi.status, hi.expires_at, hi.accepted_at, hi.revoked_at, hi.created_at,
+             hi.invite_name,
              p.email AS invited_by_email
       FROM household_invites hi
       LEFT JOIN parents p ON p.id = hi.invited_by_parent_id
@@ -1702,6 +1768,7 @@ app.get('/api/household/invites', requireParent, (req, res) => {
     .map(r => ({
       id: r.id,
       email: r.email || null,
+      inviteName: r.invite_name || null,
       token: r.token,
       code: r.code,
       status: r.status,
@@ -1718,6 +1785,7 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
   try {
     const schema = z.object({
       email: z.string().email().optional(),
+      inviteName: z.string().trim().min(1).max(120).optional(),
       ttlDays: z.number().int().min(1).max(30).optional().default(7)
     });
     const body = schema.parse(req.body || {});
@@ -1734,10 +1802,10 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
         db.prepare(
           `
           INSERT INTO household_invites (
-            id, household_id, invited_by_parent_id, email, token, code, status, expires_at
-          ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+            id, household_id, invited_by_parent_id, email, invite_name, token, code, status, expires_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
           `
-        ).run(id(), req.household.id, req.parent.id, body.email || null, token, code, expiresAt);
+        ).run(id(), req.household.id, req.parent.id, body.email || null, body.inviteName || null, token, code, expiresAt);
         ok = true;
         break;
       } catch (e) {
@@ -1753,6 +1821,7 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
         token,
         code,
         email: body.email || null,
+        inviteName: body.inviteName || null,
         expiresAt,
         inviteUrl
       }
@@ -1769,7 +1838,7 @@ app.get('/api/household/invites/:token', (req, res) => {
   const row = db
     .prepare(
       `
-      SELECT hi.id, hi.email, hi.status, hi.expires_at, hi.accepted_at, hi.revoked_at, h.id AS household_id, h.name AS household_name
+      SELECT hi.id, hi.email, hi.invite_name, hi.status, hi.expires_at, hi.accepted_at, hi.revoked_at, h.id AS household_id, h.name AS household_name
       FROM household_invites hi
       JOIN households h ON h.id = hi.household_id
       WHERE hi.token = ?
@@ -1788,6 +1857,7 @@ app.get('/api/household/invites/:token', (req, res) => {
       householdId: row.household_id,
       householdName: row.household_name || null,
       email: row.email || null,
+      inviteName: row.invite_name || null,
       status: row.status,
       expiresAt: Number(row.expires_at || 0),
       acceptedAt: row.accepted_at != null ? Number(row.accepted_at) : null,

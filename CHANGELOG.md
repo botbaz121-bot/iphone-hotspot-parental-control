@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.53 (54) - 2026-02-20
+- Added parent display name support:
+- new `parents.display_name` field (with migration),
+- Apple auth upsert now stores display name when available (web + native),
+- `GET /api/me` now returns `parent.displayName`,
+- added `PATCH /api/me/profile` to set/update display name.
+- Added invite name support:
+- new `household_invites.invite_name` field (with migration),
+- invite create/list/detail APIs now accept/return `inviteName`.
+- Updated web dashboard UI:
+- profile card to edit display name,
+- signed-in header uses display name fallback chain,
+- household members list prefers display name,
+- invite creation form supports optional invite name and renders it in invite list.
+
 ## 0.1.52 (53) - 2026-02-20
 - Added Docker deployment support for web app (`web-app/`) for Coolify Docker mode:
 - `web-app/Dockerfile` (nginx alpine static serve),
