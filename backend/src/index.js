@@ -1783,6 +1783,40 @@ app.get('/api/household/members', requireParent, (req, res) => {
   return res.json({ ok: true, members });
 });
 
+app.delete('/api/household/members/:memberId', requireParent, (req, res) => {
+  const memberId = String(req.params.memberId || '').trim();
+  if (!memberId) return res.status(400).json({ error: 'invalid_member_id' });
+
+  const requester = db
+    .prepare(
+      `
+      SELECT role
+      FROM household_members
+      WHERE household_id = ? AND parent_id = ? AND status = 'active'
+      LIMIT 1
+      `
+    )
+    .get(req.household.id, req.parent.id);
+  if (!requester) return res.status(403).json({ error: 'forbidden' });
+  if (requester.role !== 'owner') return res.status(403).json({ error: 'owner_required' });
+
+  const target = db
+    .prepare(
+      `
+      SELECT id, parent_id, role
+      FROM household_members
+      WHERE id = ? AND household_id = ?
+      LIMIT 1
+      `
+    )
+    .get(memberId, req.household.id);
+  if (!target) return res.status(404).json({ error: 'not_found' });
+  if (target.role === 'owner') return res.status(409).json({ error: 'cannot_delete_owner' });
+
+  db.prepare('DELETE FROM household_members WHERE id = ?').run(target.id);
+  return res.json({ ok: true });
+});
+
 app.get('/api/household/invites', requireParent, (req, res) => {
   const invites = db
     .prepare(
@@ -1862,6 +1896,65 @@ app.post('/api/household/invites', requireParent, (req, res, next) => {
   } catch (e) {
     next(e);
   }
+});
+
+app.patch('/api/household/invites/:inviteId', requireParent, (req, res, next) => {
+  try {
+    const inviteId = String(req.params.inviteId || '').trim();
+    if (!inviteId) return res.status(400).json({ error: 'invalid_invite_id' });
+
+    const schema = z.object({
+      inviteName: z.string().trim().min(1).max(120)
+    });
+    const body = schema.parse(req.body || {});
+
+    const invite = db
+      .prepare(
+        `
+        SELECT id, status
+        FROM household_invites
+        WHERE id = ? AND household_id = ?
+        LIMIT 1
+        `
+      )
+      .get(inviteId, req.household.id);
+    if (!invite) return res.status(404).json({ error: 'not_found' });
+    if (invite.status !== 'pending') return res.status(409).json({ error: 'invite_not_pending' });
+
+    db.prepare('UPDATE household_invites SET invite_name = ? WHERE id = ?').run(body.inviteName, inviteId);
+    return res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.delete('/api/household/invites/:inviteId', requireParent, (req, res) => {
+  const inviteId = String(req.params.inviteId || '').trim();
+  if (!inviteId) return res.status(400).json({ error: 'invalid_invite_id' });
+
+  const invite = db
+    .prepare(
+      `
+      SELECT id, status
+      FROM household_invites
+      WHERE id = ? AND household_id = ?
+      LIMIT 1
+      `
+    )
+    .get(inviteId, req.household.id);
+  if (!invite) return res.status(404).json({ error: 'not_found' });
+  if (invite.status !== 'pending') return res.status(409).json({ error: 'invite_not_pending' });
+
+  db.prepare(
+    `
+    UPDATE household_invites
+    SET status = 'revoked',
+        revoked_at = ?
+    WHERE id = ?
+    `
+  ).run(Date.now(), inviteId);
+
+  return res.json({ ok: true });
 });
 
 app.get('/api/household/invites/:token', (req, res) => {

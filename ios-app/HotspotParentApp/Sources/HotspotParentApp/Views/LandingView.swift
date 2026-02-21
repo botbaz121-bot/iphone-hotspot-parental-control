@@ -12,6 +12,8 @@ public struct LandingView: View {
 
   @State private var status: String?
   @State private var showError = false
+  @State private var inviteCode: String = ""
+  @State private var joiningInvite: Bool = false
 
   public init() {}
 
@@ -46,6 +48,38 @@ public struct LandingView: View {
           }
         }
 
+        SettingsGroup("Join By Invite") {
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Enter the 4-character code from the parent.")
+              .font(.system(size: 14))
+              .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+              TextField("ABCD", text: $inviteCode)
+                .textInputAutocapitalization(.characters)
+                .disableAutocorrection(true)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.primary.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+              Button {
+                Task { await joinByInvite() }
+              } label: {
+                if joiningInvite {
+                  ProgressView()
+                } else {
+                  Text("Join")
+                    .font(.system(size: 15, weight: .semibold))
+                }
+              }
+              .buttonStyle(.borderedProminent)
+              .disabled(joiningInvite)
+            }
+          }
+          .padding(14)
+        }
       }
       .padding(.top, 18)
       .padding(.horizontal, 18)
@@ -56,40 +90,69 @@ public struct LandingView: View {
     } message: {
       Text(signInMessage(for: status))
     }
+    .onChange(of: inviteCode) { value in
+      let filtered = value.uppercased().filter { $0.isLetter || $0.isNumber }
+      if filtered != value || filtered.count > 4 {
+        inviteCode = String(filtered.prefix(4))
+      }
+    }
   }
 
   @MainActor
   private func startParent() async {
     status = nil
 
-    // If already signed in, just enter parent mode.
-    if model.isSignedIn {
-      model.setAppMode(.parent)
-      return
-    }
-
-    #if canImport(AuthenticationServices)
     do {
-      let coord = AppleSignInCoordinator()
-      let creds = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<AppleSignInCoordinator.AppleCredentials, Error>) in
-        coord.start { result in cont.resume(with: result) }
-      }
-
-      try await model.signInWithApple(
-        identityToken: creds.identityToken,
-        appleUserID: creds.userID,
-        email: creds.email,
-        fullName: creds.fullName
-      )
-
+      try await ensureParentSignedIn()
       model.setAppMode(.parent)
     } catch {
       status = String(describing: error)
       showError = true
     }
+  }
+
+  @MainActor
+  private func joinByInvite() async {
+    let code = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    guard code.count == 4 else {
+      status = "Invite code must be 4 characters."
+      showError = true
+      return
+    }
+
+    status = nil
+    joiningInvite = true
+    defer { joiningInvite = false }
+
+    do {
+      try await ensureParentSignedIn()
+      try await model.acceptHouseholdInviteCode(code)
+      inviteCode = ""
+      model.setAppMode(.parent)
+    } catch {
+      status = String(describing: error)
+      showError = true
+    }
+  }
+
+  @MainActor
+  private func ensureParentSignedIn() async throws {
+    if model.isSignedIn { return }
+
+    #if canImport(AuthenticationServices)
+    let coord = AppleSignInCoordinator()
+    let creds = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<AppleSignInCoordinator.AppleCredentials, Error>) in
+      coord.start { result in cont.resume(with: result) }
+    }
+
+    try await model.signInWithApple(
+      identityToken: creds.identityToken,
+      appleUserID: creds.userID,
+      email: creds.email,
+      fullName: creds.fullName
+    )
     #else
-    status = "Sign in with Apple is unavailable on this build target."
-    showError = true
+    throw APIError.invalidResponse
     #endif
   }
 

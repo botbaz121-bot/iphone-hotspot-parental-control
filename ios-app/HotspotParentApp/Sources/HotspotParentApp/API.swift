@@ -47,6 +47,21 @@ public enum APIError: Error, CustomStringConvertible {
         if err == "invalid_code" || err == "invalid_pairing_code" {
           return "That pairing code is invalid or expired. Ask the parent phone to generate a new one."
         }
+        if err == "invite_not_pending" {
+          return "That invite is no longer pending."
+        }
+        if err == "invite_expired" {
+          return "That invite code has expired. Ask for a new one."
+        }
+        if err == "invite_revoked" {
+          return "That invite was cancelled."
+        }
+        if err == "owner_required" {
+          return "Only the household owner can remove a parent."
+        }
+        if err == "cannot_delete_owner" {
+          return "The household owner can’t be removed."
+        }
         if code == 401 {
           return "You’re not authorized. Please sign in again and try."
         }

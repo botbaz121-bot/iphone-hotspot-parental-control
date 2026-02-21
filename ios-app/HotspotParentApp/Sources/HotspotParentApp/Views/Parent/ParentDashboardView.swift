@@ -36,6 +36,8 @@ public struct ParentDashboardView: View {
               .foregroundStyle(.secondary)
               .padding(.top, 6)
           }
+
+          parentDevicesSection
         }
         .padding(.top, 18)
         .padding(.horizontal, 18)
@@ -83,13 +85,9 @@ public struct ParentDashboardView: View {
   private var header: some View {
     HStack(alignment: .top) {
       VStack(alignment: .leading, spacing: 6) {
-        Text("All Child Devices")
+        Text("Child Devices")
           .font(.system(size: 34, weight: .bold))
           .padding(.top, 2)
-
-        Text("Tap a device to view rules and recent activity.")
-          .font(.system(size: 14))
-          .foregroundStyle(.secondary)
       }
 
       Spacer()
@@ -106,6 +104,39 @@ public struct ParentDashboardView: View {
       .accessibilityLabel("Add device")
       .padding(.top, 4)
     }
+  }
+
+  private var parentDevicesSection: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Parent Devices")
+        .font(.system(size: 22, weight: .bold))
+        .padding(.top, 8)
+
+      if parentEntries.isEmpty {
+        Text("No parent devices or invites yet.")
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+      } else {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+          ForEach(Array(parentEntries.enumerated()), id: \.element.id) { idx, entry in
+            ParentPersonTileView(entry: entry, colorIndex: idx)
+              .environmentObject(model)
+          }
+        }
+      }
+    }
+  }
+
+  private var parentEntries: [ParentTileEntry] {
+    var out: [ParentTileEntry] = model.householdMembers
+      .filter { $0.status.lowercased() == "active" }
+      .map { .member($0) }
+
+    out.append(contentsOf: model.householdInvites
+      .filter { $0.status.lowercased() == "pending" }
+      .map { .invite($0) })
+
+    return out
   }
 }
 
@@ -189,6 +220,258 @@ private struct DeviceTileView: View {
       .frame(height: 110)
     }
     .buttonStyle(.plain)
+  }
+}
+
+private enum ParentTileEntry: Identifiable {
+  case member(HouseholdMember)
+  case invite(HouseholdInvite)
+
+  var id: String {
+    switch self {
+      case .member(let m): return "member:\(m.id)"
+      case .invite(let i): return "invite:\(i.id)"
+    }
+  }
+
+  var photoKey: String {
+    switch self {
+      case .member(let m): return "parent-member-\(m.id)"
+      case .invite(let i): return "parent-invite-\(i.id)"
+    }
+  }
+
+  var title: String {
+    switch self {
+      case .member(let m):
+        if let d = m.displayName, !d.isEmpty { return d }
+        if let e = m.email, !e.isEmpty { return e }
+        return "Parent"
+      case .invite(let i):
+        if let n = i.inviteName, !n.isEmpty { return n }
+        if let e = i.email, !e.isEmpty { return e }
+        return "Invited parent"
+    }
+  }
+
+  var subtitle: String {
+    switch self {
+      case .member(let m): return m.role.capitalized
+      case .invite: return "Invite pending"
+    }
+  }
+}
+
+private struct ParentPersonTileView: View {
+  @EnvironmentObject private var model: AppModel
+  let entry: ParentTileEntry
+  let colorIndex: Int
+
+  @State private var showRename: Bool = false
+  @State private var renameText: String = ""
+  @State private var showDeleteConfirm: Bool = false
+  @State private var showInviteCode: Bool = false
+  @State private var inviteCodeText: String = ""
+  @State private var actionError: String?
+
+  #if canImport(PhotosUI)
+  @State private var pickedPhoto: PhotosPickerItem?
+  @State private var showPhotoPicker: Bool = false
+  #endif
+
+  private var gradient: LinearGradient {
+    let palette: [LinearGradient] = [
+      LinearGradient(colors: [Color(red: 0.15, green: 0.52, blue: 0.98), Color(red: 0.10, green: 0.32, blue: 0.82)], startPoint: .topLeading, endPoint: .bottomTrailing),
+      LinearGradient(colors: [Color(red: 0.12, green: 0.68, blue: 0.56), Color(red: 0.06, green: 0.46, blue: 0.38)], startPoint: .topLeading, endPoint: .bottomTrailing),
+      LinearGradient(colors: [Color(red: 0.86, green: 0.44, blue: 0.24), Color(red: 0.62, green: 0.28, blue: 0.12)], startPoint: .topLeading, endPoint: .bottomTrailing),
+      LinearGradient(colors: [Color(red: 0.56, green: 0.42, blue: 0.95), Color(red: 0.36, green: 0.26, blue: 0.78)], startPoint: .topLeading, endPoint: .bottomTrailing),
+    ]
+    let idx = ((colorIndex % palette.count) + palette.count) % palette.count
+    return palette[idx]
+  }
+
+  var body: some View {
+    Menu {
+      Button {
+        renameText = entry.title
+        showRename = true
+      } label: {
+        Label("Rename", systemImage: "pencil")
+      }
+
+      #if canImport(PhotosUI)
+      Button {
+        showPhotoPicker = true
+      } label: {
+        Label("Choose Photo", systemImage: "photo")
+      }
+      #endif
+
+      Button {
+        switch entry {
+          case .invite(let invite):
+            inviteCodeText = invite.code
+          case .member:
+            inviteCodeText = "No invite code for active parents."
+        }
+        showInviteCode = true
+      } label: {
+        Label("View Invite Code", systemImage: "qrcode")
+      }
+
+      Divider()
+
+      Button(role: .destructive) {
+        showDeleteConfirm = true
+      } label: {
+        Label("Delete", systemImage: "trash")
+      }
+    } label: {
+      ZStack {
+        RoundedRectangle(cornerRadius: 22)
+          .fill(gradient)
+
+        VStack(alignment: .leading, spacing: 10) {
+          ZStack {
+            RoundedRectangle(cornerRadius: 10)
+              .fill(Color.black.opacity(0.22))
+              .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                  .stroke(Color.white.opacity(0.18), lineWidth: 1)
+              )
+
+            #if canImport(UIKit)
+            if let img = DevicePhotoStore.getUIImage(deviceId: entry.photoKey) {
+              Image(uiImage: img)
+                .resizable()
+                .scaledToFill()
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 9)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+                .padding(1)
+            } else {
+              Text(String(entry.title.prefix(1)).uppercased())
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white.opacity(0.95))
+            }
+            #else
+            Text(String(entry.title.prefix(1)).uppercased())
+              .font(.headline.weight(.bold))
+              .foregroundStyle(.white.opacity(0.95))
+            #endif
+          }
+          .frame(width: 28, height: 28)
+
+          Spacer(minLength: 0)
+
+          Text(entry.title)
+            .font(.system(size: 18, weight: .bold))
+            .foregroundStyle(.white.opacity(0.95))
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+          Text(entry.subtitle)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white.opacity(0.82))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+      }
+      .frame(height: 110)
+    }
+    .buttonStyle(.plain)
+    .alert("Rename", isPresented: $showRename) {
+      TextField("Name", text: $renameText)
+      Button("Save") {
+        Task { await saveRename() }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text("Update the displayed parent name.")
+    }
+    .alert("Invite code", isPresented: $showInviteCode) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(inviteCodeText)
+    }
+    .confirmationDialog(
+      "Delete this item?",
+      isPresented: $showDeleteConfirm,
+      titleVisibility: .visible
+    ) {
+      Button("Delete", role: .destructive) {
+        Task { await deleteEntry() }
+      }
+      Button("Cancel", role: .cancel) {}
+    }
+    .alert("Action failed", isPresented: Binding(
+      get: { actionError != nil },
+      set: { if !$0 { actionError = nil } }
+    )) {
+      Button("OK", role: .cancel) { actionError = nil }
+    } message: {
+      Text(actionError ?? "Unknown error")
+    }
+    #if canImport(PhotosUI)
+    .photosPicker(
+      isPresented: $showPhotoPicker,
+      selection: $pickedPhoto,
+      matching: .images,
+      photoLibrary: .shared()
+    )
+    .onChange(of: pickedPhoto) { item in
+      guard let item else { return }
+      Task {
+        do {
+          if let data = try await item.loadTransferable(type: Data.self) {
+            model.setDevicePhoto(deviceId: entry.photoKey, jpegData: data)
+          }
+        } catch {
+          actionError = userError(error)
+        }
+      }
+    }
+    #endif
+  }
+
+  @MainActor
+  private func saveRename() async {
+    let newName = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !newName.isEmpty else { return }
+    do {
+      switch entry {
+        case .invite(let invite):
+          try await model.renameHouseholdInvite(inviteId: invite.id, inviteName: newName)
+        case .member:
+          actionError = "Rename is currently supported for pending invites."
+      }
+    } catch {
+      actionError = userError(error)
+    }
+  }
+
+  @MainActor
+  private func deleteEntry() async {
+    do {
+      switch entry {
+        case .invite(let invite):
+          try await model.deleteHouseholdInvite(inviteId: invite.id)
+        case .member(let member):
+          try await model.deleteHouseholdMember(memberId: member.id)
+      }
+    } catch {
+      actionError = userError(error)
+    }
+  }
+
+  private func userError(_ error: Error) -> String {
+    if let apiErr = error as? APIError {
+      return apiErr.userMessage
+    }
+    return "That action couldn't be completed. Please try again."
   }
 }
 

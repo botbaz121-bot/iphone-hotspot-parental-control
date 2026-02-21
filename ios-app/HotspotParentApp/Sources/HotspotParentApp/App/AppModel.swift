@@ -28,6 +28,8 @@ public final class AppModel: ObservableObject {
   // MARK: - Parent state (v1B)
 
   @Published public var parentDevices: [DashboardDevice] = []
+  @Published public var householdMembers: [HouseholdMember] = []
+  @Published public var householdInvites: [HouseholdInvite] = []
   @Published public var parentLoading: Bool = false
   @Published public var parentLastError: String?
   @Published public var pendingOpenDeviceDetailsId: String?
@@ -221,6 +223,9 @@ public final class AppModel: ObservableObject {
     appleUserID = nil
     AppDefaults.appleUserID = nil
     pendingOpenDeviceDetailsId = nil
+    parentDevices = []
+    householdMembers = []
+    householdInvites = []
     extraTimePrefillMinutesByDeviceId = [:]
     extraTimePendingRequestIdByDeviceId = [:]
   }
@@ -383,8 +388,16 @@ public final class AppModel: ObservableObject {
     defer { parentLoading = false }
 
     do {
-      let dash = try await client.dashboard()
+      async let dashTask = client.dashboard()
+      async let membersTask = client.householdMembers()
+      async let invitesTask = client.householdInvites()
+
+      let dash = try await dashTask
+      let members = try await membersTask
+      let invites = try await invitesTask
       parentDevices = dash.devices
+      householdMembers = members.members
+      householdInvites = invites.invites
       if selectedDeviceId == nil {
         selectedDeviceId = dash.devices.first?.id
       }
@@ -508,6 +521,30 @@ public final class AppModel: ObservableObject {
     guard let client = apiClient else { throw APIError.invalidResponse }
     let out = try await client.extraTimeRequests(status: "pending", deviceId: nil)
     return out.requests.first(where: { $0.deviceId == deviceId })
+  }
+
+  public func acceptHouseholdInviteCode(_ code: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.acceptInviteCode(code)
+    await refreshParentDashboard()
+  }
+
+  public func renameHouseholdInvite(inviteId: String, inviteName: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.renameInvite(inviteId: inviteId, inviteName: inviteName)
+    await refreshParentDashboard()
+  }
+
+  public func deleteHouseholdInvite(inviteId: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.deleteInvite(inviteId: inviteId)
+    await refreshParentDashboard()
+  }
+
+  public func deleteHouseholdMember(memberId: String) async throws {
+    guard let client = apiClient else { throw APIError.invalidResponse }
+    try await client.deleteHouseholdMember(memberId: memberId)
+    await refreshParentDashboard()
   }
 
   public func updateSelectedDevicePolicy(

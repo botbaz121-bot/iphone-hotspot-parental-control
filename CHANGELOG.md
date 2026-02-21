@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.62 (63) - 2026-02-21
+- Parent dashboard updates:
+- renamed "All Child Devices" to "Child Devices" and removed subtitle,
+- added new "Parent Devices" section with parent/invite tiles and per-tile menu actions.
+- Added iOS invite-join flow on welcome screen:
+- new "Join By Invite" box with 4-character code entry and Apple sign-in + code accept flow.
+- Added household management APIs and iOS wiring:
+- list household members + invites in app state,
+- rename/revoke pending invite,
+- delete household member (owner only).
+
 ## 0.1.61 (62) - 2026-02-21
 - Removed token-based invite surfaces from web UI.
 - Invite list now shows code only (no `invite?token=...` link).

@@ -46,6 +46,32 @@ public final class HotspotAPIClient {
     try await HTTP.getJSON(api.url("/api/dashboard"), headers: parentOrAdminHeaders())
   }
 
+  public func householdMembers() async throws -> HouseholdMembersResponse {
+    try await HTTP.getJSON(api.url("/api/household/members"), headers: parentHeaders())
+  }
+
+  public func householdInvites() async throws -> HouseholdInvitesResponse {
+    try await HTTP.getJSON(api.url("/api/household/invites"), headers: parentHeaders())
+  }
+
+  public func acceptInviteCode(_ code: String) async throws {
+    let req = HouseholdInviteAcceptCodeRequest(code: code)
+    let _: OkResponse = try await HTTP.postJSON(api.url("/api/household/invite-code/accept"), body: req, headers: parentHeaders())
+  }
+
+  public func renameInvite(inviteId: String, inviteName: String) async throws {
+    let req = HouseholdInviteRenameRequest(inviteName: inviteName)
+    let _: OkResponse = try await HTTP.patchJSON(api.url("/api/household/invites/\(inviteId)"), body: req, headers: parentHeaders())
+  }
+
+  public func deleteInvite(inviteId: String) async throws {
+    let _: OkResponse = try await HTTP.deleteJSON(api.url("/api/household/invites/\(inviteId)"), headers: parentHeaders())
+  }
+
+  public func deleteHouseholdMember(memberId: String) async throws {
+    let _: OkResponse = try await HTTP.deleteJSON(api.url("/api/household/members/\(memberId)"), headers: parentHeaders())
+  }
+
   public func listDevices() async throws -> [Device] {
     try await HTTP.getJSON(api.url("/api/devices"), headers: parentOrAdminHeaders())
   }

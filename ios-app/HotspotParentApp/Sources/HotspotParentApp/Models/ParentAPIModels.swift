@@ -132,3 +132,51 @@ public struct ExtraTimeRequestRow: Decodable {
   public var startsAt: Int?
   public var endsAt: Int?
 }
+
+public struct HouseholdMembersResponse: Decodable {
+  public var members: [HouseholdMember]
+}
+
+public struct HouseholdMember: Decodable {
+  public var id: String
+  public var parentId: String
+  public var email: String?
+  public var displayName: String?
+  public var role: String
+  public var status: String
+  public var createdAt: String
+}
+
+public struct HouseholdInvitesResponse: Decodable {
+  public var invites: [HouseholdInvite]
+}
+
+public struct HouseholdInvite: Decodable {
+  public var id: String
+  public var email: String?
+  public var inviteName: String?
+  public var token: String
+  public var code: String
+  public var status: String
+  public var expiresAt: Int
+  public var acceptedAt: Int?
+  public var revokedAt: Int?
+  public var createdAt: String
+  public var invitedByEmail: String?
+}
+
+public struct HouseholdInviteAcceptCodeRequest: Encodable {
+  public var code: String
+
+  public init(code: String) {
+    self.code = code
+  }
+}
+
+public struct HouseholdInviteRenameRequest: Encodable {
+  public var inviteName: String
+
+  public init(inviteName: String) {
+    self.inviteName = inviteName
+  }
+}
