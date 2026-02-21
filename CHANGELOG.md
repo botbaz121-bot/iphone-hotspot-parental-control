@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.76 (77) - 2026-02-21
+- Rebuilt `web-app` UI to match iOS visual feel and flows:
+- iOS-style welcome with device-type tiles and `Join by invite` code entry,
+- `Child Devices` / `Parent Devices` tile sections with matching spacing rhythm,
+- redesigned child details panel for rules, schedule, extra time, and recent activity,
+- redesigned parent details panel for rename, invite info, notifications, and delete actions,
+- improved responsive behavior and user-friendly status/error banners.
+- Updated web cache-bust script version to `app.js?v=0.1.76`.
+
 ## 0.1.75 (76) - 2026-02-21
 - Removed temporary auth/debug text from the welcome screen.
 - Matched `Parent Devices` section layout to `Child Devices`:
