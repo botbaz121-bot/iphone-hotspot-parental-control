@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.58 (59) - 2026-02-21
+- Added code-first entry flow on `web.spotchecker.app`:
+- sign-in screen now supports entering a 4-character invite code before Apple login,
+- new "Join with code" starts Apple auth and carries `inviteCode` through callback,
+- post-login bootstrap auto-accepts the code and then loads dashboard.
+- Updated web cache bust to `app.js?v=0.1.58`.
+
 ## 0.1.57 (58) - 2026-02-21
 - Added explicit web login/debug diagnostics for dashboard load issues:
 - auth screen now shows web build stamp and recent runtime debug trace,

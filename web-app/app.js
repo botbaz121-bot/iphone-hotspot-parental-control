@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.57-webdebug-20260221';
+  const WEB_BUILD = '0.1.58-webdebug-20260221';
   const API_BASE_KEY = 'spotchecker.web.apiBase';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
 
@@ -71,6 +71,7 @@
 
   function renderAuthOnly(err = '') {
     const debugText = state.debugLines.join('\n');
+    const urlCode = (new URL(location.href).searchParams.get('inviteCode') || '').trim().toUpperCase();
     app.innerHTML = `
       <div class="top">
         <h1>SpotChecker Web Parent</h1>
@@ -87,6 +88,15 @@
             <div class="row">
               <button id="saveApi" class="ghost">Save API Base</button>
               <button id="signIn" class="primary">Sign in with Apple</button>
+            </div>
+          </div>
+          <hr class="sep" />
+          <div class="col">
+            <label class="muted">Invite code</label>
+            <input id="preAuthInviteCode" maxlength="4" placeholder="ABCD" value="${escapeHtml(urlCode)}" />
+            <p class="muted">Enter code first, then continue with Apple sign in.</p>
+            <div class="row">
+              <button id="signInWithCode" class="primary">Join with code</button>
             </div>
           </div>
           ${debugText ? `<pre class="code" style="margin-top:10px;white-space:pre-wrap;max-height:280px;overflow:auto">${escapeHtml(debugText)}</pre>` : ''}
@@ -106,12 +116,38 @@
       const nextPath = `${location.pathname}${location.search}`;
       location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
     };
+
+    document.getElementById('signInWithCode').onclick = () => {
+      state.apiBase = document.getElementById('apiBase').value.trim();
+      localStorage.setItem(API_BASE_KEY, state.apiBase);
+      const code = (document.getElementById('preAuthInviteCode').value || '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}$/.test(code)) {
+        renderAuthOnly('Please enter a valid 4-character invite code.');
+        return;
+      }
+      const u = new URL(location.href);
+      u.searchParams.set('inviteCode', code);
+      const nextPath = `${u.pathname}${u.search}`;
+      location.href = `${state.apiBase}/auth/apple/start?next=${encodeURIComponent(nextPath)}`;
+    };
   }
 
   function inviteAcceptTokenFromUrl() {
     const u = new URL(location.href);
     const t = (u.searchParams.get('token') || '').trim();
     return t;
+  }
+
+  function inviteAcceptCodeFromUrl() {
+    const u = new URL(location.href);
+    return (u.searchParams.get('inviteCode') || '').trim().toUpperCase();
+  }
+
+  function clearInviteCodeFromUrl() {
+    const u = new URL(location.href);
+    if (!u.searchParams.has('inviteCode')) return;
+    u.searchParams.delete('inviteCode');
+    history.replaceState(null, '', `${u.pathname}${u.search}`);
   }
 
   async function acceptInviteIfPresent() {
@@ -484,6 +520,21 @@
   async function loadAll(info = '') {
     try {
       addDebug('loadAll.start', { apiBase: state.apiBase, hasSession: !!state.sessionToken });
+      const inviteCode = inviteAcceptCodeFromUrl();
+      if (inviteCode && /^[A-Z0-9]{4}$/.test(inviteCode)) {
+        addDebug('loadAll.preAuthInviteCode.attempt', { inviteCode });
+        try {
+          await api('/api/household/invite-code/accept', { method: 'POST', body: JSON.stringify({ code: inviteCode }) });
+          clearInviteCodeFromUrl();
+          info = info || 'Invite code accepted.';
+          addDebug('loadAll.preAuthInviteCode.accepted', { inviteCode });
+        } catch (e) {
+          addDebug('loadAll.preAuthInviteCode.failed', { message: e.message || String(e) });
+          renderAuthOnly(`Invite code failed: ${e.message}`);
+          return;
+        }
+      }
+
       const [me, members, invites, dash] = await Promise.all([
         api('/api/me'),
         api('/api/household/members'),
