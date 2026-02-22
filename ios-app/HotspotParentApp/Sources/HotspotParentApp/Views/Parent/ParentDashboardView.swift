@@ -1220,9 +1220,6 @@ private struct PolicyEditorCard: View {
                : (device.enforce ? "Protection is currently on." : "Protection is currently off."))
             .font(.system(size: 14))
             .foregroundStyle(.secondary)
-        }
-        Spacer()
-        VStack(alignment: .trailing, spacing: 8) {
           Text(device.enforce ? "Protection On" : "Protection Off")
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(device.enforce ? .green : .orange)
@@ -1230,7 +1227,9 @@ private struct PolicyEditorCard: View {
             .padding(.vertical, 6)
             .background((device.enforce ? Color.green : Color.orange).opacity(0.16))
             .clipShape(Capsule())
-
+        }
+        Spacer()
+        VStack(alignment: .trailing, spacing: 8) {
           if let usage = dailyLimitUsage {
             ZStack {
               Circle()

@@ -258,14 +258,9 @@ body {
   padding: 14px;
 }
 
-.panel-with-status {
-  position: relative;
-}
-
 .panel-status-pill {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+  margin-top: 8px;
+  align-self: flex-start;
 }
 
 .status-layout {

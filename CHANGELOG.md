@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.106 (107) - 2026-02-22
+- Moved `Protection On/Off` indicator under the status paragraph on both platforms:
+- web child status card now shows the protection pill below status text (not top-right overlay),
+- iOS parent child-settings status card now shows the protection pill directly below the status message.
+- Updated web cache-bust versions to `styles.css?v=0.1.106` and `app.js?v=0.1.106`; web footer build stamp now `0.1.106-web`.
+
 ## 0.1.105-web - 2026-02-22
 - Fixed web child status panel layout so the usage donut stays in the right column on desktop instead of wrapping under long status text.
 - Added dedicated status grid layout with responsive mobile fallback.
