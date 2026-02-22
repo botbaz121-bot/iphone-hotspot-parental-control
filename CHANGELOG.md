@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.109 - 2026-02-22
+- Pivoted daily limit usage semantics toward Screen Time reported usage:
+- backend now defaults to **not** using fetch-interval estimation for usage (`ESTIMATED_USAGE_ENABLED=0` by default),
+- daily limit is now effectively driven by reported usage (`POST /usage`) unless estimation is explicitly re-enabled.
+- Added `dailyLimit.trusted` flag in backend responses (`true` when source is `reported`).
+- Updated status messaging: when daily limit is set but no reported usage is available yet, message now says it is waiting for Screen Time usage from child device.
+- Added backend env toggle `ESTIMATED_USAGE_ENABLED=1` for temporary fallback if needed.
+
 ## 0.1.108 (108) - 2026-02-22
 - Added backend child usage-report endpoint `POST /usage` (shortcut-authenticated) to accept device-reported Screen Time minutes.
 - Daily-limit engine now tracks usage source:

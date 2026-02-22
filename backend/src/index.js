@@ -39,6 +39,7 @@ const APNS_PRIVATE_KEY = env('APNS_PRIVATE_KEY');
 const APNS_PRIVATE_KEY_PATH = env('APNS_PRIVATE_KEY_PATH');
 const APNS_TOPIC = env('APNS_TOPIC', 'com.bazapps.hotspotparent');
 const APNS_ENV = String(env('APNS_ENV', 'sandbox')).toLowerCase(); // sandbox | production
+const ESTIMATED_USAGE_ENABLED = env('ESTIMATED_USAGE_ENABLED', '0') === '1';
 const BACKEND_BUILD_VERSION = env('BACKEND_BUILD_VERSION', env('APP_VERSION', 'dev'));
 const BACKEND_BUILD_COMMIT = env('COOLIFY_GIT_COMMIT', env('RENDER_GIT_COMMIT', env('GIT_COMMIT', 'local'))).slice(0, 12);
 const BACKEND_BOOTED_AT = new Date().toISOString();
@@ -2890,7 +2891,8 @@ function applyReportedDailyUsage({ deviceId, tz, usedMinutes, reportedAtMs = Dat
     dayKey,
     usedMinutes: safeMinutes,
     source: 'reported',
-    reportedAtMs
+    reportedAtMs,
+    trusted: true
   };
 }
 
@@ -2923,7 +2925,8 @@ function upsertDailyUsageAndCompute({
       usedMinutes: 0,
       remainingMinutes: limitMs == null ? null : Math.ceil(limitMs / 60_000),
       reached: false,
-      source: 'estimated'
+      source: 'estimated',
+      trusted: false
     };
   }
 
@@ -2942,13 +2945,27 @@ function upsertDailyUsageAndCompute({
   let lastFetchMs = row.last_fetch_ms != null ? Number(row.last_fetch_ms) : null;
   let lastEffectiveEnforce = !!row.last_effective_enforce;
 
+  // Pivot mode: by default, do not use fetch-interval estimation for usage.
+  // Daily limit should come from reported on-device Screen Time usage.
+  if (!ESTIMATED_USAGE_ENABLED && usageSource !== 'reported') {
+    usedMs = 0;
+  }
+
   // Reset accumulator on local day rollover.
   if (String(row.day_key) !== dayKey) {
     usedMs = 0;
     usageSource = 'estimated';
     lastFetchMs = nowMs;
     lastEffectiveEnforce = false;
-  } else if (usageSource !== 'reported' && accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
+  } else if (
+    ESTIMATED_USAGE_ENABLED &&
+    usageSource !== 'reported' &&
+    accrue &&
+    lastFetchMs != null &&
+    nowMs > lastFetchMs &&
+    !lastEffectiveEnforce &&
+    limitMs != null
+  ) {
     // Only accrue "allowed" time while enforcement was off. Cap delta to avoid giant jumps from sparse check-ins.
     usedMs += Math.min(nowMs - lastFetchMs, MAX_DELTA_MS);
   }
@@ -2981,7 +2998,8 @@ function upsertDailyUsageAndCompute({
     usedMinutes,
     remainingMinutes,
     reached,
-    source: usageSource
+    source: usageSource,
+    trusted: usageSource === 'reported'
   };
 }
 
@@ -3068,8 +3086,16 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
   const hasSchedule = !!(schedule && schedule.start && schedule.end);
   const hasDailyLimit = !!(dailyLimit && dailyLimit.limitMinutes != null);
   const dailyLimitReached = !!(dailyLimit && dailyLimit.reached);
+  const waitingForReportedUsage = !!(
+    hasDailyLimit &&
+    !ESTIMATED_USAGE_ENABLED &&
+    dailyLimit &&
+    dailyLimit.trusted === false
+  );
   const dailyLimitSuffix = hasDailyLimit
-    ? (dailyLimitReached
+    ? (waitingForReportedUsage
+      ? ' Daily limit active. Waiting for Screen Time usage from child device.'
+      : dailyLimitReached
       ? ` Daily limit of ${dailyLimit.limitMinutes} min has been reached.`
       : ` Daily limit: ${Math.max(0, dailyLimit.limitMinutes - (dailyLimit.usedMinutes || 0))} min remaining.`)
     : '';
