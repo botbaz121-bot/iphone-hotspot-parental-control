@@ -51,6 +51,8 @@ public struct FetchHotspotPolicyIntent: AppIntent {
     let url = base.appendingPathComponent("policy")
 
     do {
+      await Self.reportUsageIfAvailable(base: base, deviceSecret: cfg.deviceSecret)
+
       var req = URLRequest(url: url)
       req.httpMethod = "GET"
       req.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -129,6 +131,22 @@ public struct FetchHotspotPolicyIntent: AppIntent {
     let mode = SharedDefaults.screenTimeAuthorizationModeRaw ?? "individual"
     obj["screenTimeAuthorizationMode"] = mode
     obj["screenTimeIsIndividualMode"] = (mode == "individual")
+  }
+
+  private static func reportUsageIfAvailable(base: URL, deviceSecret: String) async {
+    guard let usedMinutes = SharedDefaults.screenTimeReportedUsedMinutes else { return }
+    let ts = Int((SharedDefaults.screenTimeReportedAt ?? Date()).timeIntervalSince1970 * 1000)
+    let body: [String: Any] = ["usedMinutes": usedMinutes, "ts": ts]
+    guard let data = try? JSONSerialization.data(withJSONObject: body, options: []) else { return }
+
+    var req = URLRequest(url: base.appendingPathComponent("usage"))
+    req.httpMethod = "POST"
+    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    req.setValue("application/json", forHTTPHeaderField: "Accept")
+    req.setValue("Bearer \(deviceSecret)", forHTTPHeaderField: "Authorization")
+    req.httpBody = data
+
+    _ = try? await URLSession.shared.data(for: req)
   }
 }
 

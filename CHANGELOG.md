@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.108 (108) - 2026-02-22
+- Added backend child usage-report endpoint `POST /usage` (shortcut-authenticated) to accept device-reported Screen Time minutes.
+- Daily-limit engine now tracks usage source:
+- `reported` usage is treated as authoritative and is no longer incremented via fetch-interval estimation,
+- `estimated` remains fallback behavior when no reported data exists.
+- Added iOS intent-side usage reporting hook in `FetchHotspotPolicyIntent`:
+- when shared reported usage is present in App Group defaults, the intent posts it to `/usage` before fetching policy.
+- Added shared defaults keys for reported usage (`reportedUsedMinutes`, `reportedAt`).
+- Admin dashboard daily-limit cell now shows usage source (`reported` / `estimated`).
+
 ## 0.1.107 - 2026-02-22
 - Fixed daily-usage read path bug on backend:
 - non-accruing calls (`/api/dashboard` and minute warning sweep) no longer add a transient elapsed-time delta to returned usage values.

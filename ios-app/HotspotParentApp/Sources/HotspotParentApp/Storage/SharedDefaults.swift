@@ -34,6 +34,8 @@ public enum SharedDefaults {
     static let screenTimeDeletionProtectionStepCompleted = "spotcheck.screentime.deletionProtectionStepCompleted"
     static let screenTimeDegradedReason = "spotcheck.screentime.degradedReason"
     static let screenTimeScheduleEnforcedNow = "spotcheck.screentime.scheduleEnforcedNow"
+    static let screenTimeReportedUsedMinutes = "spotcheck.screentime.reportedUsedMinutes"
+    static let screenTimeReportedAtEpoch = "spotcheck.screentime.reportedAtEpoch"
 
     static let childUnlockRequested = "spotcheck.child.unlockRequested"
   }
@@ -59,6 +61,8 @@ public enum SharedDefaults {
       Key.screenTimeDeletionProtectionStepCompleted,
       Key.screenTimeDegradedReason,
       Key.screenTimeScheduleEnforcedNow,
+      Key.screenTimeReportedUsedMinutes,
+      Key.screenTimeReportedAtEpoch,
       Key.childUnlockRequested,
     ].forEach { d.removeObject(forKey: $0) }
   }
@@ -194,6 +198,35 @@ public enum SharedDefaults {
   public static var screenTimeScheduleEnforcedNow: Bool {
     get { suite.object(forKey: Key.screenTimeScheduleEnforcedNow) as? Bool ?? false }
     set { suite.set(newValue, forKey: Key.screenTimeScheduleEnforcedNow) }
+  }
+
+  public static var screenTimeReportedUsedMinutes: Int? {
+    get {
+      guard suite.object(forKey: Key.screenTimeReportedUsedMinutes) != nil else { return nil }
+      return max(0, suite.integer(forKey: Key.screenTimeReportedUsedMinutes))
+    }
+    set {
+      if let newValue {
+        suite.set(max(0, newValue), forKey: Key.screenTimeReportedUsedMinutes)
+      } else {
+        suite.removeObject(forKey: Key.screenTimeReportedUsedMinutes)
+      }
+    }
+  }
+
+  public static var screenTimeReportedAt: Date? {
+    get {
+      let epoch = suite.double(forKey: Key.screenTimeReportedAtEpoch)
+      guard epoch > 0 else { return nil }
+      return Date(timeIntervalSince1970: epoch)
+    }
+    set {
+      if let newValue {
+        suite.set(newValue.timeIntervalSince1970, forKey: Key.screenTimeReportedAtEpoch)
+      } else {
+        suite.removeObject(forKey: Key.screenTimeReportedAtEpoch)
+      }
+    }
   }
 
   public static var childUnlockRequested: Bool {

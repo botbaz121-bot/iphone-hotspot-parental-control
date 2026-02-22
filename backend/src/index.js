@@ -204,6 +204,8 @@ CREATE TABLE IF NOT EXISTS device_daily_usage (
   device_id TEXT PRIMARY KEY,
   day_key TEXT NOT NULL,
   used_ms INTEGER NOT NULL DEFAULT 0,
+  usage_source TEXT NOT NULL DEFAULT 'estimated',
+  last_reported_at_ms INTEGER,
   last_fetch_ms INTEGER,
   last_effective_enforce INTEGER NOT NULL DEFAULT 0,
   daily_limit_warn_5m_day_key TEXT,
@@ -276,6 +278,12 @@ if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='devi
 }
 
 if (db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='device_daily_usage'").get()) {
+  if (!tableHasColumn('device_daily_usage', 'usage_source')) {
+    db.exec("ALTER TABLE device_daily_usage ADD COLUMN usage_source TEXT NOT NULL DEFAULT 'estimated'");
+  }
+  if (!tableHasColumn('device_daily_usage', 'last_reported_at_ms')) {
+    db.exec('ALTER TABLE device_daily_usage ADD COLUMN last_reported_at_ms INTEGER');
+  }
   if (!tableHasColumn('device_daily_usage', 'daily_limit_warn_5m_day_key')) {
     db.exec('ALTER TABLE device_daily_usage ADD COLUMN daily_limit_warn_5m_day_key TEXT');
   }
@@ -1054,12 +1062,13 @@ app.use((req, res, next) => {
   const localHost = isLocalHostHeader(host);
 
   // Allow Shortcut endpoints + healthz + auth callbacks from anywhere.
-  // HMAC auth applies to /policy and /events.
+  // HMAC auth applies to /policy, /events, and /usage.
   // /pair is public but one-time and short-lived (pairing code).
   if (
     req.path === '/healthz' ||
     req.path === '/policy' ||
     req.path === '/events' ||
+    req.path === '/usage' ||
     req.path === '/pair' ||
     req.path === '/extra-time/request' ||
     req.path.startsWith('/auth/apple')
@@ -1246,7 +1255,7 @@ app.get('/admin', (req, res) => {
         const warn5m = d.dailyLimitWarn5m || {};
 
         const dailyLimitCell = dailyLimit && (dailyLimit.limitMinutes != null)
-          ? ('limit ' + escapeHtml(String(dailyLimit.limitMinutes)) + 'm · used ' + escapeHtml(String(dailyLimit.usedMinutes ?? 0)) + 'm · rem ' + escapeHtml(String(dailyLimit.remainingMinutes ?? 0)) + 'm' + (dailyLimit.reached ? ' · reached' : ''))
+          ? ('limit ' + escapeHtml(String(dailyLimit.limitMinutes)) + 'm · used ' + escapeHtml(String(dailyLimit.usedMinutes ?? 0)) + 'm · rem ' + escapeHtml(String(dailyLimit.remainingMinutes ?? 0)) + 'm' + (dailyLimit.reached ? ' · reached' : '') + (dailyLimit.source ? (' · ' + escapeHtml(String(dailyLimit.source))) : ''))
           : 'off';
         const childPushCell = 'tokens ' + escapeHtml(String(childPush.tokens ?? 0)) + (childPush.lastUpdatedAt ? (' · updated ' + escapeHtml(String(childPush.lastUpdatedAt))) : '');
         const warnCell = warn5m && warn5m.dayKey
@@ -1623,6 +1632,32 @@ app.post('/events', requireShortcutAuth, (req, res, next) => {
     );
 
     res.status(201).json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Child reports real Screen Time usage (minutes used today) from on-device collector.
+app.post('/usage', requireShortcutAuth, (req, res, next) => {
+  try {
+    const schema = z.object({
+      usedMinutes: z.number().int().min(0).max(24 * 60),
+      ts: z.number().int().min(0).optional()
+    });
+    const body = schema.parse(req.body || {});
+    const deviceId = req.shortcut.deviceId;
+    const now = body.ts ? Number(body.ts) : Date.now();
+    const tz = db.prepare('SELECT tz FROM device_policies WHERE device_id = ?').get(deviceId)?.tz || 'Europe/Paris';
+
+    const out = applyReportedDailyUsage({
+      deviceId,
+      tz,
+      usedMinutes: Number(body.usedMinutes),
+      reportedAtMs: now
+    });
+
+    db.prepare("UPDATE devices SET last_seen_at = datetime('now') WHERE id = ?").run(deviceId);
+    return res.status(201).json({ ok: true, dailyLimit: out });
   } catch (e) {
     next(e);
   }
@@ -2832,6 +2867,33 @@ function normalizeDailyLimitMinutes(raw) {
   return clamped - (clamped % 15);
 }
 
+function applyReportedDailyUsage({ deviceId, tz, usedMinutes, reportedAtMs = Date.now() }) {
+  const dayKey = localDateKeyNow(tz);
+  const safeMinutes = Math.max(0, Math.min(24 * 60, Math.floor(Number(usedMinutes) || 0)));
+  const usedMs = safeMinutes * 60_000;
+
+  db.prepare(
+    `
+    INSERT INTO device_daily_usage (device_id, day_key, used_ms, usage_source, last_reported_at_ms, last_fetch_ms, last_effective_enforce, updated_at)
+    VALUES (?, ?, ?, 'reported', ?, ?, 0, datetime('now'))
+    ON CONFLICT(device_id) DO UPDATE SET
+      day_key = excluded.day_key,
+      used_ms = excluded.used_ms,
+      usage_source = 'reported',
+      last_reported_at_ms = excluded.last_reported_at_ms,
+      last_fetch_ms = COALESCE(device_daily_usage.last_fetch_ms, excluded.last_fetch_ms),
+      updated_at = datetime('now')
+    `
+  ).run(deviceId, dayKey, usedMs, reportedAtMs, reportedAtMs);
+
+  return {
+    dayKey,
+    usedMinutes: safeMinutes,
+    source: 'reported',
+    reportedAtMs
+  };
+}
+
 function upsertDailyUsageAndCompute({
   deviceId,
   tz,
@@ -2847,7 +2909,7 @@ function upsertDailyUsageAndCompute({
   let row = db
     .prepare(
       `
-      SELECT device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce
+      SELECT device_id, day_key, used_ms, usage_source, last_reported_at_ms, last_fetch_ms, last_effective_enforce
       FROM device_daily_usage
       WHERE device_id = ?
       `
@@ -2860,30 +2922,33 @@ function upsertDailyUsageAndCompute({
       limitMinutes: dailyLimitMinutes,
       usedMinutes: 0,
       remainingMinutes: limitMs == null ? null : Math.ceil(limitMs / 60_000),
-      reached: false
+      reached: false,
+      source: 'estimated'
     };
   }
 
   if (!row) {
     db.prepare(
       `
-      INSERT INTO device_daily_usage (device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce)
-      VALUES (?, ?, 0, ?, ?)
+      INSERT INTO device_daily_usage (device_id, day_key, used_ms, usage_source, last_fetch_ms, last_effective_enforce)
+      VALUES (?, ?, 0, 'estimated', ?, ?)
       `
     ).run(deviceId, dayKey, nowMs, enforceWithoutLimit ? 1 : 0);
-    row = { day_key: dayKey, used_ms: 0, last_fetch_ms: nowMs, last_effective_enforce: enforceWithoutLimit ? 1 : 0 };
+    row = { day_key: dayKey, used_ms: 0, usage_source: 'estimated', last_reported_at_ms: null, last_fetch_ms: nowMs, last_effective_enforce: enforceWithoutLimit ? 1 : 0 };
   }
 
   let usedMs = Number(row.used_ms || 0);
+  let usageSource = (row.usage_source === 'reported') ? 'reported' : 'estimated';
   let lastFetchMs = row.last_fetch_ms != null ? Number(row.last_fetch_ms) : null;
   let lastEffectiveEnforce = !!row.last_effective_enforce;
 
   // Reset accumulator on local day rollover.
   if (String(row.day_key) !== dayKey) {
     usedMs = 0;
+    usageSource = 'estimated';
     lastFetchMs = nowMs;
     lastEffectiveEnforce = false;
-  } else if (accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
+  } else if (usageSource !== 'reported' && accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
     // Only accrue "allowed" time while enforcement was off. Cap delta to avoid giant jumps from sparse check-ins.
     usedMs += Math.min(nowMs - lastFetchMs, MAX_DELTA_MS);
   }
@@ -2896,16 +2961,18 @@ function upsertDailyUsageAndCompute({
   if (accrue) {
     db.prepare(
       `
-      INSERT INTO device_daily_usage (device_id, day_key, used_ms, last_fetch_ms, last_effective_enforce, updated_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
+      INSERT INTO device_daily_usage (device_id, day_key, used_ms, usage_source, last_reported_at_ms, last_fetch_ms, last_effective_enforce, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
       ON CONFLICT(device_id) DO UPDATE SET
         day_key = excluded.day_key,
         used_ms = excluded.used_ms,
+        usage_source = excluded.usage_source,
+        last_reported_at_ms = excluded.last_reported_at_ms,
         last_fetch_ms = excluded.last_fetch_ms,
         last_effective_enforce = excluded.last_effective_enforce,
         updated_at = datetime('now')
       `
-    ).run(deviceId, dayKey, usedMs, nowMs, effectiveEnforce ? 1 : 0);
+    ).run(deviceId, dayKey, usedMs, usageSource, null, nowMs, effectiveEnforce ? 1 : 0);
   }
 
   return {
@@ -2913,7 +2980,8 @@ function upsertDailyUsageAndCompute({
     limitMinutes: dailyLimitMinutes,
     usedMinutes,
     remainingMinutes,
-    reached
+    reached,
+    source: usageSource
   };
 }
 
