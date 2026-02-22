@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.102 (103) - 2026-02-21
+- Simplified backend off-state protection messages:
+- when protection is currently off, status text no longer lists protected actions (e.g. Apps/Hotspot/Wi-Fi/Mobile Data),
+- examples now read like `Protection is currently off.` with optional schedule/extra-time context only.
+
 ## 0.1.101 (102) - 2026-02-21
 - Added screen-time usage donut to child settings status area on both platforms:
 - web child settings now shows circular `Screen Time Used` graph (`used` of `total` daily limit),

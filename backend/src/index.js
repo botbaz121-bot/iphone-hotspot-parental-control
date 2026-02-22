@@ -3005,13 +3005,13 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
     : '';
 
   if (!wantsEnforcement) {
-    if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
-    return `Protection is currently off. ${details}${dailyLimitSuffix}`;
+    if (pendingExtraTime) return `Protection is currently off. Extra time request is pending parent approval.${dailyLimitSuffix}`;
+    return `Protection is currently off.${dailyLimitSuffix}`;
   }
 
   if (activeExtraTime && activeExtraTime.ends_at) {
     const resume = formatTimeInTz(new Date(Number(activeExtraTime.ends_at)), tz);
-    return `Protection is currently off for approved extra time and scheduled to resume at ${resume}. ${details}${dailyLimitSuffix}`;
+    return `Protection is currently off for approved extra time and scheduled to resume at ${resume}.${dailyLimitSuffix}`;
   }
 
   if (pendingExtraTime) {
@@ -3020,8 +3020,8 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
       if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
       return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
     }
-    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
-    return `Protection is currently off. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
+    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval.${dailyLimitSuffix}`;
+    return `Protection is currently off. Extra time request is pending parent approval.${dailyLimitSuffix}`;
   }
 
   if (enforce) {
@@ -3030,8 +3030,8 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
     if (!inScheduleWindow && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
     return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}${dailyLimitSuffix}`;
   }
-  if (!hasSchedule) return `Protection is currently off. ${details}${dailyLimitSuffix}`;
-  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}${dailyLimitSuffix}`;
+  if (!hasSchedule) return `Protection is currently off.${dailyLimitSuffix}`;
+  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}.${dailyLimitSuffix}`;
 }
 
 function insertDeviceEvent({
