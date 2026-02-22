@@ -2883,7 +2883,7 @@ function upsertDailyUsageAndCompute({
     usedMs = 0;
     lastFetchMs = nowMs;
     lastEffectiveEnforce = false;
-  } else if (lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
+  } else if (accrue && lastFetchMs != null && nowMs > lastFetchMs && !lastEffectiveEnforce && limitMs != null) {
     // Only accrue "allowed" time while enforcement was off. Cap delta to avoid giant jumps from sparse check-ins.
     usedMs += Math.min(nowMs - lastFetchMs, MAX_DELTA_MS);
   }

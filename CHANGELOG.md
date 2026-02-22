@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.107 - 2026-02-22
+- Fixed daily-usage read path bug on backend:
+- non-accruing calls (`/api/dashboard` and minute warning sweep) no longer add a transient elapsed-time delta to returned usage values.
+- Usage now advances only on accruing policy fetch updates, preventing "phantom" minute increases between actual child check-ins.
+
 ## 0.1.106 (107) - 2026-02-22
 - Moved `Protection On/Off` indicator under the status paragraph on both platforms:
 - web child status card now shows the protection pill below status text (not top-right overlay),
