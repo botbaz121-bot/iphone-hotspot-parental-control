@@ -36,6 +36,7 @@ public struct DashboardDevice: Decodable {
   public var last_event_at: String?
   public var gap: Bool
   public var enforce: Bool
+  public var statusMessage: String?
   public var inQuietHours: Bool
   public var shouldBeRunning: Bool
   public var gapMs: Int

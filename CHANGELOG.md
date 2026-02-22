@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.100 (101) - 2026-02-21
+- iOS parent child-settings now includes the same status summary treatment as web:
+- added top status paragraph card,
+- added `Protection On` / `Protection Off` badge.
+- Added `statusMessage` decoding to iOS `DashboardDevice` model so backend status text is shown when available.
+
 ## 0.1.99 (100) - 2026-02-21
 - Parent settings notification section cleanup:
 - removed the helper line `Visible here, but only this parent can change their own settings.`,

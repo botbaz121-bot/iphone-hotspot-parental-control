@@ -1204,6 +1204,30 @@ private struct PolicyEditorCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
+      // Status summary (matches web child settings treatment)
+      HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Status")
+            .font(.headline)
+          Text((device.statusMessage?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+               ? (device.statusMessage ?? "")
+               : (device.enforce ? "Protection is currently on." : "Protection is currently off."))
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Text(device.enforce ? "Protection On" : "Protection Off")
+          .font(.system(size: 12, weight: .semibold))
+          .foregroundStyle(device.enforce ? .green : .orange)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 6)
+          .background((device.enforce ? Color.green : Color.orange).opacity(0.16))
+          .clipShape(Capsule())
+      }
+      .padding(18)
+      .background(Color.primary.opacity(0.06))
+      .clipShape(RoundedRectangle(cornerRadius: 22))
+
       if let saveWarning, !saveWarning.isEmpty {
         Text(saveWarning)
           .font(.system(size: 14))
