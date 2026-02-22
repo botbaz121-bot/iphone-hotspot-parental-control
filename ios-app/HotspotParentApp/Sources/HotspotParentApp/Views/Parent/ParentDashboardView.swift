@@ -1315,9 +1315,9 @@ private struct PolicyEditorCard: View {
       VStack(alignment: .leading, spacing: 10) {
         Toggle(isOn: $quiet) {
           VStack(alignment: .leading, spacing: 2) {
-            Text("Rules Enforcement Schedule")
+            Text("Phone Time")
               .font(.system(size: 16, weight: .semibold))
-            Text("Enforcement only active during this time. Will enforce at all times if off.")
+            Text("Set when phone use is allowed. Outside this window, protection turns on.")
               .font(.system(size: 14))
               .foregroundStyle(.secondary)
           }
@@ -1350,7 +1350,7 @@ private struct PolicyEditorCard: View {
         }
 
         if !quiet && wifiOff && mobileDataOff {
-          Text("Warning: Wi-Fi Off + Mobile Data Off with no Rules Schedule may prevent child phone from fetching policy updates.")
+          Text("Warning: Wi-Fi Off + Mobile Data Off with no Phone Time window may prevent child phone from fetching policy updates.")
             .font(.system(size: 14))
             .foregroundStyle(.orange)
         }

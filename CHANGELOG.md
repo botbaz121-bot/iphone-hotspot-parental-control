@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.104 (105) - 2026-02-22
+- Reframed schedule semantics as allowed `Phone Time` window across backend + apps:
+- enforcement now turns ON outside the configured phone-time window (and remains integrated with daily limit / extra time behavior),
+- iOS parent child-settings label changed from `Rules Enforcement Schedule` to `Phone Time`,
+- web child-settings label changed from `Rules Enforcement Schedule` to `Phone Time`.
+- Updated helper copy to clarify behavior: phone use is allowed inside the window; protection turns on outside it.
+- Updated web cache-bust versions to `styles.css?v=0.1.104` and `app.js?v=0.1.104`; web footer build stamp now `0.1.104-web`.
+
 ## 0.1.103 (104) - 2026-02-21
 - Web child settings layout update:
 - moved status content into its own `Status` box (with Protection badge + usage donut),

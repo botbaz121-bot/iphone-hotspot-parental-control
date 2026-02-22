@@ -1520,7 +1520,7 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   // Shortcut contract:
   // - The global "enforce" is computed by the backend.
   // - If ANY of Hotspot/Wi‑Fi/Mobile Data is configured OFF, then enforcement is potentially active.
-  // - If a schedule is set and we're OUTSIDE the schedule window, enforce=false.
+  // - If a phone-time schedule is set, enforcement is ON outside the allowed window.
   const actions = {
     activateProtection: pol ? !!pol.activate_protection : true,
     setHotspotOff: pol ? !!pol.set_hotspot_off : true,
@@ -1534,10 +1534,11 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
   const inScheduleWindow = hasSchedule
     ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
     : true;
+  const inAllowedPhoneTime = inScheduleWindow;
 
   const activeExtraTime = getActiveExtraTime(deviceId);
   const pendingExtraTime = getPendingExtraTime(deviceId);
-  const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+  const enforceWithoutLimit = wantsEnforcement && !inAllowedPhoneTime && !activeExtraTime;
   const dailyLimit = upsertDailyUsageAndCompute({
     deviceId,
     tz,
@@ -1545,10 +1546,10 @@ app.get('/policy', requireShortcutAuth, (req, res) => {
     enforceWithoutLimit
   });
   const enforce = enforceWithoutLimit || (!!dailyLimit.reached && wantsEnforcement && !activeExtraTime);
-  const isQuietHours = inScheduleWindow;
+  const isQuietHours = inAllowedPhoneTime;
   const statusMessage = buildPolicyStatusMessage({
     schedule,
-    inScheduleWindow,
+    inScheduleWindow: inAllowedPhoneTime,
     activeExtraTime,
     pendingExtraTime,
     tz,
@@ -2191,10 +2192,11 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
     const inScheduleWindow = hasSchedule
       ? isWithinQuietHours({ quietStart: schedule.start, quietEnd: schedule.end, tz })
       : true;
+    const inAllowedPhoneTime = inScheduleWindow;
 
     const activeExtraTime = getActiveExtraTime(r.id, now);
     const pendingExtraTime = getPendingExtraTime(r.id);
-    const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+    const enforceWithoutLimit = wantsEnforcement && !inAllowedPhoneTime && !activeExtraTime;
     const dailyLimit = upsertDailyUsageAndCompute({
       deviceId: r.id,
       tz,
@@ -2204,10 +2206,10 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       accrue: false
     });
     const enforce = enforceWithoutLimit || (!!dailyLimit.reached && wantsEnforcement && !activeExtraTime);
-    const inQuiet = inScheduleWindow;
+    const inQuiet = inAllowedPhoneTime;
     const statusMessage = buildPolicyStatusMessage({
       schedule,
-      inScheduleWindow,
+      inScheduleWindow: inAllowedPhoneTime,
       activeExtraTime,
       pendingExtraTime,
       tz,
@@ -2217,7 +2219,7 @@ app.get('/api/dashboard', requireParentOrAdmin, (req, res) => {
       dailyLimit
     });
 
-    // New semantics: "inQuietHours" means within the enforcement schedule.
+    // Compatibility field name; now means within allowed phone-time window.
     const shouldBeRunning = enforce;
 
     const gap = shouldBeRunning ? (lastEventTs == null ? true : now - lastEventTs > gapMs) : false;
@@ -3018,20 +3020,21 @@ function buildPolicyStatusMessage({ schedule, inScheduleWindow, activeExtraTime,
     if (enforce) {
       if (!hasSchedule && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. Extra time request is pending parent approval. ${details}`;
       if (!hasSchedule) return `Protection is currently on. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
-      return `Protection is currently on and scheduled to end at ${schedule.end}. Extra time request is pending parent approval. ${details}${dailyLimitSuffix}`;
+      if (dailyLimitReached) return `Protection is currently on because the daily limit has been reached. Extra time request is pending parent approval. ${details}`;
+      return `Protection is currently on and phone time is outside allowed hours. Extra time request is pending parent approval. Allowed again ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}${dailyLimitSuffix}`;
     }
-    if (hasSchedule) return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. Extra time request is pending parent approval.${dailyLimitSuffix}`;
+    if (hasSchedule) return `Protection is currently off during allowed phone time and scheduled to start at ${schedule.end}. Extra time request is pending parent approval.${dailyLimitSuffix}`;
     return `Protection is currently off. Extra time request is pending parent approval.${dailyLimitSuffix}`;
   }
 
   if (enforce) {
     if (!hasSchedule && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
     if (!hasSchedule) return `Protection is currently on. ${details}${dailyLimitSuffix}`;
-    if (!inScheduleWindow && dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
-    return `Protection is currently on and scheduled to end at ${schedule.end}. ${details}${dailyLimitSuffix}`;
+    if (dailyLimitReached) return `Protection is currently on because the daily limit has been reached. ${details}`;
+    return `Protection is currently on and phone time is outside allowed hours. Allowed again ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}. ${details}${dailyLimitSuffix}`;
   }
   if (!hasSchedule) return `Protection is currently off.${dailyLimitSuffix}`;
-  return `Protection is currently off and scheduled to start ${scheduleStartSuffix({ start: schedule.start, end: schedule.end, tz })}.${dailyLimitSuffix}`;
+  return `Protection is currently off during allowed phone time and scheduled to start at ${schedule.end}.${dailyLimitSuffix}`;
 }
 
 function insertDeviceEvent({
@@ -3164,8 +3167,9 @@ async function runDailyLimitWarningSweep() {
       const inScheduleWindow = hasSchedule
         ? isWithinQuietHours({ quietStart: todays.start, quietEnd: todays.end, tz })
         : true;
+      const inAllowedPhoneTime = inScheduleWindow;
       const activeExtraTime = getActiveExtraTime(r.id, now);
-      const enforceWithoutLimit = wantsEnforcement && inScheduleWindow && !activeExtraTime;
+      const enforceWithoutLimit = wantsEnforcement && !inAllowedPhoneTime && !activeExtraTime;
 
       const dailyLimit = upsertDailyUsageAndCompute({
         deviceId: r.id,

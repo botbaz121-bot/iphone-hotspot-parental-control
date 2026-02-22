@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.101-web';
+  const WEB_BUILD = '0.1.104-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -585,9 +585,10 @@
 
           <div class="rules">
             <div class="row spread">
-              <h3>Rules Enforcement Schedule</h3>
+              <h3>Phone Time</h3>
               <span class="pill">${DAY_LABEL[dayWindow.day]} ${escapeHtml(dayWindow.start)} - ${escapeHtml(dayWindow.end)}</span>
             </div>
+            <p class="panel-sub">Set when phone use is allowed. Outside this window, protection turns on.</p>
 
             <div class="chip-row">
               ${DAY_KEYS.map(key => `<button class="chip ${key === dayWindow.day ? 'active' : ''}" data-action="set-day" data-device-id="${escapeHtml(device.id)}" data-day="${key}">${DAY_LABEL[key]}</button>`).join('')}
