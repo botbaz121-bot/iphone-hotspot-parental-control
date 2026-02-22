@@ -8,6 +8,10 @@ import FamilyControls
 import ManagedSettings
 #endif
 
+#if canImport(DeviceActivity)
+import DeviceActivity
+#endif
+
 public struct ScreenTimeSelectionSummary {
   public var requiredSelectionsSelected: Int
   public var quietSelectionsSelected: Int
@@ -82,6 +86,9 @@ public final class ScreenTimeManager {
   private init() {}
 
   private static let policyCacheKey = "last_policy_json"
+  #if canImport(DeviceActivity)
+  private static let usageActivityName = DeviceActivityName("spotcheck_daily_usage")
+  #endif
   private var lastPolicyDebugLine: String = "policy: not loaded yet"
   private var lastAuthorizationDebugLine: String = "auth: not requested yet"
 
@@ -183,6 +190,7 @@ public final class ScreenTimeManager {
     let authorized = isAuthorized() && modeAuthorized
     guard authorized else {
       lastPolicyDebugLine = "policy source=skipped(reason=not_authorized)"
+      stopUsageMonitoringIfNeeded()
       clearShielding()
       return ScreenTimeProtectionStatus(
         authorized: false,
@@ -199,6 +207,7 @@ public final class ScreenTimeManager {
     guard let required = loadRequiredSelection(),
           !required.applicationTokens.isEmpty else {
       lastPolicyDebugLine = "policy source=skipped(reason=missing_required_selection)"
+      stopUsageMonitoringIfNeeded()
       clearShielding()
       return ScreenTimeProtectionStatus(
         authorized: true,
@@ -210,7 +219,9 @@ public final class ScreenTimeManager {
       )
     }
 
-    return await applyPolicyDrivenShielding(requiredSelection: required, quietSelection: loadQuietSelection())
+    let status = await applyPolicyDrivenShielding(requiredSelection: required, quietSelection: loadQuietSelection())
+    startUsageMonitoringIfNeeded()
+    return status
     #else
     lastPolicyDebugLine = "policy source=skipped(reason=family_controls_unavailable)"
     return ScreenTimeProtectionStatus(
@@ -396,6 +407,45 @@ public final class ScreenTimeManager {
       inQuietHours: inQuietHours,
       enforceNow: enforceNow
     )
+  }
+
+  private func startUsageMonitoringIfNeeded() {
+    #if canImport(DeviceActivity) && canImport(FamilyControls)
+    let center = DeviceActivityCenter()
+    let schedule = DeviceActivitySchedule(
+      intervalStart: DateComponents(hour: 0, minute: 0),
+      intervalEnd: DateComponents(hour: 23, minute: 59),
+      repeats: true
+    )
+
+    var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+    for mins in stride(from: 5, through: 8 * 60, by: 5) {
+      let name = DeviceActivityEvent.Name("usage_\(mins)")
+      events[name] = DeviceActivityEvent(
+        applications: nil,
+        categories: nil,
+        webDomains: nil,
+        threshold: DateComponents(minute: mins)
+      )
+    }
+
+    do {
+      try center.startMonitoring(Self.usageActivityName, during: schedule, events: events)
+    } catch {
+      // Best effort only; policy enforcement continues without usage monitoring.
+    }
+    #endif
+  }
+
+  private func stopUsageMonitoringIfNeeded() {
+    #if canImport(DeviceActivity)
+    let center = DeviceActivityCenter()
+    do {
+      try center.stopMonitoring(Set([Self.usageActivityName]))
+    } catch {
+      // no-op
+    }
+    #endif
   }
   #endif
 

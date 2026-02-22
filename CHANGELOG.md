@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.110 (109) - 2026-02-22
+- Added iOS `DeviceActivityMonitor` extension target (`HotspotUsageMonitor`) to feed usage thresholds into shared App Group defaults.
+- Added child usage-monitor bootstrap in `ScreenTimeManager`:
+- starts daily monitoring with 5-minute threshold events (up to 8h) once Screen Time authorization + required app selection are available,
+- stops monitoring when authorization/required selection is missing.
+- Usage monitor writes:
+- `spotcheck.screentime.reportedUsedMinutes`
+- `spotcheck.screentime.reportedAtEpoch`
+- Existing policy intent reporting now posts these values to backend `/usage`, enabling reported usage flow without depending on policy-hit estimation.
+
 ## 0.1.109 - 2026-02-22
 - Pivoted daily limit usage semantics toward Screen Time reported usage:
 - backend now defaults to **not** using fetch-interval estimation for usage (`ESTIMATED_USAGE_ENABLED=0` by default),
