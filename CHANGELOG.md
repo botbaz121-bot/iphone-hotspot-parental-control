@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.103 (104) - 2026-02-21
+- Web child settings layout update:
+- moved status content into its own `Status` box (with Protection badge + usage donut),
+- moved `Rules` into a separate box below status.
+- Updated web cache-bust versions to `styles.css?v=0.1.101` and `app.js?v=0.1.101`.
+
 ## 0.1.102 (103) - 2026-02-21
 - Simplified backend off-state protection messages:
 - when protection is currently off, status text no longer lists protected actions (e.g. Apps/Hotspot/Wi-Fi/Mobile Data),
