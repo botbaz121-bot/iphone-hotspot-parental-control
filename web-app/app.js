@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.104-web';
+  const WEB_BUILD = '0.1.105-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -550,8 +550,8 @@
 
         <section class="panel panel-with-status stack">
           <span class="pill panel-status-pill ${device.enforce ? 'ok' : 'warn'}">${device.enforce ? 'Protection On' : 'Protection Off'}</span>
-          <div class="row spread">
-            <div>
+          <div class="status-layout">
+            <div class="status-copy">
               <h2>Status</h2>
               <p class="panel-sub">${escapeHtml(device.statusMessage || 'No status yet.')}</p>
             </div>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.105-web - 2026-02-22
+- Fixed web child status panel layout so the usage donut stays in the right column on desktop instead of wrapping under long status text.
+- Added dedicated status grid layout with responsive mobile fallback.
+- Updated web cache-bust versions to `styles.css?v=0.1.105` and `app.js?v=0.1.105`.
+
 ## 0.1.104 (105) - 2026-02-22
 - Reframed schedule semantics as allowed `Phone Time` window across backend + apps:
 - enforcement now turns ON outside the configured phone-time window (and remains integrated with daily limit / extra time behavior),
