@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.101 (102) - 2026-02-21
+- Added screen-time usage donut to child settings status area on both platforms:
+- web child settings now shows circular `Screen Time Used` graph (`used` of `total` daily limit),
+- iOS parent child-settings now shows circular `Screen Time Used` graph beside the protection badge.
+- Web child/parent settings now force-refresh from backend when opened.
+- iOS parent dashboard now refreshes before opening child or parent settings sheets.
+- Updated web cache-bust versions to `styles.css?v=0.1.100` and `app.js?v=0.1.100`.
+
 ## 0.1.100 (101) - 2026-02-21
 - iOS parent child-settings now includes the same status summary treatment as web:
 - added top status paragraph card,

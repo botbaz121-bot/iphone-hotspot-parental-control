@@ -37,9 +37,17 @@ public struct DashboardDevice: Decodable {
   public var gap: Bool
   public var enforce: Bool
   public var statusMessage: String?
+  public var dailyLimit: DailyLimit?
   public var inQuietHours: Bool
   public var shouldBeRunning: Bool
   public var gapMs: Int
+
+  public struct DailyLimit: Decodable {
+    public var limitMinutes: Int?
+    public var usedMinutes: Int?
+    public var remainingMinutes: Int?
+    public var reached: Bool?
+  }
 
   public var actions: Actions
   public struct Actions: Decodable {

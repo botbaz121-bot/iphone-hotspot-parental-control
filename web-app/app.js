@@ -1,5 +1,5 @@
 (() => {
-  const WEB_BUILD = '0.1.99-web';
+  const WEB_BUILD = '0.1.100-web';
   const SESSION_KEY = 'spotchecker.web.sessionToken';
   const PREFS_KEY = 'spotchecker.web.prefs.v1';
 
@@ -505,6 +505,13 @@
     const dailySummary = (daily && daily.limitMinutes != null)
       ? `${minsToHm(daily.usedMinutes || 0)} / ${minsToHm(daily.limitMinutes)} used (${minsToHm(daily.remainingMinutes || 0)} left)`
       : 'Not set';
+    const usage = (daily && Number(daily.limitMinutes || 0) > 0)
+      ? {
+          used: Math.max(0, Number(daily.usedMinutes || 0)),
+          limit: Math.max(0, Number(daily.limitMinutes || 0))
+        }
+      : null;
+    const usagePct = usage ? Math.max(0, Math.min(100, (usage.used / usage.limit) * 100)) : 0;
 
     const canDelete = String(state.household?.role || '').toLowerCase() === 'owner';
 
@@ -548,6 +555,15 @@
               <h2>Rules</h2>
               <p class="panel-sub">${escapeHtml(device.statusMessage || 'No status yet.')}</p>
             </div>
+            ${usage ? `
+              <div class="usage-donut" style="--p:${usagePct.toFixed(2)}">
+                <div class="usage-donut-inner">
+                  <div class="usage-donut-label">Screen Time Used</div>
+                  <div class="usage-donut-value">${Math.round(usage.used)}m</div>
+                  <div class="usage-donut-sub">of ${escapeHtml(minsToHm(usage.limit))}</div>
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <div class="actions-wrap">
@@ -1016,6 +1032,7 @@
       state.renameChildId = null;
       state.renameParentKey = null;
       state.renameDraft = '';
+      await loadAll();
       await ensureChildData(id);
       return nav(`#/child/${encodeURIComponent(id)}`);
     }
@@ -1027,6 +1044,7 @@
       state.renameChildId = null;
       state.renameParentKey = null;
       state.renameDraft = '';
+      await loadAll();
       return nav(`#/parent/${encodeURIComponent(key)}`);
     }
 

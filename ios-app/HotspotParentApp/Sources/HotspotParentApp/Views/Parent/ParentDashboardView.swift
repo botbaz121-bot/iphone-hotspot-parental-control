@@ -25,9 +25,12 @@ public struct ParentDashboardView: View {
           LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             ForEach(Array(model.parentDevices.enumerated()), id: \.element.id) { idx, d in
               DeviceTileView(device: d, colorIndex: idx) {
-                // Open device details
-                model.selectedDeviceId = d.id
-                detailsDeviceId = d.id
+                // Refresh before opening details so settings view starts with latest policy.
+                Task {
+                  await model.refreshParentDashboard()
+                  model.selectedDeviceId = d.id
+                  detailsDeviceId = d.id
+                }
               }
             }
           }
@@ -149,7 +152,10 @@ public struct ParentDashboardView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
           ForEach(Array(parentEntries.enumerated()), id: \.element.id) { idx, entry in
             ParentPersonTileView(entry: entry, colorIndex: idx) {
-              detailsParentEntryId = entry.id
+              Task {
+                await model.refreshParentDashboard()
+                detailsParentEntryId = entry.id
+              }
             }
               .environmentObject(model)
           }
@@ -1216,13 +1222,40 @@ private struct PolicyEditorCard: View {
             .foregroundStyle(.secondary)
         }
         Spacer()
-        Text(device.enforce ? "Protection On" : "Protection Off")
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(device.enforce ? .green : .orange)
-          .padding(.horizontal, 10)
-          .padding(.vertical, 6)
-          .background((device.enforce ? Color.green : Color.orange).opacity(0.16))
-          .clipShape(Capsule())
+        VStack(alignment: .trailing, spacing: 8) {
+          Text(device.enforce ? "Protection On" : "Protection Off")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(device.enforce ? .green : .orange)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background((device.enforce ? Color.green : Color.orange).opacity(0.16))
+            .clipShape(Capsule())
+
+          if let usage = dailyLimitUsage {
+            ZStack {
+              Circle()
+                .stroke(Color.primary.opacity(0.14), lineWidth: 8)
+                .frame(width: 104, height: 104)
+
+              Circle()
+                .trim(from: 0, to: usage.progress)
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 104, height: 104)
+
+              VStack(spacing: 2) {
+                Text("Screen Time Used")
+                  .font(.system(size: 9))
+                  .foregroundStyle(.secondary)
+                Text("\(usage.used)m")
+                  .font(.system(size: 22, weight: .semibold))
+                Text("of \(formatMinutesHM(usage.limit))")
+                  .font(.system(size: 10))
+                  .foregroundStyle(.secondary)
+              }
+            }
+          }
+        }
       }
       .padding(18)
       .background(Color.primary.opacity(0.06))
@@ -1549,6 +1582,25 @@ private struct PolicyEditorCard: View {
       }
       Task { await loadPendingExtraTimeRequest() }
     }
+  }
+
+  private var dailyLimitUsage: (used: Int, limit: Int, progress: CGFloat)? {
+    guard let daily = device.dailyLimit else { return nil }
+    let limit = daily.limitMinutes ?? 0
+    let used = max(0, daily.usedMinutes ?? 0)
+    guard limit > 0 else { return nil }
+    let clampedUsed = min(limit, used)
+    let progress = CGFloat(Double(clampedUsed) / Double(limit))
+    return (used: clampedUsed, limit: limit, progress: progress)
+  }
+
+  private func formatMinutesHM(_ minutes: Int) -> String {
+    let m = max(0, minutes)
+    let h = m / 60
+    let r = m % 60
+    if h == 0 { return "\(r)m" }
+    if r == 0 { return "\(h)h" }
+    return "\(h)h \(r)m"
   }
 
   private static func parseTime(_ s: String) -> Date? {
